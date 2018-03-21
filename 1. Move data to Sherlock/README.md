@@ -1,0 +1,1 @@
+SSH into the langcog server and transfer data from there to the Sherlock environment. The command may be run in the background, which allows you to close the SSH connection. If the connection to close on the server's end, you need to go back and rerun the same command. Rsync will only transfer the deltas, or the data difference between the two filesystems, as opposed to scp. 
