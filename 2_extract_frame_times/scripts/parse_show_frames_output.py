@@ -18,7 +18,7 @@ checkfile.write("subid,last.frame,length\n")
 #for f in filter(lambda a: a.find(".txt") != -1, targetfiles):
 # print f
 for filename in os.listdir("../data/raw"):
-
+   print filename
    fin = open("../data/raw/" + filename, "r")
    short_f = filename + ".csv" # TODO give new short name
    fout = open("../data/parsed/" + short_f, "w")
@@ -33,7 +33,8 @@ for filename in os.listdir("../data/raw"):
 	   n = re.search(r"best_effort_timestamp_time=\d+.\d+", c) or None
            fout.write(str(i) + "," + m.group(0).replace("pkt_pts_time=", "") + "," + n.group(0).replace("best_effort_timestamp_time=","") + "\n")
            i = i + 1
-
-   checkfile.write("XS-" + short_f + "," + str(i - 1) + "," + m.group(0).replace("pkt_pts_time=", "") + "\n")
+   
+   if m: # TODO error with 111014-1.AVI.frames.txt not having anything
+   	checkfile.write("XS-" + short_f + "," + str(i - 1) + "," + m.group(0).replace("pkt_pts_time=", "") + "\n")
 
 
