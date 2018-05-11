@@ -2,7 +2,7 @@ import os
 import sys
 import ntpath
 
-OUTPUT_DIR = os.path.expandvars("$PI_SCRATCH/samcam/frames")
+OUTPUT_DIR = os.path.expandvars("$PI_HOME/samcam/frames4")
 # TODO on old sherlock this may be different
 #FFMPEG_BIN = os.path.expandvars("$HOME/ffmpeg-3.4-64bit-static/ffmpeg")
 

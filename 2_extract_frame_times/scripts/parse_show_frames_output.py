@@ -13,7 +13,7 @@ import os, sys, re
 #v = "1614"
 
 checkfile = open("../data/parsed/checkfile.csv", "a")
-checkfile.write("subid,last.frame,length\n")
+checkfile.write("video,num_frames,length\n")
 
 #for f in filter(lambda a: a.find(".txt") != -1, targetfiles):
 # print f
@@ -35,6 +35,9 @@ for filename in os.listdir("../data/raw"):
            i = i + 1
    
    if m: # TODO error with 111014-1.AVI.frames.txt not having anything
-   	checkfile.write("XS-" + short_f + "," + str(i - 1) + "," + m.group(0).replace("pkt_pts_time=", "") + "\n")
+   	checkfile.write(short_f.replace(".frames.txt.csv", "") + "," + str(i - 1) + "," + m.group(0).replace("pkt_pts_time=", "") + "\n")
+   else: 
+	checkfile.write(short_f.replace(".frames.txt.csv", "") + "," + str(i - 1) + "," + "0" + "\n")
+	
 
 

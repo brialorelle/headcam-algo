@@ -11,8 +11,7 @@ import ntpath
 
 #OUT_DIR = os.path.expandvars("$PI_HOME/frames4")
 # TMP
-OUT_DIR = os.path.expandvars("$PI_SCRATCH/samcam/rotate_frames")
-os.system("mkdir -p " + OUT_DIR)
+OUT_DIR = os.path.expandvars("$PI_HOME/samcam/frames_rotated")
 
 # define a function that rotates images in the current directory
 # given the rotation in degrees as a parameter

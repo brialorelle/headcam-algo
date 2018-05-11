@@ -20,3 +20,5 @@ https://github.com/CMU-Perceptual-Computing-Lab/openpose
 https://github.com/tensorflow/models/tree/master/research/object_detection
 
 https://github.com/facebookresearch/Detectron
+
+Note: filenames on samcam were changed a bit -- spaces were replaced with underscores, and parantheses were deleted
