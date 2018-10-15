@@ -26,3 +26,4 @@ analysis-main/main_analyses_bll_files/*
 figs/
 
 .Rproj.user
+*.AVI
