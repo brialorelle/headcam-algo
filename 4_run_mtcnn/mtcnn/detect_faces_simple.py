@@ -8,7 +8,7 @@ import traceback
 import multiprocessing
 import cv2
 
-OUTPUT_FILE = "/scratch/users/agrawalk/cpu_mtcnn_test.csv" 
+OUTPUT_FILE = "cpu_mtcnn_test.csv" 
 #OUTPUT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp/cpu_mtcnn_%s.csv")
 
 
