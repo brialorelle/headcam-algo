@@ -1,10 +1,11 @@
 """
-Script to randomly sample 100 frames with face detections,
+Script to randomly sample 100 random frames
 and save those frames to a folder.
 """
 import ntpath
 import os
 import sys
+
 import cv2
 import pandas as pd
 
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     FRAME_DIR = os.path.join(os.path.expandvars("$SCRATCH"),
                              'headcam-algo/tests/output/{}.AVI'.format(VID_NAME))
     OUT_DIR = os.path.join(os.path.expandvars("$SCRATCH"),
-                           'headcam-algo/tests/output/{}_face2'.format(VID_NAME))
+                           'headcam-algo/tests/output/{}_random2'.format(VID_NAME))
     CSV_DIR = os.path.join(os.path.expandvars("$SCRATCH"),
                            'headcam-algo/tests/output/{}_mtcnn.csv'.format(VID_NAME))
 
@@ -42,6 +43,5 @@ if __name__ == '__main__':
                        df.columns[5]: 'x2',
                        df.columns[6]: 'y2'}, inplace=True)
 
-    print(len(df[df['face']]))  # get random sample of df where 'face' is True
-    df = df[df['face']].sample(100)  # get random sample of df where 'face' is True
+    df = df.sample(100)  # get random sample of df where 'face' is True
     df.apply(save_frames, axis=1)

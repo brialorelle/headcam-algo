@@ -6,14 +6,13 @@ import csv
 # import multiprocessing
 import ntpath
 import os
+# import traceback
+import random
 import re
 import sys
 
 import cv2
 import face
-
-# import traceback
-
 
 # OUTPUT_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "tmp/cpu_mtcnn_%s.csv")
 
@@ -42,31 +41,25 @@ def process_img(imgpath, detector):
 
 if __name__ == "__main__":
     vid_folder = sys.argv[1]
-    vid = ntpath.basename(vid_folder)
+    vid = ntpath.basename(vid_folder[:-1])
     out_dir = os.path.join(os.path.expandvars("$SCRATCH"), 'headcam-algo/tests/output')
 
     # this is the output CSV with face detections for a given video.
-    output_file = os.path.join(out_dir, '{}.csv'.format(vid[:-4]))
+    OUTPUT_FILE = os.path.join(out_dir, '{}_mtcnn.csv'.format(vid.split('.')[0]))
 
     detector = face.Detection()
-#    pool = multiprocessing.Pool()
+    # pool = multiprocessing.Pool()
     results = []
 
-    for image in os.listdir(vid_folder):
+    # currently samples 5000 frames from the video
+    for image in random.sample(os.listdir(vid_folder), min(len(os.listdir(vid_folder)), 5000)):
         results.append(process_img(os.path.join(vid_folder, image), detector))
         # results.append(pool.apply_async(process_img, args=(os.path.join(vid_folder, image),)))
 
-#    pool.close()
-    with open(output_file, 'wb') as csvfile:
+    # pool.close()
+    with open(OUTPUT_FILE, 'wb') as csvfile:
         wr = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
         # wr.writerow(['group', 'video', 'frame', 'is_face', 'x', 'y', 'w', 'h', 'angle'])
         for result in results:
             for row in result:
                 wr.writerow(row)
-#        for result in results:
-#            try:
-#                rows = result.get()
-#                for row in rows:
-#                    wr.writerow(row)
-#            except:
-#                traceback.print_exc()
