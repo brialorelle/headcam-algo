@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # pool.close()
     with open(OUTPUT_FILE, 'wb') as csvfile:
         wr = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
-        # wr.writerow(['group', 'video', 'frame', 'is_face', 'x', 'y', 'w', 'h', 'angle'])
+        wr.writerow(['name', 'frame', 'face_detected', 'x1', 'y1', 'x2', 'y2'])
         for result in results:
             for row in result:
                 wr.writerow(row)
