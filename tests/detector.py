@@ -1,3 +1,4 @@
+import numpy as np
 import cv2
 from mtcnn import face
 
@@ -6,15 +7,15 @@ The FaceDetector class exposes two public members
 
 self.name: the name of the detector
 
-self.detect_faces: a method which, given an image as numpy array, returns a list of detected
-faces as bounding boxes (x,y,w,h).
+self.detect_faces: a method which, given an image as numpy array, returns a numpy array of detected
+faces as bounding boxes [x,y,w,h].
 """
 class FaceDetector:
     def __init__(self,name):
         self.name = name
         self.__detector_lookup = {
-            'vj' : self.vj_detect,
-            'mtcnn' : self.mtcnn_detect
+            'vj' : self.__vj_detect,
+            'mtcnn' : self.__mtcnn_detect
         }
         if self.name in self.__detector_lookup:
             self.detect_faces = self.__detector_lookup[self.name]
@@ -47,4 +48,9 @@ class FaceDetector:
         """
         Private member for MTCNN face detection.
         """
-        return self.__detector_object.find_faces(img)
+        faces =  self.__detector_object.find_faces(img)
+        faces = [face.bounding_box for face in faces]
+
+        #convert x1,y1,x2,y2 to x,y,w,h format
+        faces = [[bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]] for bb in faces]
+        return np.array(faces)
