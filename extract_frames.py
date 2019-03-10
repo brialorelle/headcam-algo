@@ -9,13 +9,11 @@ import ntpath
 import os
 import sys
 
-HOME_DIR = os.path.expandvars("$SCRATCH")
-OUT_DIR = os.path.join(HOME_DIR, 'headcam-algo/tests/output')
-if not os.path.exists(OUT_DIR):
-    os.makedirs(OUT_DIR)
-
-
 if __name__ == "__main__":
+    SCRATCH = os.path.expandvars("$SCRATCH")
+    OUT_DIR = os.path.join(SCRATCH, 'headcam-algo/output')
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
     full_filename = sys.argv[1]
     video_name = ntpath.basename(full_filename)[:-4] + '_frames' #-4 to cut off .AVI
     video_dir_name = os.path.join(OUT_DIR, video_name)
