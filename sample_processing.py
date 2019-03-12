@@ -1,9 +1,13 @@
+import os
+import sys
+sys.path.insert(0, "/scratch/users/agrawalk/headcam-algo/PCN/")
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import cv2
-import os
 import numpy as np
+
 from detector import FaceDetector
-import matplotlib.pyplot as plt
 
 
 # converts int num to string, and adds zeros to get to length 5, if necessary.
@@ -84,8 +88,8 @@ def calc_prf(df, det_name):
     r = len(true_pos) / len(true)
     denom = 1 if p + r == 0 else p + r
     f1 = 2 * p * r / denom
-    # return len(pos), len(true), len(true_pos), p, r, f1
-    return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
+    return p, r, f1
+    # return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
 
 def display_prf(sample_json_path, det_names = ['vj', 'mtcnn', 'openpose']):
     df = pd.read_json(sample_json_path)
