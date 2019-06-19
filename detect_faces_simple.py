@@ -34,7 +34,7 @@ def process_img(imgpath, detector):
     return pd.DataFrame([row], columns=['vid_name', 'frame', 'face_mtcnn', 'bb_mtcnn'])
 
 #TODO: figure out multiprocessing
-def run_mtcnn_on_vid(frame_dir, max_frames):
+def run_mtcnn_on_vid(frame_dir, out_json, max_frames):
     if frame_dir[-1] == '/':
         frame_dir = frame_dir[:-1]
     vid = ntpath.basename(frame_dir)
@@ -65,4 +65,4 @@ def run_mtcnn_on_vid(frame_dir, max_frames):
     sample_df.to_json(OUTPUT_FILE)
 
 if __name__ == "__main__":
-    run_mtcnn_on_vid(sys.argv[1], int(sys.argv[2]) if len(sys.argv) >= 3 else 10000)
+    run_mtcnn_on_vid(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) >= 4 else 10000)

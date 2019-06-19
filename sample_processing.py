@@ -1,6 +1,7 @@
 import os
 import sys
 sys.path.insert(0, "/scratch/users/agrawalk/headcam-algo/PCN/")
+from functools import reduce
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -133,16 +134,28 @@ def openpose_format_num(num):
 
 #apply function on each row, return row with openpose info for keypoint
 def create_openpose_col(row, openpose_dir, keypoint):
-    fname = '{0}_{1}_keypoints.json'.format(row['vid_name'],
-                                            openpose_format_num(row['frame'] - 1))
-    path = os.path.join(openpose_dir, '{}.AVI'.format(row['vid_name']), fname)
-    op_df = pd.read_json(path)
-    #returns list of keypoint-lists
-    return [person[keypoint] for person in op_df['people'].values]
+    try:
+        fname = '{0}_{1}_keypoints.json'.format(row['vid_name'],
+                                                openpose_format_num(row['frame'] - 1))
+        path = os.path.join(openpose_dir, '{}'.format(row['vid_name']), fname)
+        op_df = pd.read_json(path)
+        #returns list of keypoint-lists
+        return [person[keypoint] for person in op_df['people'].values]
+    except ValueError:
+        print("encountered value error")
+        return []
+
+def create_face_openpose_col(row):
+    return reduce(lambda x, y: x or y, [np.sum(face) != 0 for face in row['face_keypoints']], False)
 
 #add openpose columns to dataframe
 def incorporate_openpose_output(sample_json, openpose_dir):
-    df = pd.read_json(sample_json)
+    print("HEY")
+    df = pd.read_json(sample_json) if os.path.isfile(sample_json) else pd.DataFrame()
+    print(df)
     for keypoint in ['pose_keypoints', 'face_keypoints', 'hand_left_keypoints', 'hand_right_keypoints']:
         df[keypoint] = df.apply(lambda row: create_openpose_col(row, openpose_dir, keypoint), axis=1)
+    df['face_openpose'] = df.apply(create_face_openpose_col, axis=1)
     df.to_json(sample_json)
+
+    return df
