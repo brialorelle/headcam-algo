@@ -1,9 +1,0 @@
-name: headcam
-dependencies:
-  - python=3.6
-  - numpy
-  - pandas
-  - py-opencv
-  - jupyter
-  - tensorflow
-  - matplotlib
