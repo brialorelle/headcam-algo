@@ -1,8 +1,7 @@
-slurm_output
-slurm-*
+slurm*
 *_cache/
 .DS_Store
-data/.DS_Store
+.ipynb_checkpoints/
 *.pyc
 *.html
 *.AVI
