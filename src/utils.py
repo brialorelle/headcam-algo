@@ -1,5 +1,6 @@
 import os
 import sys
+import subprocess
 from functools import reduce
 
 import matplotlib.pyplot as plt
@@ -78,7 +79,7 @@ def run_detector_on_sample(detector_name, frames_dir, sample_json_path):
     df.to_json(sample_json_path)
 
 #calculate/display precision, recall and F-score for each detector
-#TODO: visualization
+#TODO: move visualization to function
 def calc_prf(df, det_name):
     pos = df[df['face_{}'.format(det_name)]]
     true = df[df['face_present'] == 1]
@@ -149,12 +150,42 @@ def create_face_openpose_col(row):
 
 #add openpose columns to dataframe
 def incorporate_openpose_output(sample_json, openpose_dir):
-    print("HEY")
     df = pd.read_json(sample_json) if os.path.isfile(sample_json) else pd.DataFrame()
-    print(df)
     for keypoint in ['pose_keypoints', 'face_keypoints', 'hand_left_keypoints', 'hand_right_keypoints']:
         df[keypoint] = df.apply(lambda row: create_openpose_col(row, openpose_dir, keypoint), axis=1)
     df['face_openpose'] = df.apply(create_face_openpose_col, axis=1)
     df.to_json(sample_json)
 
     return df
+
+
+#TODO: move default parameters to config
+#wrapper to submit an sbatch job on sherlock.
+def _job_time(t):
+    hrs = int(t//1)
+    mins = int(t*60%60)
+    secs = int(t*3600%60)
+
+    hrs = str(hrs).zfill(2)
+    mins = str(mins).zfill(2)
+    secs = str(secs).zfill(2)
+
+    return f'{hrs}:{mins}:{secs}'
+
+
+
+def submit_sbatch(wrap_cmd, job_name='sbatch', mail_type='FAIL', mail_user='agrawalk@stanford.edu', p='normal,hns', c=1, t=2, **kwargs):
+    args = []
+    args.extend(['-p', p])
+    args.extend(['-c', c])
+    args.extend(['-t', _job_time(t)])
+    args.extend(['--job-name', job_name])
+    args.extend(['--mail-type', mail_type])
+    args.extend(['--mail-user', mail_user])
+
+    for opt, optval in kwargs.items():
+        args.extend(['--' + opt, optval])
+    args.extend(['--wrap', wrap_cmd])
+
+    p = subprocess.Popen(['sbatch'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return p.communicate()
