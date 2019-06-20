@@ -22,10 +22,14 @@ git clone https://github.com/brialorelle/headcam-algo.git
 cd headcam-algo/
 ```
 
-Run the setup script, which creates the python environment and pulls the Openpose docker:
+Run the setup script, which creates the conda environment, installing the requisite python packages, and pulls the Openpose docker:
 ```
 ./setup.sh
 ```
+
+## Demo
+
+TODO
 
 ## Running the analysis
 
