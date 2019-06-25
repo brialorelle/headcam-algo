@@ -1,9 +1,10 @@
 """
 Script to extract frames from a video w/ ffmpeg to a folder.
 Currently configured for testing.
+
+NOTE: when running, check if images have successfully been flipped
+by ffmpeg. If so, no need to run the rotate_frames code.
 """
-# NOTE: when running, check if images have successfully been flipped
-# by ffmpeg. If so, no need to run the rotate_frames code.
 
 import ntpath
 import os
