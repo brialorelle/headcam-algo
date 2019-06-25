@@ -1,11 +1,16 @@
 import os
 
+#TODO: only include the user-facing constants here. Move the path construction stuff to a utils helper
+
 SCRATCH = os.path.expandvars('$SCRATCH')
 
 VID_NAMES = ['053113-1', '2013-10-27-part2', '061413-3',
              '2014-06-18-part2', '061713-1', '2014-01-01-part2']
 VID_PATHS = [os.path.join(SCRATCH, 'testvideos', f'{vid_name}.AVI')
              for vid_name in VID_NAMES]
+
+DEMO_VID_PATH = '/scratch/users/agrawalk/demo/demovideo.mp4'
+DEMO_OUTPUT = '/scratch/users/agrawalk/demo/'
 
 HOME_HEADCAM  = os.path.join(os.path.expandvars('$PI_SCRATCH'), 'Home_Headcam')
 SAMCAM_VIDS = os.path.join(HOME_HEADCAM, 'Samcam', 'Videos')
