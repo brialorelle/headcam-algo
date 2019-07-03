@@ -2,9 +2,9 @@
 
 import os
 import csv
+from config import *
 
-MOVIE_DIR = os.path.expandvars("$SCRATCH/globus")
-OUTPUT_FILE = os.path.expandvars("$HOME/xs-face/data/video_stats/ffprobe_frame_count.csv")
+OUTPUT_FILE = os.path.expandvars("$HOME/headcam-algo/src/ffprobe_frame_count.csv")
 
 CMD = "ffprobe " \
       "-v error " \
@@ -20,7 +20,14 @@ if __name__ == "__main__":
         wr = csv.writer(f, quoting=csv.QUOTE_ALL)
         wr.writerow(["video", "num_frames"])
 
-        for root, _, filenames in os.walk(MOVIE_DIR):
+        for root, _, filenames in os.walk(ALICECAM_VIDS):
+            for video in filenames:
+                video_path = os.path.join(root, video)
+                num_frames = os.popen(CMD % video_path).read()
+                wr.writerow(['_'.join(video.split('_')[:2]), int(num_frames)])
+                f.flush()
+
+        for root, _, filenames in os.walk(SAMCAM_VIDS):
             for video in filenames:
                 video_path = os.path.join(root, video)
                 num_frames = os.popen(CMD % video_path).read()
