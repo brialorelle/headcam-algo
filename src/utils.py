@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 from functools import reduce
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -10,6 +11,7 @@ import numpy as np
 import cv2
 
 from detector import FaceDetector
+from config import *
 
 
 #TODO: replace with zfill
@@ -27,7 +29,8 @@ def format_num(num):
 def create_sample_json(master_json_path, sample_json_path, sample_size=100):
     """create_sample_json: Creates a sample dataframe from the dataframe found in master_json_path
     with samples from each video in the dataframe (sample_size random frames and sample_size face
-    frames). For example, if frames from 6 videos are in the JSON and sample_size=200, creates a sample dataframe of size (200 + 200)*6 = 2400 frames
+    frames). For example, if frames from 6 videos are in the JSON and sample_size=200, creates a 
+    sample dataframe of size (200 + 200)*6 = 2400 frames.
 
     :param master_json_path: Path to the JSON containing all the frames for a video.
     :param sample_json_path: Path to the JSON containing sampled frames.
@@ -134,8 +137,8 @@ def calc_prf(df, det_name):
     true = df[df['face_present'] == 1]
     true_pos = pos[pos['face_present'] == 1]
 
-    p = len(true_pos) / len(pos)
-    r = len(true_pos) / len(true)
+    p = len(true_pos) / max(1, len(pos))
+    r = len(true_pos) / max(1, len(true))
     denom = 1 if p + r == 0 else p + r
     f1 = 2 * p * r / denom
     return p, r, f1
@@ -188,6 +191,123 @@ def display_prf2(sample_json_path, det_names=['vj', 'mtcnn', 'openpose']):
                 npos, ntrue, ntrue_pos, p, r, f1 = calc_prf(group_slice, det_name)
                 print('\t[{3}] precision: {0}, recall: {1}, F1: {2}\n'.format(p, r, f1, group))
             print()
+
+def print_prf(df):
+    avg_metrics = defaultdict(lambda: defaultdict(list))
+    vid_metrics = defaultdict(lambda: defaultdict(list))
+    metrics = ['p', 'r', 'f']
+    det_names = ['openpose']
+    # det_names = ['mtcnn', 'vj', 'openpose']
+    
+    #Get metrics for each detector
+    for random_group in [True, False]:
+        for det in det_names:
+            cut = df[df['random'] == random_group]
+
+            #this is p/r/f for a given det/group
+            prf = calc_prf(cut, det) 
+
+            #each element is p/r/f for a given det/group/vid
+            prf_vids = [calc_prf(cut[cut['vid_name'] == vid_name], det) for vid_name in VID_NAMES] 
+
+            for i, metric in enumerate(metrics):
+                avg_metrics[metric][det].append(prf[i])
+                vid_metrics[metric][det].append([x[i] for x in prf_vids])
+    # fig, ax = plt.subplots()
+    index = np.arange(2)
+    bar_width = 0.15
+    opacity = 0.8
+
+    colors = [f'C{n}' for n in range(10)]
+
+    for j, metric in enumerate(metrics):
+        metric_print = {'p': 'Precision', 'r': 'Recall', 'f': 'F-score'}
+        print(metric_print[metric])
+        
+        #Bar chart plotting
+        for i, det in enumerate(det_names):
+            x = index + i*bar_width
+            print(f'{det}: {avg_metrics[metric][det]}')
+            # plt.bar(x, avg_metrics[metric][det], bar_width,
+            #         alpha=opacity,
+            #         color=colors[i],
+            #         label=det)
+
+        ##Line chart plotting
+        #for i in range(len(VID_NAMES)):
+        #    for k in range(2): #splitting by face/random
+        #        #plot the scores for a given a metric, group, and video across detectors.
+        #        metric_y = [vid_metrics[metric][det][k][i] for det in vid_metrics[metric]]
+        #        metric_x = [index + i*bar_width for i in range(len(det_names))]
+        #        plt.plot(metric_x, metric_y, color='C4', marker='o')
+            
+        # plt.xlabel('Group')
+        # plt.ylabel('Scores')
+        
+        # plt.title(metric_print[metric])
+        
+        # plt.xticks(index + bar_width, ('random', 'face'))
+        # plt.legend()
+        
+    # plt.show()
+
+#pads the number w/ zeros, as per openpose output JSON files
+def viz_prf(df):
+    avg_metrics = defaultdict(lambda: defaultdict(list))
+    vid_metrics = defaultdict(lambda: defaultdict(list))
+    metrics = ['p', 'r', 'f']
+    det_names = ['mtcnn', 'vj', 'openpose']
+    
+    #Get metrics for each detector
+    for random_group in [True, False]:
+        for det in det_names:
+            cut = df[df['random'] == random_group]
+
+            #this is p/r/f for a given det/group
+            prf = calc_prf(cut, det) 
+
+            #each element is p/r/f for a given det/group/vid
+            prf_vids = [calc_prf(cut[cut['vid_name'] == vid_name], det) for vid_name in VID_NAMES] 
+
+            for i, metric in enumerate(metrics):
+                avg_metrics[metric][det].append(prf[i])
+                vid_metrics[metric][det].append([x[i] for x in prf_vids])
+    fig, ax = plt.subplots()
+    index = np.arange(2)
+    bar_width = 0.15
+    opacity = 0.8
+
+    colors = [f'C{n}' for n in range(10)]
+
+    for j, metric in enumerate(metrics):
+        plt.figure(j)
+        
+        #Bar chart plotting
+        for i, det in enumerate(det_names):
+            x = index + i*bar_width
+            plt.bar(x, avg_metrics[metric][det], bar_width,
+                    alpha=opacity,
+                    color=colors[i],
+                    label=det)
+
+        #Line chart plotting
+        for i in range(len(VID_NAMES)):
+            for k in range(2): #splitting by face/random
+                #plot the scores for a given a metric, group, and video across detectors.
+                metric_y = [vid_metrics[metric][det][k][i] for det in vid_metrics[metric]]
+                metric_x = [index + i*bar_width for i in range(len(det_names))]
+                plt.plot(metric_x, metric_y, color='C4', marker='o')
+            
+        plt.xlabel('Group')
+        plt.ylabel('Scores')
+        
+        metric_print = {'p': 'Precision', 'r': 'Recall', 'f': 'F-score'}
+        plt.title(metric_print[metric])
+        
+        plt.xticks(index + bar_width, ('random', 'face'))
+        plt.legend()
+        
+    plt.show()
 
 #pads the number w/ zeros, as per openpose output JSON files
 def openpose_format_num(num):
@@ -326,3 +446,20 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=False, **kwargs):
     cmd += f'--write_keypoint_json {vid_output_dir}\''
 
     return submit_sbatch(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
+
+def visualize_detections(sample_json, det_names, sample_size=25, face=True):
+    """visualize_detections: sample a few frames, and overlay the detections of the various
+    detectors (if any) on that frame.
+
+    :param sample_json: path to the sample JSON.
+    :param det_names: list of names of the detectors to be visualized (e.g. ['mtcnn', 'op', 'vj'])
+    :param sample_size:
+    :param face:
+    """
+    df = pd.read_json(sample_json)
+    sample = df.sample(sample_size)
+
+    #TODO: make load_frame(vid_name, frame) helper used here and in hand-annotation function
+
+    # load images
+    # create plot of 5*sample_size + (5 - sample size % 5) % 5
