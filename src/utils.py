@@ -4,8 +4,7 @@ import sys
 import subprocess
 from functools import reduce
 from collections import defaultdict
-
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import cv2
@@ -126,23 +125,75 @@ def run_detector_on_sample(det_name, frames_dir, sample_json_path):
 
 #calculate/display precision, recall and F-score for each detector
 #TODO: move visualization to function
-def calc_prf(df, det_name):
+def calc_tpr_fpr(df, det_name, threshold=0):
+    """calc_tpr_fpr: given a dataframe and a detector, calculate True Positive and False Positive
+    Rates.
+
+    :param df: dataframe to perform calculations over.
+    :param det_name: name of detector for which metrics will be calculated.
+    :param threshold: confidence threshold for openpose
+    """
+    true = df[df['face_present'] == 1]
+    false = df[df['face_present'] == 0]
+    df = df[df['nose_confidence'] >= threshold]
+    pos = df[df['face_{}'.format(det_name)]]
+    true_pos = pos[pos['face_present'] == 1]
+    false_pos = pos[pos['face_present'] == 0]
+
+    tpr = len(true_pos) / max(1, len(true))
+    fpr = len(false_pos) / max(1, len(false))
+    return tpr, fpr
+
+# return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
+
+def calc_prf_hand(df, det_name):
     """calc_prf: given a dataframe and a detector, calculate and return that detector's precision,
     recall, and F1 score.
 
     :param df: dataframe to perform calculations over.
     :param det_name: name of detector for which metrics will be calculated.
     """
-    pos = df[df['face_{}'.format(det_name)]]
-    true = df[df['face_present'] == 1]
-    true_pos = pos[pos['face_present'] == 1]
+    pos = df[df['hand_{}'.format(det_name)] == 1]
+    true = df[df['hand_present'] == 1]
+    true_pos = pos[pos['hand_present'] == 1]
 
     p = len(true_pos) / max(1, len(pos))
     r = len(true_pos) / max(1, len(true))
     denom = 1 if p + r == 0 else p + r
     f1 = 2 * p * r / denom
     return p, r, f1
-# return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
+
+def calc_prf(predictions, ground_truth):
+    if len(predictions) != len(ground_truth):
+        raise ValueError('Lengths of predictions and ground truth don\'t match!')
+    predictions, ground_truth = np.array(predictions), np.array(ground_truth)
+    pos = predictions[predictions == 1]
+    true = ground_truth[ground_truth == 1]
+    true_pos = ground_truth[ground_truth + predictions == 2]
+    print(len(pos), len(true), len(true_pos))
+    p = len(true_pos) / max(1, len(pos))
+    r = len(true_pos) / max(1, len(true))
+    denom = 1 if p + r == 0 else p + r
+    f1 = 2 * p * r / denom
+    return p, r, f1
+
+# def calc_prf(df, det_name):
+#     """calc_prf: given a dataframe and a detector, calculate and return that detector's precision,
+#     recall, and F1 score.
+
+#     :param df: dataframe to perform calculations over.
+#     :param det_name: name of detector for which metrics will be calculated.
+#     """
+#     pos = df[df['face_{}'.format(det_name)] == 1]
+#     true = df[df['face_present'] == 1]
+#     true_pos = pos[pos['face_present'] == 1]
+
+#     p = len(true_pos) / max(1, len(pos))
+#     r = len(true_pos) / max(1, len(true))
+#     denom = 1 if p + r == 0 else p + r
+#     f1 = 2 * p * r / denom
+#     return p, r, f1
+# # return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
 
 def display_prf(sample_json_path, det_names=['vj', 'mtcnn', 'openpose']):
     """display_prf: Display the prf of the given dataframe, display the precision, recall, and F1
@@ -413,7 +464,7 @@ def submit_sbatch(wrap_cmd, job_name='sbatch', mail_type='FAIL',
     p = subprocess.Popen(['sbatch'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()
 
-def run_openpose(vid_path, op_output_dir, face=True, hand=False, **kwargs):
+def run_openpose(vid_path, op_output_dir, face=True, hand=False, overwrite=None, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
 
     :param vid_path: path to video file.
@@ -423,14 +474,15 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=False, **kwargs):
     :param **kwargs: additional command-line arguments to pass to Openpose (see Openpose
     documentation).
     """
+    print()
     os.makedirs(op_output_dir, exist_ok=True)
     vid_name = ntpath.basename(vid_path)[:-4]
     vid_output_dir = os.path.join(op_output_dir, f'{vid_name}')
 
-    if (os.path.exists(vid_output_dir)
-            and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes'):
-        print(f'aborting on video {vid_path}.')
-        return
+    if os.path.exists(vid_output_dir):
+        if (overwrite is None and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes') or not overwrite:
+            print(f'aborting on video {vid_path}.')
+            return
     os.makedirs(vid_output_dir, exist_ok=True)
 
     #this could also be openpose_latest.sif, instead of openpose-latest.img.
@@ -445,7 +497,8 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=False, **kwargs):
         cmd += '--hand '
     cmd += f'--write_keypoint_json {vid_output_dir}\''
 
-    return submit_sbatch(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
+    return submit_sbatch(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1',
+                         exclude='sh-113-12') #This node was malfunctional
 
 def visualize_detections(sample_json, det_names, sample_size=25, face=True):
     """visualize_detections: sample a few frames, and overlay the detections of the various
