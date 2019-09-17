@@ -1,33 +1,33 @@
 import os
 
-#TODO: only include the user-facing constants here. Move the path construction stuff to a utils helper
+#List of directories containing videos in the dataset.
+VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/']
 
-SCRATCH = os.path.expandvars('$SCRATCH')
+#Overall output directory.
+OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
 
-VID_NAMES = ['053113-1', '2013-10-27-part2', '061413-3',
-             '2014-06-18-part2', '061713-1', '2014-01-01-part2']
-VID_PATHS = [os.path.join(SCRATCH, 'testvideos', f'{vid_name}.AVI')
-             for vid_name in VID_NAMES]
+#Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
+OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
 
-DEMO_VID_PATH = '/scratch/users/agrawalk/demo/demovideo.mp4'
-DEMO_OUTPUT = '/scratch/users/agrawalk/demo/'
+#Directory for condensed Openpose output (one file per video) 
+OPENPOSE_CONDENSED_OUTPUT = os.path.join(OUTPUT, 'openpose_condensed')
 
-HOME_HEADCAM  = os.path.join(os.path.expandvars('$PI_SCRATCH'), 'Home_Headcam')
-SAMCAM_VIDS = os.path.join(HOME_HEADCAM, 'Samcam', 'Videos')
-ALICECAM_VIDS = os.path.join(HOME_HEADCAM, 'Alicecam', 'Videos')
+#File path for the video-level dataframe.
+VID_DATAFRAME_PATH = os.path.join(OUTPUT, 'master_vid_info.json')
 
-NEW_SAM_VID_NAMES = []
-NEW_SAM_VID_PATHS = [os.path.join(SAMCAM_VIDS, f'{vid_name}.AVI')
-                     for vid_name in NEW_SAM_VID_NAMES]
-NEW_ALICE_VID_NAMES = []
-NEW_VID_NAMES = NEW_SAM_VID_NAMES + NEW_ALICE_VID_NAMES
-NEW_ALICE_VID_PATHS = [os.path.join(ALICECAM_VIDS, f'{vid_name}.AVI')
-                     for vid_name in NEW_ALICE_VID_NAMES]
-NEW_VID_PATHS = NEW_SAM_VID_PATHS + NEW_ALICE_VID_PATHS
+#File path for the frame-level dataframe
+#(which will contain openpose outputs as well.)
+FRAME_DATAFRAME_PATH = os.path.join(OUTPUT, 'master_frames_openpose.h5')
 
-MASTER_JSON_PATH = os.path.join(SCRATCH, 'headcam-algo', 'gold_set.json')
-SAMPLE_JSON_PATH = os.path.join(SCRATCH, 'headcam-algo', 'gold_set_sample.json')
+#FIle path for the gold sample of frames used to evaluate detector performance.
+SAMPLE_DATAFRAME_PATH = os.path.join(OUTPUT, 'gold_sample.json')
 
-OUTPUT = os.path.join(SCRATCH, 'headcam-algo', 'output')
-OPENPOSE_OUTPUT = os.path.join(SCRATCH, 'headcam-algo', OUTPUT, 'openpose_json_output')
-FRAME_DIRS = [os.path.join(OUTPUT, f'{vid_name}_frames') for vid_name in VID_NAMES]
+#How much to rotate videos by (default 180, as most headcam videos are recorded upside down)
+VID_ROTATE = 180
+
+#Dict from child id => birthdate in (year, month, day) format.
+#NOTE: Actual birthdates not included for privacy reasons.
+BIRTHDATES = {'A': (YYYY, MM, DD), 'S': (YYYY, MM, DD)}
+
+#Number of frames to extract for gold sample.
+GOLD_SET_NUM_FRAMES = 24000

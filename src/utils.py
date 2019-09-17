@@ -1,444 +1,30 @@
+import swifter
+import msgpack
+import ujson
+import imutils
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from itertools import chain
+import glob
+import time
+import datetime
+import re
 import ntpath
 import os
 import sys
 import subprocess
 from functools import reduce
 from collections import defaultdict
-# import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import cv2
 
-from detector import FaceDetector
 from config import *
 
 
-#TODO: replace with zfill
-def format_num(num):
-    """format_num
-    given an int num, converts to a string and pads with zeros, according to the file
-    naming conventions for FFMPEG frame outputs.
-
-    :param num: int representing the frame number
-    """
-    num = str(num)
-    return '0' * (5 - len(num)) + num
-
-#creates a sample dataframe with random samples from each video (100 random and 100 face).
-def create_sample_json(master_json_path, sample_json_path, sample_size=100):
-    """create_sample_json: Creates a sample dataframe from the dataframe found in master_json_path
-    with samples from each video in the dataframe (sample_size random frames and sample_size face
-    frames). For example, if frames from 6 videos are in the JSON and sample_size=200, creates a 
-    sample dataframe of size (200 + 200)*6 = 2400 frames.
-
-    :param master_json_path: Path to the JSON containing all the frames for a video.
-    :param sample_json_path: Path to the JSON containing sampled frames.
-    :param sample_size: Number of frames to draw from both random and face-dense from each video
-    """
-    sample_df = pd.DataFrame(columns=['vid_name', 'frame', 'face_mtcnn', 'bb_mtcnn'])
-    df = pd.read_json(master_json_path)
-    dfs = [df[df['vid_name'] == vid] for vid in df['vid_name'].unique()]
-
-    sample_df = sample_df.append([df.sample(sample_size) for df in dfs], ignore_index=True)
-    sample_df = sample_df.append([df[df['face_mtcnn']].sample(sample_size) for df in dfs],
-                                 ignore_index=True)
-
-    if (os.path.exists(sample_json_path)
-            and input(f'overwrite existing directory {sample_json_path}? (yes/no)') != 'yes'):
-        print(f'aborting on creation of {sample_json_path}.')
-        return
-
-    sample_df.to_json(sample_json_path)
-
-# respond 'y' for face, 'n' or '' for no face, 'g' to go back and re-annotate prev frame
-def get_annotation_input():
-    """get_annotation_input: Gets a yes/no input from the user.
-    """
-    annot = input('Face? (y/[n]/g[o back]) ').lower()
-    while annot not in ['y', 'n', '', 'g']:
-        annot = input('Invalid input.\nFace? (y/[n]/g[o back])').lower()
-    print('Recorded \'{}\''.format(annot))
-    return annot
-
-#annotate frames in a given directory for faces (y/n); append annotations to dataframe
-def annotate_sample(frames_dir, sample_json_path):
-    """annotate_sample: Helper to quickly hand-annotate frames, displayed to the user, for presence
-    of face (y/n).
-
-    :param frames_dir: directory containing the extracted video frames.
-    :param sample_json_path: path to the sample json
-    """
-    df = pd.read_json(sample_json_path) # assumes a header is already present.
-    vid_path = lambda vid_name, num: os.path.join(frames_dir,
-                                                  f'{vid_name}_frames/image-{format_num(num)}.jpg')
-    img_paths = [vid_path(vid_name, num) for vid_name, num in zip(df['vid_name'], df['frame'])]
-    imgs = [cv2.imread(path) for path in img_paths]
-    face_present = np.zeros(df.shape[0])
-    print('BEGIN ANNOTATING {}'.format(frames_dir))
-
-    i = 0
-    while i < len(imgs):
-        if i % 100 == 0: #avoid catastrophes
-            np.save('face_present.npy', face_present)
-        print('\nImage {0}/{1}'.format(i + 1, len(imgs)))
-        plt.imshow(imgs[i])
-        plt.show()
-        annot = get_annotation_input()
-        if annot == 'g':
-            print('Going back to previous frame')
-            i -= 1
-        else:
-            face_present[i] = (annot == 'y')
-            i += 1
-
-    df['face_present'] = face_present
-    print('Saving annotated df')
-    df.to_json(sample_json_path)
-    print('END ANNOTATING {}'.format(frames_dir))
-
-#apply function on each row, return faces detected
-def create_det_col(row, detector, frames_dir):
-    """create_det_col: Runs the passed-in detector on the passed-in dataframe (row),
-    applied across the dataframe to create a column of detections for that detector.
-    :param row: row of a Pandas dataframe containing the video name and frame number
-    :param detector: FaceDetector object to be run
-    :param frames_dir: directory containing frames
-    """
-    fname = '{0}_frames/image-{1}.jpg'.format(row['vid_name'], format_num(row['frame']))
-    img_path = os.path.join(frames_dir, fname)
-    return detector.detect_faces(cv2.imread(img_path))
-
-#run a detector on frames in sample
-def run_detector_on_sample(det_name, frames_dir, sample_json_path):
-    """run_detector_on_sample: runs the given detector on the frames in the sample JSON,
-    saving the detections and corresponding bounding boxes as a new column in the dataframe.
-
-    :param det_name: name of the detector to be used (e.g. 'mtcnn' or 'vj')
-    :param frames_dir: directory containing frame directories.
-    :param sample_json_path: path to the sample JSON.
-    """
-    df = pd.read_json(sample_json_path) # assumes a header is already present.
-    detector = FaceDetector(det_name)
-    df[f'bb_{det_name}'] = df.apply(lambda row: create_det_col(row, detector, frames_dir), axis=1)
-    df[f'face_{det_name}'] = [len(faces) > 0 for faces in df['bb_{}'.format(det_name)]]
-    df.to_json(sample_json_path)
-
-#calculate/display precision, recall and F-score for each detector
-#TODO: move visualization to function
-def calc_tpr_fpr(df, det_name, threshold=0):
-    """calc_tpr_fpr: given a dataframe and a detector, calculate True Positive and False Positive
-    Rates.
-
-    :param df: dataframe to perform calculations over.
-    :param det_name: name of detector for which metrics will be calculated.
-    :param threshold: confidence threshold for openpose
-    """
-    true = df[df['face_present'] == 1]
-    false = df[df['face_present'] == 0]
-    df = df[df['nose_confidence'] >= threshold]
-    pos = df[df['face_{}'.format(det_name)]]
-    true_pos = pos[pos['face_present'] == 1]
-    false_pos = pos[pos['face_present'] == 0]
-
-    tpr = len(true_pos) / max(1, len(true))
-    fpr = len(false_pos) / max(1, len(false))
-    return tpr, fpr
-
-# return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
-
-def calc_prf_hand(df, det_name):
-    """calc_prf: given a dataframe and a detector, calculate and return that detector's precision,
-    recall, and F1 score.
-
-    :param df: dataframe to perform calculations over.
-    :param det_name: name of detector for which metrics will be calculated.
-    """
-    pos = df[df['hand_{}'.format(det_name)] == 1]
-    true = df[df['hand_present'] == 1]
-    true_pos = pos[pos['hand_present'] == 1]
-
-    p = len(true_pos) / max(1, len(pos))
-    r = len(true_pos) / max(1, len(true))
-    denom = 1 if p + r == 0 else p + r
-    f1 = 2 * p * r / denom
-    return p, r, f1
-
-def calc_prf(predictions, ground_truth):
-    if len(predictions) != len(ground_truth):
-        raise ValueError('Lengths of predictions and ground truth don\'t match!')
-    predictions, ground_truth = np.array(predictions), np.array(ground_truth)
-    pos = predictions[predictions == 1]
-    true = ground_truth[ground_truth == 1]
-    true_pos = ground_truth[ground_truth + predictions == 2]
-    print(len(pos), len(true), len(true_pos))
-    p = len(true_pos) / max(1, len(pos))
-    r = len(true_pos) / max(1, len(true))
-    denom = 1 if p + r == 0 else p + r
-    f1 = 2 * p * r / denom
-    return p, r, f1
-
-# def calc_prf(df, det_name):
-#     """calc_prf: given a dataframe and a detector, calculate and return that detector's precision,
-#     recall, and F1 score.
-
-#     :param df: dataframe to perform calculations over.
-#     :param det_name: name of detector for which metrics will be calculated.
-#     """
-#     pos = df[df['face_{}'.format(det_name)] == 1]
-#     true = df[df['face_present'] == 1]
-#     true_pos = pos[pos['face_present'] == 1]
-
-#     p = len(true_pos) / max(1, len(pos))
-#     r = len(true_pos) / max(1, len(true))
-#     denom = 1 if p + r == 0 else p + r
-#     f1 = 2 * p * r / denom
-#     return p, r, f1
-# # return len(pos), len(true), len(true_pos), round(p, 2), round(r, 2), round(f1, 2)
-
-def display_prf(sample_json_path, det_names=['vj', 'mtcnn', 'openpose']):
-    """display_prf: Display the prf of the given dataframe, display the precision, recall, and F1
-    score, split by first the detector, then the group (random or face,) then the video.
-
-    :param sample_json_path: path to the JSON containing the dataframe.
-    :param det_names: names of the detectors to display statistics for.
-    """
-    df = pd.read_json(sample_json_path)
-
-    slices = {'face': df[df.index >= 1200], 'random': df[df.index < 1200]}
-    for det_name in det_names:
-        print('DETECTOR: {}'.format(det_name))
-        for group in slices:
-            group_slice = slices[group]
-            print('\tGROUP: {0} ({1} frames)'.format(group, len(group_slice)))
-            npos, ntrue, ntrue_pos, p, r, f1 = calc_prf(group_slice, det_name)
-            # print('\tpositive: {0}, true: {1}, true positive: {2}'.format(npos, ntrue, ntrue_pos))
-            print('\tprecision: {0}, recall: {1}, F1: {2}\n'.format(p, r, f1))
-
-            for vid_name in df['vid_name'].unique():
-                vid_slice = group_slice[group_slice['vid_name'] == vid_name]
-                print('\tVID: {0} ({1} frames)'.format(vid_name, len(vid_slice)))
-                npos, ntrue, ntrue_pos, p, r, f1 = calc_prf(vid_slice, det_name)
-                # print('\tpositive: {0}, true: {1}, true positive: {2}'.format(npos, ntrue, ntrue_pos))
-                print('\tprecision: {0}, recall: {1}, F1: {2}\n'.format(p, r, f1))
-
-def display_prf2(sample_json_path, det_names=['vj', 'mtcnn', 'openpose']):
-    """display_prf2: Display the prf of the given dataframe, display the precision, recall, and F1
-    score, split by first the video, then the detector, then the group (random or face.)
-
-    :param sample_json_path: path to the JSON containing the dataframe.
-    :param det_names: names of the detectors to display statistics for.
-    """
-    df = pd.read_json(sample_json_path)
-
-    for vid_name in df['vid_name'].unique():
-        vid_slice = df[df['vid_name'] == vid_name]
-        print('VID: {0} ({1} frames)'.format(vid_name, len(vid_slice)))
-        slices = {'face': vid_slice[vid_slice.index >= 1200],
-                  'random': vid_slice[vid_slice.index < 1200]}
-        for det_name in det_names:
-            print('\tDETECTOR: {}'.format(det_name))
-            for group in slices:
-                group_slice = slices[group]
-                npos, ntrue, ntrue_pos, p, r, f1 = calc_prf(group_slice, det_name)
-                print('\t[{3}] precision: {0}, recall: {1}, F1: {2}\n'.format(p, r, f1, group))
-            print()
-
-def print_prf(df):
-    avg_metrics = defaultdict(lambda: defaultdict(list))
-    vid_metrics = defaultdict(lambda: defaultdict(list))
-    metrics = ['p', 'r', 'f']
-    det_names = ['openpose']
-    # det_names = ['mtcnn', 'vj', 'openpose']
-    
-    #Get metrics for each detector
-    for random_group in [True, False]:
-        for det in det_names:
-            cut = df[df['random'] == random_group]
-
-            #this is p/r/f for a given det/group
-            prf = calc_prf(cut, det) 
-
-            #each element is p/r/f for a given det/group/vid
-            prf_vids = [calc_prf(cut[cut['vid_name'] == vid_name], det) for vid_name in VID_NAMES] 
-
-            for i, metric in enumerate(metrics):
-                avg_metrics[metric][det].append(prf[i])
-                vid_metrics[metric][det].append([x[i] for x in prf_vids])
-    # fig, ax = plt.subplots()
-    index = np.arange(2)
-    bar_width = 0.15
-    opacity = 0.8
-
-    colors = [f'C{n}' for n in range(10)]
-
-    for j, metric in enumerate(metrics):
-        metric_print = {'p': 'Precision', 'r': 'Recall', 'f': 'F-score'}
-        print(metric_print[metric])
-        
-        #Bar chart plotting
-        for i, det in enumerate(det_names):
-            x = index + i*bar_width
-            print(f'{det}: {avg_metrics[metric][det]}')
-            # plt.bar(x, avg_metrics[metric][det], bar_width,
-            #         alpha=opacity,
-            #         color=colors[i],
-            #         label=det)
-
-        ##Line chart plotting
-        #for i in range(len(VID_NAMES)):
-        #    for k in range(2): #splitting by face/random
-        #        #plot the scores for a given a metric, group, and video across detectors.
-        #        metric_y = [vid_metrics[metric][det][k][i] for det in vid_metrics[metric]]
-        #        metric_x = [index + i*bar_width for i in range(len(det_names))]
-        #        plt.plot(metric_x, metric_y, color='C4', marker='o')
-            
-        # plt.xlabel('Group')
-        # plt.ylabel('Scores')
-        
-        # plt.title(metric_print[metric])
-        
-        # plt.xticks(index + bar_width, ('random', 'face'))
-        # plt.legend()
-        
-    # plt.show()
-
-#pads the number w/ zeros, as per openpose output JSON files
-def viz_prf(df):
-    avg_metrics = defaultdict(lambda: defaultdict(list))
-    vid_metrics = defaultdict(lambda: defaultdict(list))
-    metrics = ['p', 'r', 'f']
-    det_names = ['mtcnn', 'vj', 'openpose']
-    
-    #Get metrics for each detector
-    for random_group in [True, False]:
-        for det in det_names:
-            cut = df[df['random'] == random_group]
-
-            #this is p/r/f for a given det/group
-            prf = calc_prf(cut, det) 
-
-            #each element is p/r/f for a given det/group/vid
-            prf_vids = [calc_prf(cut[cut['vid_name'] == vid_name], det) for vid_name in VID_NAMES] 
-
-            for i, metric in enumerate(metrics):
-                avg_metrics[metric][det].append(prf[i])
-                vid_metrics[metric][det].append([x[i] for x in prf_vids])
-    fig, ax = plt.subplots()
-    index = np.arange(2)
-    bar_width = 0.15
-    opacity = 0.8
-
-    colors = [f'C{n}' for n in range(10)]
-
-    for j, metric in enumerate(metrics):
-        plt.figure(j)
-        
-        #Bar chart plotting
-        for i, det in enumerate(det_names):
-            x = index + i*bar_width
-            plt.bar(x, avg_metrics[metric][det], bar_width,
-                    alpha=opacity,
-                    color=colors[i],
-                    label=det)
-
-        #Line chart plotting
-        for i in range(len(VID_NAMES)):
-            for k in range(2): #splitting by face/random
-                #plot the scores for a given a metric, group, and video across detectors.
-                metric_y = [vid_metrics[metric][det][k][i] for det in vid_metrics[metric]]
-                metric_x = [index + i*bar_width for i in range(len(det_names))]
-                plt.plot(metric_x, metric_y, color='C4', marker='o')
-            
-        plt.xlabel('Group')
-        plt.ylabel('Scores')
-        
-        metric_print = {'p': 'Precision', 'r': 'Recall', 'f': 'F-score'}
-        plt.title(metric_print[metric])
-        
-        plt.xticks(index + bar_width, ('random', 'face'))
-        plt.legend()
-        
-    plt.show()
-
-#pads the number w/ zeros, as per openpose output JSON files
-def openpose_format_num(num):
-    """openpose_format_num: format a frame number as per the Openpose JSON output files
-
-    :param num: the frame number (int.)
-    """
-    num = str(num)
-    return '0' * (12 - len(num)) + num
-
-#apply function on each row, return row with openpose info for keypoint
-def create_openpose_col(row, openpose_dir, keypoint):
-    """create_openpose_col: row-wise applied function to create a column containing openpose
-    keypoints for the given keypoint type.
-
-    :param row: Pandas dataframe row.
-    :param openpose_dir: Directory containing Openpose output folders.
-    :param keypoint: One of 'pose_keypoints', 'face_keypoints',
-                     'hand_left_keypoints', 'hand_right_keypoints'
-    """
-    try:
-        fname = '{0}_{1}_keypoints.json'.format(row['vid_name'],
-                                                openpose_format_num(row['frame'] - 1))
-        path = os.path.join(openpose_dir, '{}'.format(row['vid_name']), fname)
-        op_df = pd.read_json(path)
-        #returns list of keypoint-lists
-        return [person[keypoint] for person in op_df['people'].values]
-    except ValueError:
-        print("encountered value error")
-        return []
-
-def create_face_openpose_col(row):
-    """create_face_openpose_col: row-wise applied function to create a column with boolean
-    True/False values, describing whether a face was detected or not. A face is said to be detected
-    by Openpose if any non-zero face-keypoints are present in the Openpose detections.
-
-    :param row: Pandas dataframe row.
-    """
-    return reduce(lambda x, y: x or y, [np.sum(face) != 0 for face in row['face_keypoints']], False)
-
-def incorporate_openpose_output(sample_json, openpose_dir):
-    """incorporate_openpose_output: incorporate openpose outputs into pandas dataframe as separate
-    columns for each type of keypoint (face, pose, left hand, and right hand), and resave the
-    dataframe.
-
-    :param sample_json: Sample JSON to add Openpose info to.
-    :param openpose_dir: Directory containing Openpose output folders.
-    """
-    df = pd.read_json(sample_json) if os.path.isfile(sample_json) else pd.DataFrame()
-    for keypoint in ['pose_keypoints', 'face_keypoints',
-                     'hand_left_keypoints', 'hand_right_keypoints']:
-        df[keypoint] = df.apply(lambda r: create_openpose_col(r, openpose_dir, keypoint), axis=1)
-    df['face_openpose'] = df.apply(create_face_openpose_col, axis=1)
-    df.to_json(sample_json)
-
-    return df
-
-
-#TODO: move default parameters to config
-#wrapper to submit an sbatch job on sherlock.
-def _job_time(t):
-    """_job_time: Converts time t to slurm time ('hh:mm:ss').
-
-    :param t: an integer representing # of hours for the job.
-    """
-    hrs = int(t//1)
-    mins = int(t*60%60)
-    secs = int(t*3600%60)
-
-    hrs = str(hrs).zfill(2)
-    mins = str(mins).zfill(2)
-    secs = str(secs).zfill(2)
-
-    return f'{hrs}:{mins}:{secs}'
-
-#TODO: write Openpose submission helper.
-
-def submit_sbatch(wrap_cmd, job_name='sbatch', mail_type='FAIL',
+def submit_job(wrap_cmd, job_name='sbatch', mail_type='FAIL',
                   mail_user='agrawalk@stanford.edu', p='normal,hns', c=1, t=2, **kwargs):
-    """submit_sbatch: Wrapper to submit sbatch jobs to Slurm.
+    """submit_job: Wrapper to submit sbatch jobs to Slurm.
 
     :param wrap_cmd: command to execute in the job.
     :param job_name: name for the job.
@@ -464,55 +50,224 @@ def submit_sbatch(wrap_cmd, job_name='sbatch', mail_type='FAIL',
     p = subprocess.Popen(['sbatch'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()
 
-def run_openpose(vid_path, op_output_dir, face=True, hand=False, overwrite=None, **kwargs):
-    """run_openpose: submit sbatch job to run Openpose on given video.
+def _job_time(t):
+    """_job_time: Converts time t to slurm time ('hh:mm:ss').
 
-    :param vid_path: path to video file.
-    :param op_output_dir: directory containing Openpose output folders.
-    :param face: collects face keypoints if True.
-    :param hand: collects hand keypoints if True.:
-    :param **kwargs: additional command-line arguments to pass to Openpose (see Openpose
-    documentation).
+    :param t: a float representing # of hours for the job.
     """
-    print()
-    os.makedirs(op_output_dir, exist_ok=True)
+    hrs = int(t//1)
+    mins = int(t*60%60)
+    secs = int(t*3600%60)
+
+    return f'{str(hrs).zfill(2)}:{str(mins).zfill(2)}:{str(secs).zfill(2)}'
+
+def vid_info_dataframe(video_dirs, birthdates, save_path=None):
+    """vid_info_dataframe: creates a Pandas dataframe with information about each video in the
+    dataset (name, child ID, Unix time, frame count, and FPS.)
+
+    :param video_dirs: list of directories containing headcam videos to be analyzed.
+    :param birthdates: dictionary from child id:birthdate as (YYYY, MM, DD.)
+    :param save_path: JSON filepath to save dataframe at.
+    """
+    if save_path is not None and os.path.exists(save_path):
+        print(f'Vid info dataframe at {save_path} already exists...loading old dataframe.')
+        vid_df = pd.read_json(save_path)
+        return vid_df
+
+    print(f'Generating video dataframe from {video_dirs}...')
+    vid_df = pd.DataFrame()
+    vid_df['vid_path'] = list(chain.from_iterable(glob.glob(os.path.join(dir, '*')) for dir in video_dirs))
+    info = vid_df.swifter.apply(lambda row: _get_vid_info(row['vid_path'], birthdates), axis=1)
+    vid_df[['vid_name', 'child_id', 'unix_time', 'age_days', 'frame_count', 'fps']] = info
+    vid_df = vid_df.sort_values(by=['vid_name']).reset_index(drop=True)
+
+    if save_path is not None:
+        print('Saving video dataframe...')
+        vid_df.to_json(save_path)
+
+    return vid_df
+
+def _get_vid_info(vid_path, birthdates):
+    """_get_vid_info: row-wise helper to vid_info_dataframe, returns the appropriate info for each
+    row in the dataframe as a Series.
+
+    :param vid_path: video file path.
+    :param birthdates: dictionary from child id:birthdate as (YYYY, MM, DD.)
+    """
+    def _get_vid_name(vid_path):
+        return ntpath.basename(vid_path)[:-4]
+
+    def _get_child_id(vid_name):
+        child_id = re.search(r'([A-Z])_(?:\d+)_', vid_name).groups()[0]
+        return child_id
+
+    def _get_unix_time_age_days(vid_name, birthdates):
+        tupl = re.search(r'(A|S|Y)_(\d+)_', vid_name).groups()
+        child_id, timestamp = tupl[0], tupl[1]
+        unix_time = datetime.datetime.strptime(timestamp, "%Y%m%d")
+        year, month, day = birthdates[child_id]
+        age_days = (unix_time - datetime.datetime(year, month, day)).days
+        return unix_time, age_days
+
+    def _get_frame_count_fps(vid_path):
+        cap = cv2.VideoCapture(vid_path)
+        frame_count, fps = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)), cap.get(cv2.CAP_PROP_FPS)
+        return frame_count, fps
+
+    vid_name = _get_vid_name(vid_path)
+    return pd.Series([vid_name, _get_child_id(vid_name), *_get_unix_time_age_days(vid_name, birthdates), *_get_frame_count_fps(vid_path)])
+
+
+def frame_info_dataframe(vid_df, save_path=None):
+    """frame_info_dataframe: creates a pandas dataframe with a row for each frame of each video
+    (providing a dataframe onto which to attach frame-level outputs from detectors later.)
+
+    :param vid_df: Pandas dataframe containing each video, with name and frame count.
+    :param save_path: HDF5 filepath to save frame dataframe to.
+    """
+    if save_path is not None and os.path.exists(save_path):
+        print(f'Frame info dataframe at {save_path} already exists...loading old dataframe.')
+        vid_df = pd.read_json(save_path)
+        return vid_df
+
+    vid_names = []
+    vid_paths = []
+    child_ids = []
+    frame_nums = []
+    unix_times = []
+    age_days = []
+
+    print('Creating columns...')
+    for i in range(len(vid_df)):
+        video = vid_df.iloc[i]
+        vid_names.extend([video['vid_name']]*video['frame_count'])
+        vid_paths.extend([video['vid_path']]*video['frame_count'])
+        child_ids.extend([video['child_id']]*video['frame_count'])
+        frame_nums.extend([x for x in range(video['frame_count'])])
+        unix_times.extend([(video['unix_time'])]*video['frame_count'])
+        age_days.extend([(video['age_days'])]*video['frame_count'])
+
+    print('Attaching columns to dataframe...')
+    frame_df = pd.DataFrame()
+    frame_df['vid_name'] = vid_names
+    frame_df['vid_path'] = vid_paths
+    frame_df['child_id'] = child_ids
+    frame_df['frame'] = frame_nums
+    frame_df['unix_time'] = unix_times
+    frame_df['age_days'] = age_days
+
+    print('Sorting dataframe...')
+    frame_df = frame_df.sort_values(by=['vid_name', 'frame'])
+
+    print('Downcasting columns...')
+    frame_df['frame'] = pd.to_numeric(frame_df['frame'], downcast='unsigned')
+    frame_df['age_days'] = pd.to_numeric(frame_df['age_days'], downcast='unsigned')
+    for col in ['vid_name', 'vid_path', 'child_id', 'unix_time']:
+        frame_df[col] = frame_df[col].astype('category')
+
+    if save_path is not None:
+        print('Saving dataframe as hdf5 store...')
+        frame_df.to_hdf(save_path, 'master_frames', format='table')
+
+    return frame_df
+
+def save_object(fp, obj):
+    """save_object: writes msgpack object to given filepath.
+
+    :param fp: File path to which to write msgpack file.
+    :param obj: object to save.
+    """
+    with open(fp, 'wb') as outfile:
+        msgpack.pack(obj, outfile)
+
+def load_object(fp):
+    """load_object: loads and returns msgpack object at given filepath.
+
+    :param fp: File path from which to read msgpack file.
+    """
+    with open(fp, 'rb') as infile:
+        return msgpack.unpack(infile)
+
+def viz_openpose(df, overlay_openpose=True, face_present=None, face_openpose=None, fig_save_path=None):
+    """viz_openpose: vizualize openpose keypoints+confidences on a sample of frames from the
+    supplied dataframe.
+
+    :param df: Dataframe containing vid_path and frame number for each frame.
+    :param overlay_openpose: if True, displays openpose keypoints. (NOTE: Takes longer)
+    :param face_present: only select rows with face present.
+    :param face_openpose: only select rows with face detected.
+    :param fig_save_path: path, if provided, to save the displayed figure to.
+    """
+
+    if face_present is not None:
+        df = df[df['face_present'] == face_present]
+    if face_openpose is not None:
+        df = df[df['face_openpose'] == face_openpose]
+    sample = df.sample(min(25, len(df)))
+    sample = sample.reset_index()
+    f, axs = plt.subplots(5,5,figsize=(16,12))
+    sample.apply(lambda row: viz_single_frame(row['vid_path'], row['frame'], get_img(row), axs[row.name // len(axs), row.name % (len(axs))], overlay_openpose=overlay_openpose), axis=1)
+    if fig_save_path is not None:
+        plt.savefig(fig_save_path)
+    plt.show()
+
+def get_op_xyconf(keypt_lists):
+    x = []
+    y = []
+    conf = []
+    for keypt in keypt_lists:
+        x.append(keypt[0::3])
+        y.append(keypt[1::3])
+        conf.append(keypt[2::3])
+    if x == [] or y == [] or conf == []:
+        return [], [], []
+
+    return x, y, conf
+
+def get_pose_keypoints(vid_path, frame):
     vid_name = ntpath.basename(vid_path)[:-4]
-    vid_output_dir = os.path.join(op_output_dir, f'{vid_name}')
+    frame_num = str(frame).zfill(12)
+    filename = f'{vid_name}.msgpack'
+    fp = os.path.join(OPENPOSE_CONDENSED_OUTPUT, filename)
+    if not os.path.exists(fp):
+        print('uh-oh')
+        return []
+    with open(fp, 'rb') as infile:
+        keypts = msgpack.unpack(infile)[frame]
+    # print(keypts)
+    return [person[b'pose_keypoints'] for person in keypts[b'people']]
 
-    if os.path.exists(vid_output_dir):
-        if (overwrite is None and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes') or not overwrite:
-            print(f'aborting on video {vid_path}.')
-            return
-    os.makedirs(vid_output_dir, exist_ok=True)
+def viz_single_frame(vid_path, frame, img, ax, bbs=[], overlay_openpose=False):
 
-    #this could also be openpose_latest.sif, instead of openpose-latest.img.
-    cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
-    cmd += 'cd /openpose-master && ./build/examples/openpose/openpose.bin '
-    cmd += f'--video {vid_path} '
-    for opt, optval in kwargs.items():
-        cmd += f'--{opt} {optval} '
-    if face:
-        cmd += '--face '
-    if hand:
-        cmd += '--hand '
-    cmd += f'--write_keypoint_json {vid_output_dir}\''
+    for x, y, w, h in bbs:
+        rect = patches.Rectangle((x,y),w,h,linewidth=1,edgecolor='r',facecolor='none')
+        ax.add_patch(rect)
 
-    return submit_sbatch(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1',
-                         exclude='sh-113-12') #This node was malfunctional
+    if overlay_openpose:
+        x_pose, y_pose, conf_pose = get_op_xyconf(get_pose_keypoints(vid_path, frame))
+        x_face, y_face, conf_face = get_op_xyconf(get_face_keypoints(vid_path, frame))
+        ax.scatter(np.array(x_pose)*img.shape[1], np.array(y_pose)*img.shape[0],
+                   c=conf_pose if len(conf_pose) > 0 else None, cmap='viridis', s=8)
 
-def visualize_detections(sample_json, det_names, sample_size=25, face=True):
-    """visualize_detections: sample a few frames, and overlay the detections of the various
-    detectors (if any) on that frame.
+        ax.scatter(np.array(x_face)*img.shape[1], np.array(y_face)*img.shape[0],
+                   c=conf_face if len(conf_face) > 0 else None, cmap='inferno', s=8)
 
-    :param sample_json: path to the sample JSON.
-    :param det_names: list of names of the detectors to be visualized (e.g. ['mtcnn', 'op', 'vj'])
-    :param sample_size:
-    :param face:
-    """
-    df = pd.read_json(sample_json)
-    sample = df.sample(sample_size)
+    ax.imshow(img)
 
-    #TODO: make load_frame(vid_name, frame) helper used here and in hand-annotation function
+def get_face_keypoints(vid_path, frame):
+    vid_name = ntpath.basename(vid_path)[:-4]
+    frame_num = str(frame).zfill(12)
+    filename = f'{vid_name}.msgpack'
+    fp = os.path.join(OPENPOSE_CONDENSED_OUTPUT, filename)
+    if not os.path.exists(fp):
+        print('uh-oh')
+        return []
+    with open(fp, 'rb') as infile:
+        keypts = msgpack.unpack(infile)[frame]
+    # print(keypts)
+    return [person[b'face_keypoints'] for person in keypts[b'people']]
 
-    # load images
-    # create plot of 5*sample_size + (5 - sample size % 5) % 5
+def get_img(row):
+    cap = cv2.VideoCapture(row['vid_path'])
+    cap.set(cv2.CAP_PROP_POS_FRAMES, row['frame'])
+    return imutils.rotate(cap.read()[1], VID_ROTATE)
