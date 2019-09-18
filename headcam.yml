@@ -4,7 +4,7 @@ dependencies:
     - ipykernel
     - pytables
     - swifter
-    - msgpack
+    - msgpack-python
     - ujson
     - imutils
     - numpy
