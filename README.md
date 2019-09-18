@@ -22,6 +22,7 @@ cd headcam-algo/
 
 Next, edit `setup.sh` (the line below TODO) to install the `.singularity` directory where it is desired. Run the setup script, which creates the conda environment, installing the requisite python packages, and pulls the Openpose docker:
 ```
+chmod +x setup.sh
 ./setup.sh
 ```
 
