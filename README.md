@@ -26,7 +26,7 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-### Analysis
+## Analysis
 
 To setup headcam analysis, edit [config.py](src/config.py) to specify project-level parameters, such as output directories and filenames. (if on a computing cluster, it is recommended to use your SCRATCH space for OUTPUT due to the size and numerosity of outputs.)
 
