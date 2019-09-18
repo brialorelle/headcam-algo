@@ -3,7 +3,7 @@
 #Create Conda env
 echo "Creating conda env..."
 conda env create -f headcam.yml
-conda activate headcam
+source activate headcam
 python -m ipykernel install --user --name headcam --display-name "Python (headcam)"
 
 #Pull Openpose Docker
