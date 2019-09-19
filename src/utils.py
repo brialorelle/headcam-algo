@@ -127,8 +127,8 @@ def frame_info_dataframe(vid_df, save_path=None):
     """
     if save_path is not None and os.path.exists(save_path):
         print(f'Frame info dataframe at {save_path} already exists...loading old dataframe.')
-        vid_df = pd.read_json(save_path)
-        return vid_df
+        frame_df = pd.read_hdf(save_path, key='master_frames')
+        return frame_df
 
     vid_names = []
     vid_paths = []
