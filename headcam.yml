@@ -3,10 +3,10 @@ dependencies:
     - python=3.6
     - ipykernel
     - pytables
-    - swifter
+    - conda-forge::swifter
     - msgpack-python
     - ujson
-    - imutils
+    - mlgill::imutils
     - numpy
     - pandas
     - py-opencv
