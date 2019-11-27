@@ -1,6 +1,7 @@
 slurm*
 *_cache/
 data/*
+src/data/*
 .DS_Store
 .ipynb_checkpoints/
 *.pyc

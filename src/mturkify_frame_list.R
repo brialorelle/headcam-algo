@@ -3,6 +3,8 @@ require(tidyverse)
 base_url = "http://langcog.stanford.edu/expts/saycam/frames/"
 
 gold = list.files("data/gold_standard")
+set.seed(123)
+gold = sample(gold, length(gold), replace=F)
 gold_urls = paste(base_url,gold,sep='')
 
 d = read.csv("data/frame_urls2.csv")

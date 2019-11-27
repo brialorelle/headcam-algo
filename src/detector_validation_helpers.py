@@ -37,7 +37,7 @@ def save_sample_imgs(sample_df, batch_size=1000):
         print(f'Loading imgs #{df_num}')
         imgs = cut.apply(get_img, axis=1).values
         print(f'Saving imgs #{df_num}')
-        batch_fp = os.path.join(OUTPUT, f'sample_imgs_{df_num}.npy'), imgs
+        batch_fp = os.path.join(OUTPUT, f'sample_imgs_{df_num}.npy')
         batch_paths.append(batch_fp)
         np.save(batch_fp, imgs)
 
