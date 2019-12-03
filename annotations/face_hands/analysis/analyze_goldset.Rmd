@@ -1,0 +1,48 @@
+---
+title: "Face/Hand Annotations "
+output: html_notebook
+---
+
+
+```{r setup, echo = FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(lmerTest)
+library(viridis)
+
+library(egg)
+theme_set(theme_few())
+```
+
+
+```{r message=FALSE}
+d.raw <- data.frame()
+trial_indexes = seq(1,252,1)
+
+files <- dir("turk_annotations/")
+for (f in files) {
+  jf <- paste("turk_annotations/",f,sep="")
+  jd <- read_csv(jf)
+  
+  ## really not sure why there's this weird discrepancy for the last trial, but OK
+  jd$`Answer.trial-252` = jd$`Answer.trial-252.label`
+  
+  for (trial_ind in trial_indexes){
+    trial_data = data.frame(
+      ## including HITId and HITTYpe
+      this_response = eval(parse(text = paste0("jd$`Answer.trial-",trial_ind,"`"))),
+      full_image_path = eval(parse(text = paste0("jd$Input.img_src",trial_ind))),
+      trial_number = trial_ind,
+      HITID = jd$HITId,
+      HITTypeId =jd$HITTypeId
+    )
+    d.raw <- bind_rows(d.raw, trial_data)
+  }
+}
+
+```
