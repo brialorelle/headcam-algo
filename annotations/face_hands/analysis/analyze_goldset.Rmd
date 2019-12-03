@@ -24,6 +24,38 @@ theme_set(theme_few())
 d.raw <- data.frame()
 trial_indexes = seq(1,252,1)
 
+## function to spit back category of sanity check images
+sanity_check_category = function(shorter_image_path){
+ ## I hate this function but I couldn't make it work without 
+## going down a regex rabbithole so here it is
+  hands = str_detect(shorter_image_path,'hands')
+  faces = str_detect(shorter_image_path,'faces')
+  none = str_detect(shorter_image_path,'none')
+  both = str_detect(shorter_image_path,'face-hands')
+
+ if (both==TRUE){
+   category = 'both'
+ }
+ else if (hands==TRUE){
+   category = 'hands'
+ }
+ else if (faces==TRUE){
+   category='faces'
+ }
+ else if (none==TRUE){
+  category='none'   
+ }
+ else{
+   category=NA
+  }
+ 
+ return(category)
+}
+
+
+```
+
+```{r}
 files <- dir("turk_annotations/")
 for (f in files) {
   jf <- paste("turk_annotations/",f,sep="")
@@ -44,5 +76,31 @@ for (f in files) {
     d.raw <- bind_rows(d.raw, trial_data)
   }
 }
+
+
+### Pop out sanity check category from image path
+d.raw <- d.raw %>%
+    mutate(short_image_path = str_split_fixed(full_image_path,'/',7)[,7]) %>%
+    mutate(shorter_image_path = str_split_fixed(short_image_path,'.jpg',2)[,1]) %>%
+    mutate(sanity_check_category = sanity_check_category(shorter_image_path))
+
+
+### Recode responses into easier to munge format
+level_key <- c("Face(s) and Hand(s)" = "both", "Hand(s) only" = "hands", "Neither face(s) nor hands(s)" = "none", "Face(s) only" = "faces")
+
+d.raw$response=array()
+d.raw$response <- recode(d.raw$this_response, !!!level_key)
+
+### Break out sanity check images and look at discrepancies
+sanity_images <- d.raw %>%
+  filter(!is.na(sanity_check_category)) %>%
+  mutate(correct_sanity = response == sanity_check_category)
+
+      
+
+
+```
+
+```{r}
 
 ```
