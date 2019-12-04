@@ -71,17 +71,21 @@ for (f in files) {
       full_image_path = eval(parse(text = paste0("jd$Input.img_src",trial_ind))),
       trial_number = trial_ind,
       HITID = jd$HITId,
-      HITTypeId =jd$HITTypeId
+      HITTypeId =jd$HITTypeId,
+      WorkerID = jd$WorkerId
     )
     d.raw <- bind_rows(d.raw, trial_data)
   }
 }
 
 
+test <- jd %>%
+  as_tibble()
 ### Pop out sanity check category from image path
 d.raw <- d.raw %>%
     mutate(short_image_path = str_split_fixed(full_image_path,'/',7)[,7]) %>%
     mutate(shorter_image_path = str_split_fixed(short_image_path,'.jpg',2)[,1]) %>%
+    rowwise() %>%
     mutate(sanity_check_category = sanity_check_category(shorter_image_path))
 
 
@@ -92,15 +96,40 @@ d.raw$response=array()
 d.raw$response <- recode(d.raw$this_response, !!!level_key)
 
 ### Break out sanity check images and look at discrepancies
-sanity_images <- d.raw %>%
+sanity_images_wrong <- d.raw %>%
   filter(!is.na(sanity_check_category)) %>%
-  mutate(correct_sanity = response == sanity_check_category)
+  mutate(correct_sanity = response == sanity_check_category) %>%
+  filter(correct_sanity == FALSE) 
 
-      
+worker_check <- sanity_images_wrong %>%
+  group_by(WorkerID) %>%
+  summarize(wrong_sanity = n())
 
 
+## Compute agreement
+agreement <- d.raw %>%
+  group_by(short_image_path, full_image_path) %>%
+  summarize(num_responses = length(unique(this_response)))
+
+disagreement_examples <- agreement %>%
+  filter(num_responses==2) 
+
+for (i in length(disagreement_examples$full_image_path)){
+  brxowseURL(disagreement_examples$full_image_path[i])
+}
+
+percent_disagree = sum(agreement$num_responses==2) / length(agreement$num_responses)
 ```
 
 ```{r}
+dir.create(paste0('disagreements/'))
+for (i in seq(1,length(disagreement_examples$full_image_path),1)){
+  image_read(disagreement_examples$full_image_path[i]) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("disagreements/", disagreement_examples$short_image_path[i])))
+}
+
+example <- d.raw %>%
+  filter(short_image_path == "582-A_20130612_0830_02.mp4-2370.jpg")
 
 ```
