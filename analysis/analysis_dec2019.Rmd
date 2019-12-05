@@ -1,0 +1,273 @@
+---
+title: "Analysis_dec2019"
+author: "Bria Long"
+date: "12/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(egg)
+theme_set(theme_few())
+```
+
+## Read in list of detections (takes forever)
+```{r cars}
+data_file = "../data/all_frames.csv"
+detections =read.csv(data_file)
+```
+
+### Filter flipped videos
+```{r}
+right_side_up_file = "video_right-side-up.csv"
+right_side_up =read.csv(right_side_up_file)
+
+# get INCORRECT videos
+flipped_videos <- right_side_up %>%
+  filter(right_side_up==1)
+
+d <- detections %>%
+  filter(!vid_name %in% flipped_videos$video)
+```
+
+
+## Read in turk annotations
+```{r}
+## Need to be able to merge turk annotations with openpose detections but don't understand how vid_name and frame number map onto .jpg names in the image names -- assuming sample index is first b/c max val ~24K
+
+turk_annotations = "../data/turk_annotations_dec5.csv" # first 20 turkers
+gold_set = read.csv(turk_annotations)
+
+
+## cleanup goldset annotations so we can merge
+g <- gold_set %>%
+  filter(is.na(sanity_check_category)) %>% # don't consider sanity check images here
+  filter(!is.na(hands)) %>%
+  filter(!is.na(faces)) %>%
+  mutate(sample_ind = str_split_fixed(short_image_path,"-",3)[,1], frame_ind_temp = str_split_fixed(short_image_path,"-",3)[,3], vid_name_temp = str_split_fixed(short_image_path,"-",3)[,2]) %>%
+  mutate(sample_ind = as.numeric(sample_ind), frame_ind = as.numeric(str_split_fixed(frame_ind_temp,".jpg",3)[,1])) %>%
+  filter(!is.na(sample_ind))  %>%
+  mutate(vid_name = str_split(vid_name_temp,".mp4")[[1]][1]) %>%
+  filter(!vid_name %in% flipped_videos$video) 
+  
+## standardize for merging with detectinos
+g$vid_name = as.factor(g$vid_name)
+g$frame = g$frame_ind
+
+# what <- gold_set %>%
+#   filter(is.na(sample_ind))
+```
+
+```{r}
+# no_openpose <- merged %>%
+#   filter(is.na(face_openpose))
+# 
+# ## never run on openpose?
+# unique(no_openpose$vid_name)
+# "A_20150507_3124_01"
+
+merged <- g %>%
+  left_join(detections)  %>%
+  filter(!is.na(face_openpose))
+```
+
+```{r}
+# Function to evaluate detectors
+evaluate_detector <- function(truth, detection) {
+  if (truth == TRUE) {
+    if (truth == detection) return ("TP") # was face/wrist, detected face/wrist
+    else return("FN") # was face/wrist, missed face/wrist
+  }
+  else {
+    if (truth == detection) return("TN") # was not face/wrist, did not detect face/wrist
+    else return("FP") # was not face/wrist, detected face/wrist
+  }
+}
+
+
+m <- merged %>%
+  select(vid_name, frame, response, hands, faces, sample_ind, face_openpose, hand_openpose, short_image_path, full_image_path ) %>%
+  mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+  rowwise() %>%
+  mutate(face_eval = evaluate_detector(faces, face_openpose), hand_eval = evaluate_detector(hands, hand_openpose))
+```
+
+
+### Now calculate prfs - these are SUPER bad and not sure what is up.
+```{r}
+ return_prf = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  return(c(p,r,f))
+}
+
+ 
+return_prf(m$face_eval)
+return_prf(m$hand_eval)
+
+```
+
+### Let's sanity check -- only look at face images from gold set...
+```{r}
+faces_only <- m %>%
+  filter(faces==TRUE)
+
+# yep these are correct
+unique(faces_only$response)
+
+# let's look at the actual iamges
+dir.create(paste0('faces_check/'))
+for (i in seq(1,length(faces_only$full_image_path),1)){
+  image_read(as.character(faces_only$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_check/", faces_only$short_image_path[i])))
+}
+```
+
+## how about true positives on faces?
+```{r}
+faces_only_op_cor <- m %>%
+  filter(faces == TRUE) %>%
+  filter(face_openpose == TRUE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_tp/'))
+for (i in seq(1,length(faces_only_op_cor$full_image_path),1)){
+  image_read(as.character(faces_only_op_cor$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_tp/", faces_only_op_cor$short_image_path[i])))
+}
+
+```
+
+## how about false positives on facs?
+```{r}
+to_write <- m %>%
+  filter(faces == FALSE) %>%
+  filter(face_openpose == TRUE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_fp/'))
+for (i in seq(1,length(to_write$full_image_path),1)){
+  image_read(as.character(to_write$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_fp/", to_write$short_image_path[i])))
+}
+
+```
+
+
+## how about false negatives on faces?
+```{r}
+to_write <- m %>%
+  filter(faces == TRUE) %>%
+  filter(face_openpose == FALSE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_fn/'))
+for (i in seq(1,length(to_write$full_image_path),1)){
+  image_read(as.character(to_write$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_fn/", to_write$short_image_path[i])))
+}
+
+```
+
+
+# Examine age-trends in open-pose detections
+### Make age bins
+```{r}
+### What ages do we have detections at?
+
+hist(d$age_days)
+## bin age by 10 days
+bin_size = 30
+min_age = min(d$age_days)
+max_age = max(d$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+```
+
+
+### Make detections into logical vectors and compute "person" as either face/hand
+```{r}
+d$face_openpose = as.logical(d$face_openpose)
+d$hand_openpose = as.logical(d$hand_openpose)
+d$person_openpose = (as.logical(d$face_openpose) | as.logical(d$hand_openpose))
+d$both_openpose = (as.logical(d$face_openpose) & as.logical(d$hand_openpose))
+
+```
+
+
+
+```{r}
+summary_by_age <- d %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  group_by(age_day_bin, child_id) %>%
+  summarize(num_detect = length(face_openpose), prop_faces = sum(face_openpose) / num_detect,  prop_hands = sum(hand_openpose) / num_detect, face_or_hand = sum(person_openpose)/ num_detect, face_and_hand = sum(both_openpose)/ num_detect) 
+
+
+# for geom_smooth
+summary_by_age$age_day_bin=as.numeric(summary_by_age$age_day_bin)
+```
+  
+
+### Make diagnotic plots
+```{r}
+# person by age
+ggplot(summary_by_age, aes(x=age_day_bin, y=face_or_hand, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_smooth() + 
+  ylab('Proportion Face OR Hand') + 
+  xlab('Age bin')
+
+# person by age
+ggplot(summary_by_age, aes(x=age_day_bin, y=face_and_hand, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_smooth() + 
+  ylab('Proportion Face AND Hand') + 
+  xlab('Age bin')
+
+# faces
+p1 = ggplot(summary_by_age, aes(x=age_day_bin, y=prop_faces, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_smooth() + 
+  ylab('Proportion Faces') + 
+  xlab('Age bin')
+
+# hands
+p2 = ggplot(summary_by_age, aes(x=age_day_bin, y=prop_hands, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_smooth() + 
+  ylab('Proportion Hands') + 
+  xlab('Age bin')
+```
+
+
+### Key plot for fausey comparison
+```{r}
+## faces - hands
+p3 = ggplot(summary_by_age, aes(x=age_day_bin, y=prop_faces - prop_hands, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_smooth() + 
+  ylab('Proportion Faces - Hands') + 
+  xlab('Age bin')
+
+
+```
