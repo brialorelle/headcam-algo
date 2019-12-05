@@ -26,7 +26,7 @@ detections =read.csv(data_file)
 
 ### Filter flipped videos
 ```{r}
-right_side_up_file = "video_right-side-up.csv"
+right_side_up_file = "../data/video_right-side-up.csv"
 right_side_up =read.csv(right_side_up_file)
 
 # get INCORRECT videos
