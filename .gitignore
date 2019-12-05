@@ -7,3 +7,5 @@ src/data/*
 *.pyc
 *.html
 *.AVI
+analysis/detections_rendered/*
+annotations/face_hands/pilot_hits/*
