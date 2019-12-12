@@ -9,3 +9,4 @@ src/data/*
 *.AVI
 analysis/detections_rendered/*
 annotations/face_hands/pilot_hits/*
+annotations/face_hands/experiment/test_hits/test_hit_12419_redo.xlsx
