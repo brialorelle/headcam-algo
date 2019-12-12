@@ -1,0 +1,113 @@
+---
+title: "Preprocess turk annotations ="
+output: html_notebook
+---
+
+
+```{r setup, echo = FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(lmerTest)
+library(viridis)
+library(magick)
+library(egg)
+library(jsonlite)
+theme_set(theme_few())
+```
+
+```{r}
+
+
+```
+# Preprocessing
+
+```{r}
+f <- dir("turk_annotations_segmentation/")
+jf <- paste("turk_annotations_segmentation/",f,sep="")
+jd <- read_csv(jf)
+
+d.raw <- data.frame()
+trial_indexes = seq(1,200,1)
+  for (trial_ind in trial_indexes){
+    ## get annotation and see if empty
+    this_annotation = jd$Answer.annotatedResult.boundingBoxes[trial_ind]
+    cleaned_annotation = fromJSON(this_annotation)
+    
+    # if there was an annotation
+    if (length(cleaned_annotation)>1){
+        
+        ## for each thing that was annotated, new row
+        for (annotation_ind in seq(1,length(cleaned_annotation$label),1)){
+              trial_data = data.frame(
+              label = cleaned_annotation$label[annotation_ind],
+              height = cleaned_annotation$height[annotation_ind],
+              width = cleaned_annotation$width[annotation_ind],
+              left = cleaned_annotation$left[annotation_ind],
+              top = cleaned_annotation$top[annotation_ind],
+              full_image_path = jd$Input.img_src1[trial_ind],
+              trial_number = trial_ind,
+              HITID = jd$HITId[trial_ind],
+              HITTypeId =jd$HITTypeId[trial_ind],
+              WorkerID = jd$WorkerId[trial_ind]
+              )
+        d.raw <- bind_rows(d.raw, trial_data)
+        } # for annotation_ind
+    } 
+    ## if nothing was annotated
+    else{
+    trial_data = data.frame(
+          ## including HITId and HITTYpe
+          label = 'None',
+          height = NA,
+          width = NA,
+          left = NA,
+          top = NA,
+          full_image_path = jd$Input.img_src1[trial_ind],
+          trial_number = trial_ind,
+          HITID = jd$HITId[trial_ind],
+          HITTypeId =jd$HITTypeId[trial_ind],
+          WorkerID = jd$WorkerId[trial_ind]
+          )
+     d.raw <- bind_rows(d.raw, trial_data)
+    }
+}
+```
+
+## look at distribution of images done per worker
+```{r}
+worker_summary <- jd %>%
+  group_by(WorkerId) %>%
+  summarize(count_images = n(), avg_time = mean(WorkTimeInSeconds))
+```
+
+
+```{r}
+total_area = jd$Answer.annotatedResult.inputImageProperties.height[1] * jd$Answer.annotatedResult.inputImageProperties.width[1]
+d.raw <- d.raw %>%
+  mutate(detection_area = (height*width)/total_area)
+
+## plot detection area by detection type
+ggplot(d.raw, aes(x=label, y=log(detection_area))) +
+  geom_boxplot()
+
+## faces tend to appear towards the top of the image (i.e. 0 pixel coordinates, or upper visual field)
+ggplot(d.raw, aes(x=label, y=top)) +
+  geom_boxplot()
+
+
+```
+
+
+
+
+### Write out csv for use in analysis
+```{r}
+write_csv(d.raw,'turk_segmentations_dec12.csv')
+```
+
+
