@@ -16,21 +16,21 @@ ketan_gold$hand_left_keypoints
 
 table(ketan_gold$hand_openpose, ketan_gold$hand_openpose_wrist)
 
-#kg = tibble(ketan_gold)
 
 face_inds <- which(ketan_gold$face_openpose==1)
-
-fd <- ketan_gold[face_inds,] # or do on all -- no keypoints = "[]"
+#fd <- ketan_gold[face_inds,] # or do on all -- no keypoints = "[]"
 
 #fd$face_keys <- vapply(fd$face_keypoints, paste, collapse = ", ", character(1L))
 
-get_hand_keypoints <- function(hd, hand="left") {
+all = list(dat=ketan_gold)
+
+get_hand_keypoints <- function(all, hand="left") {
+  hd = all$dat
   col_kp = paste0("hand_",hand,"_keypoints")
   col_num = paste0("num_",hand,"_hands")
   #hd$hand_keys = NA
   hd[,col_kp] = gsub("\\[|\\]", "", hd[,col_kp]) # removes all left or right brackets
   hd[,col_num] = NA
-  #which(str_length(hd
   hkp = list()
   for(i in 1:nrow(hd)) {
     # no keypoints="[]", but what does it mean if all the keypoints are 0 ??
@@ -42,7 +42,7 @@ get_hand_keypoints <- function(hd, hand="left") {
       if(length(vals) > 63) {
         num_hands = length(vals)/63
         hd[i,col_num] = num_hands
-        print(paste(num_hands, "hands found"))
+        #print(paste(num_hands, "hands found"))
         ll = list()
         for(h in 1:num_hands) {
           startind = 63*(h-1)+1
@@ -52,49 +52,56 @@ get_hand_keypoints <- function(hd, hand="left") {
       } else {
         ll = list(vals)
       }
-      #print(ll)
-      #fd[i,]$face_keys = ll
       hkp[[i]] = ll
     }
   }
-  return(list(dat=hd, keypoints=hkp))
+  all$dat = hd
+  all[[paste0(hand,"_keys")]] = hkp
+  return(all)
 }
 
 
-get_face_keypoints <- function(fd) {
+get_face_keypoints <- function(all) {
+  fd = all$dat
   fd$face_keys = NA
   fd$face_keypoints = gsub("\\[|\\]", "", fd$face_keypoints) # removes all left or right brackets
-  fd$num_faces = 1
+  fd$num_faces = NA
   fkp = list()
   for(i in 1:nrow(fd)) {
-    #tmp = as.character(fd[i,]$face_keypoints)
     # if there are multiple people, these are of the form [[1,2,..,210], [211,212,..,421], ..]
-    vals = eval(parse(text=paste('c(',fd[i,]$face_keypoints,')')))
-    if(length(vals) > 210) {
-      num_faces = length(vals)/210
-      fd[i,]$num_faces = num_faces
-      print(paste(num_faces, "faces found"))
-      ll = list()
-      for(f in 1:num_faces) {
-        startind = 210*(f-1)+1
-        endind = 210*f
-        ll[[f]] = vals[startind:endind]
-      }
+    if(str_length(fd[i,col_kp])==0) {
+      fd[i,]$num_faces = 0
     } else {
-      ll = list(vals)
+      vals = eval(parse(text=paste('c(',fd[i,]$face_keypoints,')')))
+      if(length(vals) > 210) {
+        num_faces = length(vals)/210
+        fd[i,]$num_faces = num_faces
+        print(paste(num_faces, "faces found"))
+        ll = list()
+        for(f in 1:num_faces) {
+          startind = 210*(f-1)+1
+          endind = 210*f
+          ll[[f]] = vals[startind:endind]
+        }
+      } else {
+        ll = list(vals)
+      }
+      fkp[[i]] = ll
     }
-    #print(ll)
-    #fd[i,]$face_keys = ll
-    fkp[[i]] = ll
   }
-  return(list(dat=fd, keypoints=fkp))
+  #list(dat=fd, face_keys=fkp)
+  all$dat = fd
+  all$face_keys = fkp
+  return(all)
 }
 
-hand_kps <- get_hand_keypoints(ketan_gold, "left")
-hand_kps_r <- get_hand_keypoints(ketan_gold, "right")
-face_kps <- get_face_keypoints(fd)
+all <- get_hand_keypoints(all, "left")
+all <- get_hand_keypoints(all, "right")
+all <- get_face_keypoints(all)
+save(all, file="hand_face_keypoints.RData")
 
-hist(hand_kps$dat$num_left_hands)
-hist(hand_kps_r$dat$num_right_hands)
-hist(face_kps$dat$num_faces)
+# drop pose_keypoints_tuple, face_keypoints_tuple, pose_keypoints, 
+
+hist(c(all$dat$num_left_hands, all$dat$num_right_hands))
+hist(all$dat$num_faces)
 
