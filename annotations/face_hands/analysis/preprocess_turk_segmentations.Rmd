@@ -20,10 +20,7 @@ library(jsonlite)
 theme_set(theme_few())
 ```
 
-```{r}
-
-
-```
+``
 # Preprocessing
 
 ```{r}
@@ -88,26 +85,65 @@ worker_summary <- jd %>%
 
 ```{r}
 total_area = jd$Answer.annotatedResult.inputImageProperties.height[1] * jd$Answer.annotatedResult.inputImageProperties.width[1]
-d.raw <- d.raw %>%
+d <- d.raw %>%
   mutate(detection_area = (height*width)/total_area)
 
 ## plot detection area by detection type
-ggplot(d.raw, aes(x=label, y=log(detection_area))) +
+ggplot(d, aes(x=label, y=log(detection_area))) +
   geom_boxplot()
 
 ## faces tend to appear towards the top of the image (i.e. 0 pixel coordinates, or upper visual field)
-ggplot(d.raw, aes(x=label, y=top)) +
+ggplot(d, aes(x=label, y=top)) +
   geom_boxplot()
 
 
 ```
 
-
-
-
 ### Write out csv for use in analysis
 ```{r}
-write_csv(d.raw,'turk_segmentations_dec12.csv')
+write_csv(d,'turk_segmentations_dec12.csv')
 ```
 
+```{r}
+d <- d %>%
+  mutate(short_image_path = str_split_fixed(full_image_path,'/',7)[,7])
+```
+
+```{r eval=FALSE}
+
+unique_images = d$full_image_path
+for (image in unique_images){
+  this_image_rgb <- image_read(image)
+  img <- image_draw(this_image_rgb)
+  a <- d %>%
+    filter(full_image_path %in% image) 
+  
+  rect(a$left, a$top+a$height, a$left+a$width, a$top)
+  text(a$left+10, a$top+10, a$label)
+  
+  annotated_file = paste0(unique(a$short_image_path), 'turk-annotated.jpg')
+  image_write(img, annotated_file)
+  dev.off()
+}
+
+```
+
+```{r}
+faces <- d %>%
+  filter(label =="Face") 
+
+rect(faces$left, faces$top+faces$height, faces$left+faces$width, faces$top)
+text(faces$left+10, faces$top+10, faces$label)
+```
+
+```{r}  
+child_hand <- d %>%
+  filter(label =="Child hand") 
+
+rect(child_hand$left, child_hand$top+child_hand$height, child_hand$left+child_hand$width, child_hand$top)
+text(child_hand$left+10, child_hand$top+10, child_hand$label)
+
+
+
+```
 
