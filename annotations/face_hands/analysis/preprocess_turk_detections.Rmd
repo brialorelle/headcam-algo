@@ -1,5 +1,5 @@
 ---
-title: "Face/Hand Annotations "
+title: "Preprocess turk annotations (hand/face detection)"
 output: html_notebook
 ---
 
@@ -14,13 +14,29 @@ library(lme4)
 library(langcog)
 library(lmerTest)
 library(viridis)
-library(rhdf5)
 library(magick)
 library(egg)
 theme_set(theme_few())
 ```
 
 # Preprocessing
+
+```{r}
+f <- dir("turk_annotations_single/")
+jf <- paste("turk_annotations_single/",f,sep="")
+jd <- read_csv(jf)
+
+summary <- jd %>%
+  group_by(WorkerId) %>%
+  summarize(count_images = n(), avg_time = mean(WorkTimeInSeconds))
+
+
+jd$response = jd$`Answer.trial-1.label`
+
+agreement <- jd %>%
+  group_by(Input.img_src1) %>%
+  summarize(agree = response[1] == response[2])
+```
 
 ### Go through raw data and put in dataframe
 ```{r}
@@ -41,7 +57,6 @@ for (f in files) {
     trial_data = data.frame(
       ## including HITId and HITTYpe
       this_response = eval(parse(text = paste0("jd$`Answer.trial-",trial_ind,"`"))),
-      # this_response_label = eval(parse(text = paste0("jd$`Answer.trial-",trial_ind,".label`"))),
       full_image_path = eval(parse(text = paste0("jd$Input.img_src",trial_ind))),
       trial_number = trial_ind,
       HITID = jd$HITId,
@@ -52,14 +67,11 @@ for (f in files) {
   }
 }
 
-
-
 d <- d.raw
 
-```
+## Would like to get rando responses in .label field here:
 
 ### Sometimes we get NAs and they end up in ".label fields", but not every trial has them (so it throws errors in a loop). I'm too tired to write an appropriate function so just leaving those NAs for now but the data is there. Starter code is below.
-```{r}
 
 # empty_labels = as.character(array(matrix(data=NA, nrow=1, ncol=num_workers)))
 # 
@@ -81,7 +93,7 @@ sanity_check_category = function(shorter_image_path){
  ## I hate this function but I couldn't make it work without 
 ## going down a regex rabbithole so here it is
   hands = str_detect(shorter_image_path,'hands')
-  faces = str_detect(shorter_image_path,'faces')
+  faces = str_detect(shorter_image_path,'face')
   none = str_detect(shorter_image_path,'none')
   both = str_detect(shorter_image_path,'face-hands')
 
@@ -172,7 +184,7 @@ sanity_images_wrong <- d %>%
 bad_workers <- sanity_images_wrong %>%
   group_by(WorkerID) %>%
   summarize(wrong_sanity = n()) %>%
-  filter(wrong_sanity > 6) # more than 50% wrong
+  filter(wrong_sanity > 3) # more than 1/4 wrong
 
 d.filtered <- d %>%
   filter(!WorkerID %in% bad_workers$WorkerID)
