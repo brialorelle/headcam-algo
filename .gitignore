@@ -9,3 +9,5 @@ src/data/*
 *.AVI
 analysis/detections_rendered/*
 annotations/face_hands/pilot_hits/*
+.Rproj.user
+.Rhistory
