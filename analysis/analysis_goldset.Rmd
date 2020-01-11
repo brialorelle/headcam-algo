@@ -1,0 +1,445 @@
+---
+title: "saycam goldset analysis"
+author: "Bria Long"
+date: "12/4/2019, continued 1/9/2020"
+output: html_document
+---
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(egg)
+theme_set(theme_few())
+```
+
+## Read in data 
+### Load ketan's gold set annotations from preprocessed Rdata files
+```{r}
+
+### Get video/frame info from full cleaned dataset (saved)
+# load('../data/openpose_detections_filtered.RData')
+# vid_info <- d_all %>%
+#   select(vid_name, frame, age_days, child_id)
+# save(vid_info, file = '../data/vid_info.RData')
+
+load('../data/vid_info.RData')
+load('../data/ketan_gold_sample.RData')
+```
+
+### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
+```{r}
+right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up =read.csv(right_side_up_file)
+
+# get videos that are flipped, i.e., 
+flipped_videos <- right_side_up %>%
+  filter(right_side_up==1) %>%
+  rename(vid_name = video)
+```
+
+
+### Load SAYCAM metadata from csv file; get metadata from detections .csv
+```{r}
+metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+meta=read.csv(metadata_file) %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(File.Name,"[.]")[[1]][1]) %>%
+  mutate(count_locations = length(str_split(Location,',')[[1]]))
+
+# collapse duplicate labels
+meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
+```
+
+### Import bounding boxes for goldset & preprocess: filter videos, gather metadata, convert to pixel coordinates
+```{r}
+bounding_boxes = "../data/gold_sample_bounding_boxes.csv" 
+height_px = 480; width_px = 640
+
+bb = read.csv(bounding_boxes) %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(vid_name,"[.]")[[1]][1]) %>%
+  filter(!vid_name %in% flipped_videos$vid_name) %>%
+  left_join(vid_info) %>%
+  mutate(height_y = height*height_px, width_x = width*width_px, area = (height_y*width_x)/(height_px*width_px)) 
+```
+### Read in turk segmentations to get child vs. adult hands
+```{r}
+turk_annotations_seg = "../data/turk_segmentations_hands_only_processed.csv" 
+g_seg = read.csv(turk_annotations_seg) %>%
+  select(-HITID, -HITTypeId, -WorkerID)
+
+## preprocess such that each frame has a true/false value for whether there was a child or adult hand
+child_adult_hand_annotations <- g_seg %>%
+    mutate(child_hands = (label=="Child hand"), adult_hands = (label=="Adult hand")) %>%
+    select(-vid_name) %>%
+    rename(vid_name = vid_name_short) %>%
+    group_by(full_image_path, vid_name, frame_ind) %>%
+    summarize(child_hand_seg = (sum(child_hands))>0,  adult_hand_seg = (sum(adult_hands)>0)) %>%
+    mutate(frame = frame_ind) %>%
+    select(child_hand_seg, adult_hand_seg, full_image_path, vid_name, frame) 
+```
+
+### Preprocess gold set data
+```{r}
+ ketan_gold_out <- ketan_gold %>%
+   rowwise() %>%
+   mutate(vid_name = str_split(vid_name,"[.]")[[1]][1]) %>%
+   mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+   rename(face_present_ketan = face_present, hand_present_ketan = hand_present)
+
+### Join metadata with gold set annotations (hereafter 'd')
+d <- ketan_gold_out %>%
+  filter(!vid_name %in% flipped_videos$vid_name) %>%
+  left_join(vid_info, by=c("vid_name","frame")) %>%
+  left_join(meta, by="vid_name")
+```
+
+# Analyze gold set annotations
+### Make bins for collapsing across anotations
+```{r}
+bin_size = 7 # so it's weeks or months
+min_age = min(d$age_days)
+max_age = max(d$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+d <- d %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
+
+# and make numeric
+d$age_day_bin <- as.numeric(as.character(d$age_day_bin))
+
+```
+
+### Hands vs. faces in manual annotations, broken down by child vs. adult hands
+```{r}
+face_vs_hands_goldset <- d %>%
+  full_join(child_adult_hand_annotations, by=c("vid_name", "frame")) %>%
+  mutate(frame_id = paste0(vid_name, '-', frame)) %>%
+  replace_na(list(adult_hand_seg = FALSE, child_hand_seg = FALSE)) %>% ## replace NAs from segmentation with false for hands since all we got annotations for all frames with hands 
+  group_by(child_id, age_day_bin) %>%
+  summarize(num_detect = length(unique(frame_id)), prop_faces = sum(face_present_ketan) / num_detect, prop_hands = sum(hand_present_ketan) / num_detect, prop_adult_hands = sum(adult_hand_seg) / num_detect, prop_child_hands = sum(child_hand_seg) / num_detect) %>%
+  filter(num_detect > 50) %>% ## need at least x samples per point
+  mutate(faces_vs_hands = prop_faces - prop_hands, faces_vs_adult_hands = prop_faces - prop_adult_hands, faces_vs_child_hands = prop_faces - prop_child_hands)  %>%
+  filter(!is.na(child_id))
+
+  
+```
+
+### Faces, Adult Hands, Child Hands x Age/Child
+```{r}
+a_hands = ggplot(face_vs_hands_goldset, aes(x=age_day_bin, y=prop_adult_hands, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10) +
+  ylab("Prop adult hands") +
+  xlab("Age (weeks)") +
+  ylim(0,1) +
+  theme(legend.position = "none")
+  
+c_hands = ggplot(face_vs_hands_goldset, aes(x=age_day_bin, y=prop_child_hands, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10) +
+  ylab("Prop child hands") +
+  xlab("Age (weeks)") + 
+  ylim(0,1) +
+  theme(legend.position = "none")
+ 
+faces = ggplot(face_vs_hands_goldset, aes(x=age_day_bin, y=prop_faces, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10) +
+  ylab("Prop faces") +
+  xlab("Age (weeks)")
+  ylim(0,1)
+  
+
+ggarrange(a_hands, c_hands, faces, nrow=1)
+
+```
+
+
+### Faces vs Hands (all), Faces vs Adult Hands
+```{r}
+faces_vs_adult_hands = ggplot(face_vs_hands_goldset, aes(x=age_day_bin, y=faces_vs_adult_hands, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=5) +
+  ylab(" faces - adult hands") +
+  ylim(-.5,.5)
+
+faces_vs_all_hands = ggplot(face_vs_hands_goldset, aes(x=age_day_bin, y=prop_faces - prop_hands, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=5) +
+  ylab(" faces - all hands") +
+  ylim(-.5,.5)
+
+
+ggarrange(faces_vs_adult_hands, faces_vs_all_hands, nrow=1)
+```
+
+
+### Look at any variance by location from single-location videos
+```{r}
+faces_by_location <- d %>%
+  filter(!is.na(Location)) %>%
+  filter(count_locations==1) %>%
+  group_by(Location, child_id) %>%
+  multi_boot_standard(col="face_present_ketan") %>%
+  ungroup %>%
+  mutate(Location = fct_reorder(Location, mean))
+
+hands_by_location <- d %>%
+  filter(!is.na(Location)) %>%
+  filter(count_locations==1) %>%
+  group_by(Location, child_id) %>%
+  multi_boot_standard(col="hand_present_ketan") %>%
+  ungroup %>%
+  mutate(Location = fct_reorder(Location, mean))
+
+(plot_faces_loc = ggplot(faces_by_location, aes(x = Location, y = mean, col=child_id)) + 
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper)) + 
+  ylim(0,.8) +
+  coord_flip() + 
+  ylab('Proportion Faces'))
+
+(plot_hand_loc = ggplot(hands_by_location, aes(x = Location, y = mean, col=child_id)) + 
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper)) + 
+  coord_flip() + 
+  ylim(0,.8) +
+  ylab('Proportion Hands'))
+  
+# ggarrange(plot_faces_loc, plot_hand_loc)
+
+```
+
+
+
+
+## Analyze basics from bounding boxes on goldset
+### Preprocess bb data
+```{r}
+bb <- bb %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  mutate(x_pos = left*width_px, y_pos = top*height_px) %>%
+  mutate(center_x = x_pos + width_x/2, center_y = y_pos - height_y/2) %>%
+  filter(!is.na(child_id))
+
+bb_forheatmap <- bb %>%
+  filter(height>0)
+```
+
+### Number of people, face/hand area, position descriptives
+```{r}
+##
+num_people_goldset <- bb %>%
+  group_by(child_id, age_day_bin) %>%
+  summarize(num_people = mean(num_faces), num_detect = length(num_faces))
+
+face_area_goldset <- bb %>%
+  filter(mean_conf > 0) %>%
+  filter(face_openpose==1) %>%
+  group_by(child_id, age_day_bin) %>%
+  summarize(face_area = mean(area), num_detect = length(area))
+
+hand_area_goldset <- bb %>%
+  filter(mean_conf > 0) %>%
+  filter(hand_openpose==1) %>%
+  group_by(child_id, age_day_bin) %>%
+  summarize(hand_area = mean(area), num_detect = length(area))
+
+pos_goldset <- bb %>%
+  filter(mean_conf > 0) %>%
+  group_by(child_id, age_day_bin, label) %>%
+  summarize(x_center = mean(center_x), num_detect = length(center_x))
+
+top_pos_goldset <- bb %>%
+   filter(mean_conf > 0) %>%
+  group_by(child_id, age_day_bin, label) %>%
+  summarize(y_center = mean(center_y), num_detect = length(center_y))
+
+
+## number of people
+num_people_goldset$age_day_bin  = as.numeric(num_people_goldset$age_day_bin)
+ggplot(num_people_goldset, aes(x=age_day_bin, y=num_people, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab("# people")
+
+## face size
+face_area_goldset$age_day_bin  = as.numeric(face_area_goldset$age_day_bin)
+ggplot(face_area_goldset, aes(x=age_day_bin, y=face_area, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab("face size")
+
+## hand size
+hand_area_goldset$age_day_bin  = as.numeric(hand_area_goldset$age_day_bin)
+ggplot(hand_area_goldset, aes(x=age_day_bin, y=hand_area, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab("hand size")
+
+## y position
+top_pos_goldset$age_day_bin  = as.numeric(top_pos_goldset$age_day_bin)
+ggplot(top_pos_goldset, aes(x=age_day_bin, y=y_center, col=label)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab("detection_position_y")
+
+```
+
+
+### Code ot render out bounding boxes from OP on sample frames
+```{r}
+# g_seg_info <- g_seg %>%
+#   distinct(full_image_path, vid_name_short, frame_ind)
+#   
+# bb_check <- bb %>%
+#   mutate(frame_ind = frame, vid_name_short = vid_name) %>%
+#   left_join(g_seg_info, by=c("vid_name_short","frame_ind")) %>%
+#   filter(!is.na(full_image_path)) %>%
+#   filter(mean_conf > 0)
+
+# # dir.create(paste0('bbcheck/'))
+# unique_images <- bb_check$full_image_path[101:200]
+# 
+# for (image in unique_images){
+#   this_image_rgb <- image_read(image)
+#   img <- image_draw(this_image_rgb)
+#   a <- bb_check %>%
+#     filter(full_image_path %in% image) 
+#   
+#   # rect(a$x_pos, a$y_pos-a$height_y, a$x_pos+a$width_x, a$y_pos)
+#   text(a$center_x, a$center_y, a$center_y)
+#   
+#   annotated_file = paste0('bbcheck/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-center.jpg')
+#   image_write(img, annotated_file)
+#   dev.off()
+# }
+```
+
+
+### Heatmaps of face detection positions across age groups
+```{r}
+face_heatmap_young <- bb_forheatmap %>%
+  filter(label=='face') %>%
+  filter(age_day_bin<12)
+
+face_heatmap_middle<- bb_forheatmap %>%
+  filter(label=='face') %>%
+  filter(age_day_bin>12 & age_day_bin<18.1)
+
+face_heatmap_oldest <- bb_forheatmap %>%
+  filter(label=='face') %>%
+  filter(age_day_bin>18.1)
+  
+(p1_youngest <- ggplot(face_heatmap_young, aes(x=center_x, y=center_y)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Faces: 6-12m') +
+  ylim(0,height_px) +
+  scale_y_reverse())
+
+(p2_middle <- ggplot(face_heatmap_middle, aes(x=center_x, y=center_y)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Faces: 12-18m') +
+  ylim(0,height_px) +
+  scale_y_reverse())
+
+(p3_oldest <- ggplot(face_heatmap_oldest, aes(x=x_pos, y=y_pos)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Faces: 18m +') +
+  ylim(0,height_px) +
+  scale_y_reverse())
+
+# ggarrange(p1_youngest, p2_middle,p3_oldest, nrow=1)
+```
+
+
+### Heatmaps of hand detection positions across age groups
+```{r}
+hand_heatmap_young <- bb_forheatmap %>%
+  filter(label=='hand') %>%
+  filter(age_day_bin<12)
+
+hand_heatmap_middle<- bb_forheatmap %>%
+  filter(label=='hand') %>%
+  filter(age_day_bin>12 & age_day_bin<18.1)
+
+hand_heatmap_oldest <- bb_forheatmap %>%
+  filter(label=='hand') %>%
+  filter(age_day_bin>18.1)
+  
+
+(p1_youngest <- ggplot(hand_heatmap_young, aes(x=center_x, y=center_y)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Hands: 6-12m') +
+  ylim(0,height_px) +
+  scale_y_reverse())
+
+(p2_middle <- ggplot(hand_heatmap_middle, aes(x=center_x, y=center_y)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Hands: 12-18m') +
+  ylim(0,height_px) +
+  scale_y_reverse())
+
+(p3_oldest <- ggplot(hand_heatmap_oldest, aes(x=x_pos, y=y_pos)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Hands: 18m +') +
+  ylim(0,height_px) +
+  scale_y_reverse())
+
+# ggarrange(p1_youngest, p2_middle,p3_oldest, nrow=1)
+
+
+```
+
+### CHild vs adult hand heatmaps from mturk sample
+```{r}
+
+child_hands <- g_seg %>%
+  filter(label=="Child hand")
+
+adult_hands <- g_seg %>%
+  filter(label=="Adult hand")
+##
+ggplot(child_hands, aes(x=left, y=top)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ggtitle('Child hands (mturk)') +
+  ylim(0,height_px) +
+  scale_y_reverse()
+##
+ggplot(adult_hands, aes(x=left, y=top)) +
+  geom_point() + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon") +
+  coord_fixed(ratio=1) +
+  ylim(0,height_px) +
+  scale_y_reverse() +
+  ggtitle('Adult hands (mturk)') 
+
+```
+
+
+
+

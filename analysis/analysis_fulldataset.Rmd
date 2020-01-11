@@ -1,0 +1,367 @@
+---
+title: "saycam full dataset analysis"
+author: "Bria Long"
+date: "1/9/2020"
+output: html_document
+---
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(egg)
+theme_set(theme_few())
+```
+
+## Read in data 
+
+### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
+```{r}
+right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up =read.csv(right_side_up_file)
+
+# get INCORRECT videos 
+flipped_videos <- right_side_up %>%
+  filter(right_side_up==1) %>%
+  rename(vid_name = video)
+
+```
+
+### Load SAYCAM metadata from csv file; get metadata from detections .csv
+```{r}
+metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+
+meta=read.csv(metadata_file) %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(File.Name,"[.]")[[1]][1]) %>%
+  mutate(count_locations = length(str_split(Location,',')[[1]]))
+
+# collapse duplicate labels
+meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
+
+```
+
+### Load in detections from preprocessed Rdata file; 
+```{r eval=FALSE}
+ # Could do list of detections  from csv (takes forever, skipping)
+# data_file = "../data/all_frames.csv"
+# detections=read.csv(data_file) 
+
+## rdata is faster
+load('../data/openpose_detections.RData')
+```
+
+### Preprocess data (doesn't exceute; loads processed data below)
+```{r eval=FALSE}
+# get shortened video names so they match across all files
+all_video_names = as.tibble(unique(detections$vid_name))
+all_video_names <- all_video_names %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(value,"[.]")[[1]][1])
+
+# reset levels of vid_name in big detections array (very slow rowwise)
+levels(detections$vid_name) <- all_video_names$vid_name
+
+# join with metadata and flip the videos
+d_all <- detections %>%
+  left_join(meta, by='vid_name') %>%
+  filter(!vid_name %in% flipped_videos$vid_name) 
+
+# check that we actually excluded the videos
+num_orig_videos = length(unique(detections$vid_name))
+num_videos_retained = length(unique(d_all$vid_name))
+assert_that(num_videos_retained < num_orig_videos)
+
+## All 6 of the video that were not in this file (but were in the detections file) happened to be 6 very bad quality videos; excluding from detections
+exclude_bad_quality <- d_all %>%
+  filter(!vid_name %in% right_side_up$video)
+
+d_all <- d_all %>%
+  filter(!vid_name %in% exclude_bad_quality$vid_name)
+
+### Make detections into logical vectors and compute "person" as either face/hand
+d_all$face_openpose = as.logical(d_all$face_openpose)
+d_all$hand_openpose = as.logical(d_all$hand_openpose)
+d_all$person_openpose = (as.logical(d_all$face_openpose) | as.logical(d_all$hand_openpose))
+d_all$both_openpose = (as.logical(d_all$face_openpose) & as.logical(d_all$hand_openpose))
+
+### Look at any suspicious videos with very high face detections (candidate missed allocentric videos)
+vid_check <- d_all %>%
+  filter(child_id == "S") %>%
+  group_by(vid_name,vid_name, Databrary.Link) %>%
+  summarize(prop_faces =mean(face_openpose))
+
+high_faces <- vid_check %>%
+  filter(prop_faces>.8)
+
+## save this data so this doesn't have to be redone again
+save(d_all, file = '../data/openpose_detections_filtered.RData')
+
+```
+
+### Instead, load preprocess and filtered detections
+```{r}
+load('../data/openpose_detections_filtered.RData')
+```
+
+### Make bins across which to analyze data
+```{r}
+bin_size = 7
+min_age = min(d_all$age_days)
+max_age = max(d_all$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+d_all <- d_all %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
+
+d_all$age_day_bin = as.numeric(as.character(d_all$age_day_bin))
+
+```
+
+## How do face/hand detection vary by age? 
+### Compute summary statistics
+```{r}
+summary_by_age <- d_all %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  group_by(age_day_bin, child_id) %>%
+  summarize(num_detect = length(face_openpose), prop_faces = sum(face_openpose) / num_detect,  prop_hands = sum(hand_openpose) / num_detect, face_or_hand = sum(person_openpose)/ num_detect, face_and_hand = sum(both_openpose)/ num_detect) 
+
+
+```
+  
+### Plot faces x age x child
+```{r}
+ggplot(summary_by_age, aes(x=age_day_bin, y=prop_faces, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  geom_smooth(span=10) + 
+  ylab('Proportion Faces') + 
+  xlab('Age bin (months)') +
+  ylim(0,.5)
+```
+
+### Plot hands x age x child
+```{r}
+ggplot(summary_by_age, aes(x=age_day_bin, y=prop_hands, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  geom_smooth(span=10) + 
+  ylab('Proportion Hands') + 
+  xlab('Age bin (months)') +
+  ylim(0,.5)
+```
+
+### Plot Faces - Hands x age x child:  Key plot for fausey comparison
+```{r}
+## faces - hands
+ggplot(summary_by_age, aes(x=age_day_bin, y=prop_faces - prop_hands, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  geom_smooth(span=10) + 
+  theme_few(base_size=18) +
+  ylab('Proportion Faces - Hands') + 
+  xlab('Age (months)')
+
+
+```
+
+### Plot Face OR hand x age x child
+```{r}
+ggplot(summary_by_age, aes(x=age_day_bin, y=face_or_hand, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  geom_smooth(span=10) + 
+  ylab('Proportion Face OR Hand') + 
+  xlab('Age bin')
+```
+
+### Plot Face AND hand x age x child
+```{r}
+ggplot(summary_by_age, aes(x=age_day_bin, y=face_and_hand, size=num_detect, col=child_id)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10) + 
+  ylab('Proportion Face AND Hand') + 
+  xlab('Age bin')
+```
+
+
+## Look at trends in full dataset by location
+```{r}
+face_hand_by_location <- d_all %>%
+  filter(!is.na(Location)) %>%
+  filter(count_locations==1) %>%
+  group_by(Location,child_id,age_day_bin) %>%
+  summarize(prop_faces = mean(face_openpose), prop_hands = mean(hand_openpose), num_detect = length(face_openpose))  %>%
+  filter(num_detect > 9000) %>% ## 9000 frames = 5 minutes of video at 30 fps %>%
+  mutate(faces_vs_hands = prop_faces - prop_hands)
+
+hands_by_location_to_plot <- face_hand_by_location %>%
+  multi_boot_standard(col="prop_hands") %>%
+  ungroup %>%
+  left_join(face_hand_by_location) %>%
+  mutate(Location = fct_reorder(Location, mean)) 
+
+faces_by_location_to_plot <- face_hand_by_location %>%
+  multi_boot_standard(col="prop_faces") %>%
+  ungroup %>%
+  left_join(face_hand_by_location) %>%
+  mutate(Location = fct_reorder(Location, mean)) 
+
+faces_vs_hands_to_plot <- face_hand_by_location %>%
+  multi_boot_standard(col="faces_vs_hands") %>%
+  ungroup %>%
+  left_join(face_hand_by_location) %>%
+  mutate(Location = fct_reorder(Location, mean)) 
+
+```
+
+### Plot faces and hands by location
+```{r}
+(plot_faces_loc = ggplot(faces_by_location_to_plot, aes(x = Location, y = mean, col=child_id)) + 
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), position = position_nudge(x = .4, y = 0)) +
+  geom_point(aes(x=Location, y=prop_faces, size=num_detect, alpha=.01)) +
+  geom_point() +
+  ylim(0,1) +
+  coord_flip() + 
+  ylab('Proportion Faces') +
+  facet_grid(~child_id) )
+  
+(plot_hand_loc = ggplot(hands_by_location_to_plot, aes(x = Location, y = mean, col=age_day_bin)) + 
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), position = position_nudge(x = .2, y = 0)) +
+  geom_point(aes(x=Location, y=prop_hands, size=num_detect, alpha=.01)) +
+  geom_point() +
+  ylim(0,1) +
+  coord_flip() + 
+  ylab('Proportion Hands') +
+  facet_grid(~child_id) +
+  theme(legend.position = "none"))
+
+(plot_hands_vs_faces = ggplot(faces_vs_hands_to_plot, aes(x = Location, y = mean, col=age_day_bin)) + 
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper), position = position_nudge(x = .2, y = 0)) +
+  geom_point(aes(x=Location, y=faces_vs_hands, size=num_detect, alpha=.01)) +
+  geom_point() +
+  # ylim(0,1) +
+  coord_flip() + 
+  ylab('Proportion Faces - Hands') +
+  facet_grid(~child_id) +  theme(legend.position = "none"))
+
+
+# ggarrange(plot_faces_loc, plot_hand_loc,plot_hands_vs_faces)
+```
+## what percentage of the dataset is this? 
+```{r}
+percentage_of_dataset = sum(faces_vs_hands_to_plot$num_detect)/length(d_all$frame)
+```
+
+
+
+```{r}
+
+# faces_by_location <- d_all %>%
+#   filter(!is.na(Location)) %>%
+#   filter(count_locations==1) %>%
+#   group_by(Location,child_id,age_day_bin) %>%
+#   summarize(prop_face = mean(face_openpose))  
+# 
+# ggplot(faces_by_location, aes(x = Location, y = prop_face, col=child_id)) + 
+#   # geom_flat_violin() +
+#   geom_boxplot() +
+#   # geom_point() +
+#   ylim(0,.8) +
+#   ylab('Proportion Faces') +
+#   coord_flip()
+
+```
+
+```{r}
+# face_vs_hands_location_all <- d_all %>%
+#   filter(count_locations==1) %>%
+#   filter(!Location=='NA') %>%
+#   group_by(child_id,Location, age_day_bin) %>%
+#   summarize(prop_faces = sum(face_openpose) / length(face_openpose), prop_hands = sum(hand_openpose) / length(hand_openpose), num_detect = length(face_openpose)) %>%
+#   mutate(faces_vs_hands = prop_faces - prop_hands)
+# 
+# ggplot(face_vs_hands_location_all, aes(x=age_day_bin, y=prop_faces, col=child_id, size=num_detect)) +
+#   geom_point() +
+#   # geom_smooth() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+#   ylab("Faces") +
+#   facet_grid(~Location)
+# 
+# ggplot(face_vs_hands_location_all, aes(x=age_day_bin, y=prop_hands, col=child_id, size=num_detect)) +
+#   geom_point() +
+#   # geom_smooth() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+#   ylab("Hands") +
+#   facet_grid(~Location)
+# 
+# ggplot(face_vs_hands_location_all, aes(x=age_day_bin, y=faces_vs_hands, col=child_id, size=num_detect)) +
+#   geom_point() +
+#   # geom_smooth() +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+#   ylab("Faces vs Hands") +
+#   facet_grid(~Location)
+
+
+```
+
+
+
+
+# Render out images based on annotations if desired
+## True positives on faces?
+```{r eval=FALSE}
+faces_only_op_cor <- m %>%
+  filter(faces == TRUE) %>%
+  filter(face_openpose == TRUE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_tp/'))
+for (i in seq(1,length(faces_only_op_cor$full_image_path),1)){
+  image_read(as.character(faces_only_op_cor$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_tp/", faces_only_op_cor$short_image_path[i])))
+}
+
+```
+
+## False positives on facs?
+```{r eval=FALSE}
+to_write <- m %>%
+  filter(faces == FALSE) %>%
+  filter(face_openpose == TRUE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_fp/'))
+for (i in seq(1,length(to_write$full_image_path),1)){
+  image_read(as.character(to_write$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_fp/", to_write$short_image_path[i])))
+}
+
+```
+
+
+## False negatives on faces?
+```{r eval=FALSE}
+to_write <- m %>%
+  filter(faces == TRUE) %>%
+  filter(face_openpose == FALSE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_fn/'))
+for (i in seq(1,length(to_write$full_image_path),1)){
+  image_read(as.character(to_write$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_fn/", to_write$short_image_path[i])))
+}
+
+```
+
