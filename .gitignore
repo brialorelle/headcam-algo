@@ -11,6 +11,7 @@ analysis/detections_rendered/*
 annotations/face_hands/pilot_hits/*
 .Rproj.user
 .Rhistory
+annotations/face_hands/experiment/test_hits/*
 annotations/face_hands/experiment/test_hits/test_hit_12419_redo.xlsx
 annotations/face_hands/analysis/annotated-images/*
 annotations/face_hands/analysis/pilot_hits/Batch_3855517_batch_results.csv

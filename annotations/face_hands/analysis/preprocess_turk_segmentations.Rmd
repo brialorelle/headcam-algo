@@ -1,5 +1,5 @@
 ---
-title: "Preprocess turk annotations ="
+title: "Preprocess turk annotations"
 output: html_notebook
 ---
 
@@ -20,16 +20,20 @@ library(jsonlite)
 theme_set(theme_few())
 ```
 
-``
+
 # Preprocessing
 
 ```{r}
-f <- dir("turk_annotations_segmentation/")
-jf <- paste("turk_annotations_segmentation/",f,sep="")
+# f <- dir("turk_annotations_segmentation/")
+# jf <- paste("turk_annotations_segmentation/",f,sep="")
+# jd <- read_csv(jf)
+
+f = "turk_segmentations_hands_only.csv"
+jf <- paste("../../../data/",f,sep="")
 jd <- read_csv(jf)
 
 d.raw <- data.frame()
-trial_indexes = seq(1,200,1)
+trial_indexes = seq(1,length(jd$Input.img_src1),1)
   for (trial_ind in trial_indexes){
     ## get annotation and see if empty
     this_annotation = jd$Answer.annotatedResult.boundingBoxes[trial_ind]
@@ -99,9 +103,57 @@ ggplot(d, aes(x=label, y=top)) +
 
 ```
 
+
+
+```{r}
+
+d <- d.raw %>%
+  mutate(hands_seg = (label %in% c("Child hand","Adult hand")), face_seg = (label == "Adult Face")) %>%
+  mutate(short_image_path = str_split_fixed(full_image_path,'/',7)[,7]) %>%
+  mutate(sample_ind = str_split_fixed(short_image_path,"-",3)[,1], frame_ind_temp = str_split_fixed(short_image_path,"-",3)[,3], vid_name_temp = str_split_fixed(short_image_path,"-",3)[,2]) %>%
+  mutate(sample_ind = as.numeric(sample_ind), frame_ind = as.numeric(str_split_fixed(frame_ind_temp,".jpg",3)[,1])) %>%
+  rowwise() %>%
+  mutate(vid_name_short = str_split(vid_name_temp,"[.]")[[1]][1]) %>%
+  mutate(vid_name = str_split_fixed(vid_name_temp,".mp4",2)[,1]) 
+```
+
+
+### How many frames/videos had children's faces?
+```{r}
+child_face_frames <- d %>%
+  filter(label=="Child face")
+
+
+# render out some of these...
+# dir.create(paste0('child_face/'))
+# for (i in seq(1,length(child_face_frames$full_image_path),1)){
+#   image_read(as.character(child_face_frames$full_image_path[i])) %>%
+#   image_append(stack = FALSE) %>%
+#   image_write(file.path(paste0("child_face/", child_face_frames$short_image_path[i])))
+# }
+
+# dir.create(paste0('annotated-images-child-face/'))
+# unique_images = child_face_frames$full_image_path
+# for (image in unique_images){
+#   this_image_rgb <- image_read(image)
+#   img <- image_draw(this_image_rgb)
+#   a <- d %>%
+#     filter(full_image_path %in% image) 
+#   
+### rect(xleft, ybottom, xright, ytop
+#   rect(a$left, a$top+a$height, a$left+a$width, a$top)
+#   text(a$left+10, a$top+10, a$label)
+#   
+#   annotated_file = paste0('annotated-images-child-face/',unique(a$short_image_path), 'turk-annotated.jpg')
+#   image_write(img, annotated_file)
+#   dev.off()
+# }
+
+```
+
 ### Write out csv for use in analysis
 ```{r}
-write_csv(d,'turk_segmentations_dec12.csv')
+write_csv(d,'turk_segmentations_hands_only_processed.csv')
 ```
 
 ```{r}
@@ -120,8 +172,8 @@ for (image in unique_images){
   
   rect(a$left, a$top+a$height, a$left+a$width, a$top)
   text(a$left+10, a$top+10, a$label)
-  
-  annotated_file = paste0(unique(a$short_image_path), 'turk-annotated.jpg')
+   
+  annotated_file = paste0('annotated-images/',unique(a$short_image_path), 'turk-annotated.jpg')
   image_write(img, annotated_file)
   dev.off()
 }
