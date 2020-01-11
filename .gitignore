@@ -6,6 +6,7 @@ src/data/*
 .ipynb_checkpoints/
 *.pyc
 *.AVI
+*.jpg
 analysis/detections_rendered/*
 annotations/face_hands/pilot_hits/*
 .Rproj.user
