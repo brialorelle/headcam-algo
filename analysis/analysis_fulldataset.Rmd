@@ -26,7 +26,7 @@ theme_set(theme_few())
 
 ### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
 ```{r}
-right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up_file = "../src/data/video_right-side-up.csv"
 right_side_up =read.csv(right_side_up_file)
 
 # get INCORRECT videos 
@@ -38,7 +38,7 @@ flipped_videos <- right_side_up %>%
 
 ### Load SAYCAM metadata from csv file; get metadata from detections .csv
 ```{r}
-metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+metadata_file = "../src/data/SAYcam-2019-12-0922_54_28.csv"
 
 meta=read.csv(metadata_file) %>%
   rowwise() %>%
