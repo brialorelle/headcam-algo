@@ -12,9 +12,7 @@ author-information: >
     Department of Psychology, Street Address \\ Stanford, CA 91305 USA}
 
 abstract: >
-    The faces and hands of infants' caregivers and other social partners offer a rich source of social and
-    causal information that may be critical for infants' cognitive and linguistic development.
-    
+    The faces and hands of infants' caregivers and other social partners offer a rich source of social and causal information that may be critical for infants' cognitive and linguistic development. Previous work using manual annotation strategies and cross-sectional data has found systematic changes in the proportion of faces and hands in the egocentric perspective of young infants. The present research aims to test the generality of these findings using the SAYcam dataset (Sullivan, Mei, Perfors, Wojcik, & Frank, under review), a longitudinal collection of over 1700 headcam videos collected from three children along a span of 6 to 32 months of age. To do so, we validate the use of a modern convolutional neural network for pose detection (OpenPose)  for the detection of people, faces, and hands for use with these naturalistic infant egocentric videos. We then apply this network to the entire dataset, analyzing the prevalence of faces across age, individuals, and activity contexts. Overall, we find a higher prevalence of hands seen by infants than previously reported, considerably variability in the proportion of faces/hands seen across different locations (e.g., living room vs. kitchen), yet surprising consistency across our XX individuals.
     
 keywords: >
     social cognition; face perception; infancy; head cameras; deep learning
@@ -35,54 +33,43 @@ library(png)
 library(grid)
 library(ggplot2)
 library(xtable)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(egg)
+theme_set(theme_few())
 ```
 
 # Introduction
 
-Infants are famously confronted by a blooming, buzzing onslaught of stimuli (James, 1891) which they must learn to parse and navigate as their cognitive and social skills develop.
-Fortunately, they can depend on regularities not only in their visual environments [@Aslin2009] and linguistic environments, but also in the presence and actions of their caregivers and other social partners [@].
-From a very young age, infants show great attention to faces CITE, and indeed faces are a critical part of infants' visual experience as an important conduit of social and linguistic information.
-As infants mature, they begin to also attend more to the manual actions taken by their social partners, engaging in joint attention to objects and events around them. 
-Such episodes are prompted not only by a glance from a caregiver, but also through pointing and offering; thus, hands are also an important carrier of information, especially relevant for learning language and actions.
-It is unsurprising, then, that both hands and faces are prevalent in even young infants' visual experiences, as evidenced through analyses of egocentric views collected with head-mounted cameras (i.e., headcams; CITES).
+  Infants are confronted by a blooming, buzzing onslaught of stimuli (James, 1891) which they must learn to parse to make sense of the world around them. Yet infants do not embark on this learning process alone: infants are engaged in learning from their caregivers from early infancy. From as early as 3 months of age, young infants follow overt gaze shifts (@Gredeback2010), and even newborns prefer to look at faces with direct vs. averted gaze [@Farroni2002; @Farroni2005], despite their limited acuity.  Faces are thus likely to be an important conduit of social information that scaffolds infants cognitive development. Given this importance, developmentalists have long hypothesized that faces are prevalent in the visual experience of young infants. However, as even the viewpoint of a walking child is not easily predicted by our own adult intuitions (Clerkin, Hart, Rehg, Yu, & Smith, 2017; Franchak et al., 2011; Yoshida & Smith, 2008), researchers have begun to record the egocentric views collected from infants and toddlers wearing head-mounted cameras to test theories about the infant perspective.
+ A growing body of work now demonstrates that the viewpoints of very young infants—less than 4 months of age—are indeed dominated by frequent, persistent views of the faces of their caregivers [@Jayaraman2015; @Sugden2014; @Jayaraman2018]. However, as infants mature, their perspective starts to capture views of hands paired with the objects they are acting on [@fausey2016]. As infants learn to use their own hands to act on the world, they may focus on manual actions taken by their social partners. Furthermore, caregivers may start to use their hands more with communicative intent, directing infants attention with pointing and gestures to particular events or objects during play (Yu & Smith, 2013). 
+	The present research aims to test the generality of these findings using the SAYcam dataset [@SAYcam], a longitudinal collection of over 1700 headcam videos collected from three children along a span of 6 to 32 months of age. This In addition to its size and longitudinal nature, this dataset builds on those used in previous research in two key ways. First, recordings were from a variety of many different naturalistic contexts, encompassing infants’ viewpoints during both activities outside and inside the home. Second, the cameras used in this longitudinal study encompassed a much wider field of view than those typically used, allowing a more complete picture of the infant perspective.
+  However, with many hundreds of hours of footage (>100M frames), this large dataset truly necessitates a shift to an automated annotation strategy. Indeed, annotation of the frames extracted from egocentric videos has been to be prohibitively time-consuming, meaning that many of the frames are not inspected. For example, in @fausey2016, collected a total of 143 hours of head-mounted camera footage (15.5 million frames), of which one frame every five seconds was hand annotated (by four coders), totalling 103,383 frames (per coder)—an impressive number of annotations but nonetheless only 0.67% of the collected footage. To address this challenge, we  first validate the use modern computer vision model [@cao2017realtime] to automatically detect the presence of hands and faces from the infant egocentric viewpoint. In particular, we focus on OpenPose   [@cao2017realtime], a model optimized for jointly detecting human face, body, hand, and foot keypoints (135 in total) that operates well on scenes including multiple people even if they are partially-occluded (see Figure 1).  We then apply these methods at scale to the larger dataset, allowing us to analyze the proportion of faces and hands observed by each child across age and activity context.
 
-Of course, not only is children's interest and attention to hands and faces
-
-Previous work has suggested:
-
-Previous work has found changes in the prevalence of faces vs. hands for infants of different ages. For example, Fausey et al. [-@Fausey2016] found that infants less than 12 months of age received face-dense input, relative to 1- to 2-year-olds who received more hand-dense input. 
-However, it may be that this effect is driven by infants younger than 4 months of age [e.g., @Jayaraman2015; @Sugden2014] who see both more frequent and more persistent faces [@Jayaraman2018].
-Once infants begin to crawl (~6 months) they may see far fewer hands and faces, overall.
-
-Earlier work has also found surprising attention to hand movements and their interactions with objects (Yu & Smith, 2013), particularly in older infants (ages?).
-
-Differences in the availability of social information depending on motor abilities [@Sanchez2018; @Franchak2011] (more Franchak papers?)
-
-One limitation of past work is that it has relied on cross-sectional data, and thus cannot speak to whether these trajectories are present in individual children.
-
-Here, we analyze the SAYcam dataset [@SAYcam], a longitudinal corpus of head-mounted camera data comprising more than 1700 videos from three children, for a total of over 300 hours of videos (>100 million frames). 
-Over a span of 6 to 32 months of age, the three children (S, A, and Y) in the dataset wore headcams at least twice weekly, for approximately one hour per recording session. 
-One weekly session was on the same day each week at a roughly constant time of day, while the other(s) were chosen arbitrarily at the participating family's discretion.
-
-This dataset differs in four key ways: 1) number of hours/frames 2) not just mealtimes--naturalistic sample of many contexts, 3) longitudinal, 4) much larger field-of-view.
-
-To do so, we first test and validate novel computer vision methods for extracting social information from these egocentric viewpoints on a small subset of randomly selected frames from the dataset.  
-We then apply these methods at scale to the larger dataset, allowing us to extract key descriptive variables hypothesized to vary across development.
 
 # Method
 
 ## Dataset
 
-(briefly describe dataset; sampling strategy: location of two households, number of hours of video, variability in location, etc; reference published paper on what this dataset is, large field of view (fisheye lens))
-(109 degrees horizontal x 70 degrees vertical)
+Videos captured by the headcam were 680x480 pixels, and a fisheye lens was attached to the camera to increase 109 degrees horizontal x 70 degrees vertical. Children wore headcams at least twice weekly, for approximately one hour per recording session. One weekly session was on the same day each week at a roughly constant time of day, while the other(s) were chosen arbitrarily at the participating family’s discretion. At the time of the recording, all three children were only children. Videos with technical errors or that were not taken from the egocentric perspective were excluded from the dataset. All videos are available at https://nyu.databrary.org/volume/564. ) 
+
 
 ## Part 1: How well can we capture social information using computer vision?
 
-### Description of OpenPose (Figure 1) 
-To automatically annotate the millions of frames in SAYcam, we use OpenPose [@Cao2018openpose; @Simon2017hand], a computer vision model optimized for jointly detecting human face, body, hand, and foot keypoints (135 in total) that operates well on scenes including multiple people even if they are partially-occluded.
+### Computer vision model (OpenPose)
+To automatically annotate the millions of frames in SAYcam, we use OpenPose [@Cao2018openpose; @Simon2017hand], a computer vision model optimized for jointly detecting human face, body, hand, and foot keypoints (135 in total) that operates well on scenes including multiple people even if they are partially-occluded. This CNN-based pose detector (OpenPose; Cao et al., 2017; Simon, Joo, Matthews, & Sheikh, 2017; Wei, Ramakrishna, Kanade, & Sheikh, 2016) provided the locations of 18 body parts (ears, nose, wrists, etc.) and is available at https://github.com/ CMU-Perceptual-Computing-Lab/openpose. The system uses a CNN for initial anatomical detection and subsequently applies part affinity fields (PAFs) for part association, producing a series of body part candidates. The candidates are then matched to a single individual and finally assembled into a pose; here, we only made use of outputs of the face and hand detection modules.
   
-### Description of annotation strategy (24K by Ketan, 4K on Amazon Mechanical Turk, reliability)
-To test the validity of OpenPose's hand and face detections, we compared to human annotations of 24,000 frames selected uniformly at random from the videos of two children (S and A). 
+
+### Manual annotation strategy
+To test the validity of OpenPose's hand and face detections, we compared the accuracy of these detections relative to human annotations of 24,000 frames selected uniformly at random from the videos of two children (S and A); Frames were jointly annotated for the presence of faces and hands. These randomly sampled frames covered XX of the videos present in the dataset.  A second set of coders recruited via AMT (Amazon Mechanical Turk) additionally annotated XX frames; agreement with the primary coder was XX%. 
+
   
 ### Describe main PRF statistics for 24K for faces and hands; interpret.
 Relatively higher precision vs. recall.
@@ -102,7 +89,6 @@ Relatively higher precision vs. recall.
 
 
 ## Field-of-View Comparison
-
 The field of view (FOV) of the fisheye lens used in @SAYcam is much wider (109 degrees horizontal x 70 degrees vertical) than the FOV of the lens used in @Fausey2016 (69 deg. x 41 deg.). 
 Looks like child hands make up about ~34% of the hands detected in our gold set (in Fausey 2016, they are only 8% of the hands). 
 Furthermore, a lot of the lower proportions of hands come from the infants <6 months of age.
@@ -110,7 +96,8 @@ Furthermore, a lot of the lower proportions of hands come from the infants <6 mo
 ## Variability by Location 
 
 Next we examine variation in the presence of hands and faces across different locations.
-Of the 3,027 videos, the content of 1,829 have been manually manuallly annotated for filming location, activities taking place, and visible objects (see @SAYcam). 
+Of the 3,027 videos, the content of 1,829 `r length(unique(meta$File.Name))` have been manually manuallly annotated for filming location, activities taking place, and visible objects (see @SAYcam). 
+
 To give a sense of the contexts the children experienced, the most frequent filming locations were the living room (339 videos), bedroom (182), kitchen (150), outside on property (129), child's bedroom (81), deck/porch (73), hallway (70), and off property (57). Filming only took place twice in the dining room.
 
 The most frequent activities were sitting (410), playing (375), being held (352), and standing (297). Eating was the 11th most-frequent activity (117 videos).
@@ -118,58 +105,10 @@ The most frequent activities were sitting (410), playing (375), being held (352)
 (goldset, full dataset)
 
 
-
-List multiple references alphabetically and
-separate them by semicolons [@Frank2012; @Smith2011]. 
-
-You might want to display a wide figure across both columns. To do this, you change the `fig.env` chunk option to `figure*`. To align the image in the center of the page, set `fig.align` option to `center`. To format the width of your caption text, you set the `num.cols.cap` option to `2`.
-
-
-## One-column images
-
-Single column is the default option, but if you want set it explicitly, set `fig.env` to `figure`. Notice that the `num.cols` option for the caption width is set to `1`.
-
-```{r image, fig.env = "figure", fig.pos = "H", fig.align='center', fig.width=2, fig.height=2, set.cap.width=T, num.cols.cap=1, fig.cap = "One column image."}
-img <- png::readPNG("figs/lab_logo_stanford.png")
-grid::grid.raster(img)
-```
-
-
-## R Plots
-
-You can use R chunks directly to plot graphs. And you can use latex floats in the
-fig.pos chunk option to have more control over the location of your plot on the page. For more information on latex placement specifiers see **[here](https://en.wikibooks.org/wiki/LaTeX/Floats,_Figures_and_Captions)**
-
-```{r plot, fig.env="figure", fig.pos = "H", fig.align = "center", fig.width=2, fig.height=2, fig.cap = "R plot" }
-x <- 0:100
-y <- 2 * (x + rnorm(length(x), sd = 3) + 3)
-
-ggplot2::ggplot(data = data.frame(x, y), 
-                aes(x = x, y = y)) + 
-  geom_point() + 
-  geom_smooth(method = "lm")
-```
-
-
-## Tables
-
-
-You can use the xtable function in the xtable package.
-
-```{r xtable, results="asis"}
-n <- 100
-x <- rnorm(n)
-y <- 2*x + rnorm(n)
-out <- lm(y ~ x)
-
-tab1 <- xtable::xtable(summary(out)$coef, digits=c(0, 2, 2, 1, 2), 
-                       caption = "This table prints across one column.")
-
-print(tab1, type="latex", comment = F, table.placement = "H")
-```
-
 # Discussion 
 
+Demonstrate
+(1) Need to think about the child's viewpoint relative to actual FOV as well as attent
 Fausey 2016: 103,383 images; 
 Here: 30,000,000 frames; 300 fold increase in data
 
