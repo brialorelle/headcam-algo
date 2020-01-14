@@ -17,3 +17,6 @@ annotations/face_hands/analysis/annotated-images/*
 annotations/face_hands/analysis/pilot_hits/Batch_3855517_batch_results.csv
 annotations/face_hands/analysis/pilot_hits/first_6.csv
 annotations/face_hands/analysis/pilot_hits/two_workers.csv
+*.aux
+*.out
+*.tex
