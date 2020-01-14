@@ -26,19 +26,18 @@ theme_set(theme_few())
 
 ### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
 ```{r}
-right_side_up_file = "../src/data/video_right-side-up.csv"
+right_side_up_file = "../data/video_right-side-up.csv"
 right_side_up =read.csv(right_side_up_file)
 
 # get INCORRECT videos 
 flipped_videos <- right_side_up %>%
   filter(right_side_up==1) %>%
   rename(vid_name = video)
-
 ```
 
 ### Load SAYCAM metadata from csv file; get metadata from detections .csv
 ```{r}
-metadata_file = "../src/data/SAYcam-2019-12-0922_54_28.csv"
+metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
 
 meta=read.csv(metadata_file) %>%
   rowwise() %>%
@@ -50,7 +49,7 @@ meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
 
 ```
 
-### Load in detections from preprocessed Rdata file; 
+### Load in detections & bounding boxes from preprocessed Rdata file; 
 ```{r eval=FALSE}
  # Could do list of detections  from csv (takes forever, skipping)
 # data_file = "../data/all_frames.csv"
@@ -58,9 +57,10 @@ meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
 
 ## rdata is faster
 load('../data/openpose_detections.RData')
+
 ```
 
-### Preprocess data (doesn't exceute; loads processed data below)
+### Preprocess data (doesn't execute in markdown; loads processed data below)
 ```{r eval=FALSE}
 # get shortened video names so they match across all files
 all_video_names = as.tibble(unique(detections$vid_name))
@@ -68,14 +68,35 @@ all_video_names <- all_video_names %>%
   rowwise() %>%
   mutate(vid_name = str_split(value,"[.]")[[1]][1])
 
-# reset levels of vid_name in big detections array (very slow rowwise)
+# reset levels of vid_name in big detections array for detections & bb (very slow rowwise)
 levels(detections$vid_name) <- all_video_names$vid_name
 
-# join with metadata and flip the videos
+# join with metadata and exclude bad videos
 d_all <- detections %>%
   left_join(meta, by='vid_name') %>%
   filter(!vid_name %in% flipped_videos$vid_name) 
+remove(detections)
+```
 
+### Now do the same for bounding box data
+```{r}
+load('../data/vid_info.RData')
+load("../data/all_bounding_boxes.Rdata")
+
+bb_all <- df
+bb_all$vid_name = as.factor(bb_all$vid_name)
+levels(bb_all$vid_name) <- all_video_names$vid_name
+
+bb_all <- bb_all %>%
+  filter(!vid_name %in% flipped_videos$vid_name) 
+  left_join(vid_info, by='vid_name') 
+  # 
+
+```
+
+
+
+```{r}
 # check that we actually excluded the videos
 num_orig_videos = length(unique(detections$vid_name))
 num_videos_retained = length(unique(d_all$vid_name))
@@ -88,13 +109,22 @@ exclude_bad_quality <- d_all %>%
 d_all <- d_all %>%
   filter(!vid_name %in% exclude_bad_quality$vid_name)
 
+bb_all <- bb_all %>%
+  filter(!vid_name %in% exclude_bad_quality$vid_name)
+
 ### Make detections into logical vectors and compute "person" as either face/hand
 d_all$face_openpose = as.logical(d_all$face_openpose)
 d_all$hand_openpose = as.logical(d_all$hand_openpose)
 d_all$person_openpose = (as.logical(d_all$face_openpose) | as.logical(d_all$hand_openpose))
 d_all$both_openpose = (as.logical(d_all$face_openpose) & as.logical(d_all$hand_openpose))
 
+
+## save this data so this doesn't have to be redone again
+save(d_all, file = '../data/openpose_detections_filtered.RData')
+```
+
 ### Look at any suspicious videos with very high face detections (candidate missed allocentric videos)
+```{r}
 vid_check <- d_all %>%
   filter(child_id == "S") %>%
   group_by(vid_name,vid_name, Databrary.Link) %>%
@@ -102,9 +132,6 @@ vid_check <- d_all %>%
 
 high_faces <- vid_check %>%
   filter(prop_faces>.8)
-
-## save this data so this doesn't have to be redone again
-save(d_all, file = '../data/openpose_detections_filtered.RData')
 
 ```
 
@@ -258,6 +285,43 @@ faces_vs_hands_to_plot <- face_hand_by_location %>%
 ## what percentage of the dataset is this? 
 ```{r}
 percentage_of_dataset = sum(faces_vs_hands_to_plot$num_detect)/length(d_all$frame)
+```
+
+## Cropped analysis
+```{r}
+## Import bounding boxes data
+height_px = 480; width_px = 640
+
+# make etra DVs & age variable
+bb_all = bb_all %>%
+  mutate(height_y = height*height_px, width_x = width*width_px, area = (height_y*width_x)/(height_px*width_px)) %>%
+  mutate(x_pos = left*width_px, y_pos = top*height_px) %>%
+  mutate(center_x = x_pos + width_x/2, center_y = y_pos - height_y/2)  %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(x/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin)))
+
+detections_cropped <- bb_all %>%
+  filter(height <.6) %>%  ## cut off bottom part of frame
+  filter(mean_conf > 0) %>% ## look at detections
+  group_by(vid_name, frame, age_days, child_id) %>%
+  summarize(hand_detected = (length(label=="hand")>0), face_detected = (length(label=="face")>0)) %>%
+  distinct(vid_name, frame, age_days, child_id, face_detected, hand_detected)
+```
+
+### Now plot faces-hands for the cropped analysis
+```{r}
+summary_by_age_cropped <- detections_cropped %>%
+  group_by(age_day_bin, child_id) %>%
+  summarize(num_detect = length(face_detected), prop_faces = sum(face_detected) / num_detect,  prop_hands = sum(hand_detected) / num_detect) 
+
+ggplot(summary_by_age_cropped, aes(x=age_day_bin, y=prop_faces - prop_hands, size=num_detect, col=child_id)) +
+  geom_point(alpha=.8) +
+  geom_smooth(span=10) + 
+  theme_few(base_size=18) +
+  ylab('Proportion Faces - Hands (CROPPED)') + 
+  xlab('Age (months)')
+
+
 ```
 
 
