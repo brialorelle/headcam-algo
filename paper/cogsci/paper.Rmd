@@ -103,26 +103,32 @@ We analyze 1,636 videos, with a total duration of XX hours (XX million frames).
 To automatically annotate the millions of frames in SAYcam, we use OpenPose [@Cao2018openpose; @Simon2017hand], a computer vision model optimized for jointly detecting human face, body, hand, and foot keypoints (135 in total) that operates well on scenes including multiple people even if they are partially-occluded. 
 This convolutional neural network (CNN)-based pose detector[^2] provided the locations of 18 body parts (ears, nose, wrists, etc.). 
 The system uses a CNN for initial anatomical detection and subsequently applies part affinity fields (PAFs) for part association, producing a series of body part candidates. 
-The candidates are then matched to a single individual and finally assembled into a pose; here, we only made use of outputs of the face and hand detection modules.
+The candidates are then matched to a single individual and finally assembled into a pose; here, we only made use of outputs of the face and hand detection modules. 
+Specifically, we tagged frames with detected nose keypoints as having a face, and frames with a wrist keypoint were tagged as having a hand present.
 
 [^2]: https://github.com/CMU-Perceptual-Computing-Lab/openpose
 
 ### Manual annotation strategy
 To test the validity of OpenPose's hand and face detections, we compared the accuracy of these detections relative to human annotations of 24,000 frames selected uniformly at random from the 1,636 videos of two children (S and A).
-Frames were jointly annotated for the presence of faces and hands. 
-These randomly sampled frames covered XX of the videos present in the dataset.  
-A second set of coders recruited via AMT (Amazon Mechanical Turk) additionally annotated XX frames; agreement with the primary coder was XX%. 
-  
+Frames were jointly annotated for the presence of faces and hands: raters were asked to indicate presence if at least 30% (CHECK) of one of these body parts was visible.
+These randomly sampled frames covered XX of the videos present in the dataset.
+A second set of coders recruited via AMT (Amazon Mechanical Turk) additionally annotated ~4000 (CHECK) frames; agreement with the primary coder was 95%. 
+
 ### Detection accuracy for faces and hands
-Overall, we found that face detections were slightly more accurate than hand detections, 
 
-Precision and recall (F-score) variation across child/age for faces
+To evaluate OpenPose's performance, we compared its detections to the the manually-annotated gold set of 24,000 frames, calculating Precision (hits / hits + false alarms), Recall (hits / hits + misses), and F-score (the harmonic mean of precision and recall) were calculated.
+For faces, the F-score was 0.64, with a precision of 0.70 and recall of 0.58. 
+For hands, the F-score was 0.51, with a precision of 0.73 and recall of 0.40.
+Both faces and hands thus have moderately good precision, and face detections were slightly more accurate than hand detections, which suffer from fairly low recall, meaning that we are likely underestimating the proportion of hands in the dataset when using the automated detections.
+We also examined whether precision, recall, and F-score for hands and faces varied per child as a function of age to see if there was any bias in the OpenPose detections related to age.
+The scores for faces were steady across age and similar for both children, but the scores for hands declined somewhat for the last few months.
 
-Describe possible sources of variation that decrease scores for:
--Faces: weird viewpoints, occluded/side viewpoint, faces in books
--Hands: children's own hands, hands in books, side viewpoints
+What sources of variation might be causing trouble for OpenPose?
+For faces, we observed that children often have non-canonical viewpoints (e.g., looking up at a caregiver's chin) as well as partially-occluded or oblique viewpoints. 
+Finally, we noted that human annotators and OpenPose alike were sometimes unreliable about labeling faces seen in books that children were looking at.
+Hands in books may have also proved unreliable for hand detections, as would oblique or non-canonical viewpoints of real hands, but most notably in many frames children's own hands may have been visible, due to both the wide FOV and the downward tilt of the camera. 
 
-Describe additional child vs. hand annotation; P/R/F variation across child vs. adult hands (better for adult hands, still OK for child hands)
+Describe additional child vs. hand annotation (move from Part 2?); P/R/F variation across child vs. adult hands (better for adult hands, still OK for child hands)
 
 
 ## Part 2: Access to social information across age
@@ -137,10 +143,10 @@ However, the most striking result from the dataset is a much greater proportion 
 We found this to be true across all ages, in both children, and regardless of whether we analyzed human annotations (on the 24K random subset) or the entire dataset.   
 One reason this could be the case is the much larger field of view that was captured by the cameras used in this study: unlike previous studies, our cameras were outfitted with a fish-eye lens in an attempt to capture as much of the children’s field of view as possible.  
 Thus, the field of view (FOV) of the fisheye lens used in @SAYcam was much wider (109 degrees horizontal x 70 degrees vertical) than the FOV of the lens used in @Fausey2016 (69 x 41 degrees).
-This larger field of view may have allowed the SAYcam cameras to capture not only the presence of a social partner’s hands interacting with objects, but also the children’s own hands, leading to more frequent hand detections.
+This larger field of view may have allowed the SAYcam cameras to capture not only the presence of a social partner's hands interacting with objects, but also the children’s own hands, leading to more frequent hand detections.
 
-To assess this possibility, we obtained annotations for a subsample of XX frames in which a hand was detected in the random gold set; participants (recruited via AMT) were asked to draw bounding boxes around children’s hands and adult hands. 
-Overall, we found that 34% of the hands detected by OpenPose in the random 24K sample were of children’s own hands (compared to 8% reported in @Fausey2016) suggesting that this difference in field of view did contribute substantially to the higher rate of detections in the frames. 
+To assess this possibility, we obtained annotations for a subsample of XX frames in which a hand was detected in the random gold set; participants (recruited via AMT) were asked to draw bounding boxes around children's hands and adult hands. 
+Overall, we found that 34% of the hands detected by OpenPose in the random 24K sample were of children's own hands (compared to 8% reported in @Fausey2016) suggesting that this difference in field of view did contribute substantially to the higher rate of detections in the frames. 
 Heatmaps of the bounding boxes obtained from these annotations can be seen in Figure XX, showing that children’s hands tended to appear in the lower half of the frames.
 
 We thus re-analyzed the entire dataset while restricting our analysis to a smaller, middle portion of the frame comparable to the field of view used in @Fausey2016 (XX vs XX degrees).
