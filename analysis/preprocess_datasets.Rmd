@@ -1,0 +1,231 @@
+---
+title: "saycam full dataset -- preprocessing"
+author: "Bria Long"
+date: "1/9/2020"
+output: html_document
+---
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(egg)
+theme_set(theme_few())
+```
+
+## Read in data 
+
+### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
+```{r}
+right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up =read.csv(right_side_up_file)
+
+# get INCORRECT videos 
+flipped_videos <- right_side_up %>%
+  filter(right_side_up==1) %>%
+  rename(vid_name = video)
+```
+
+### Load SAYCAM metadata from csv file; get metadata from detections .csv
+```{r}
+metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+
+meta=read.csv(metadata_file) %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(File.Name,"[.]")[[1]][1]) %>%
+  mutate(count_locations = length(str_split(Location,',')[[1]]))
+
+# collapse duplicate labels
+meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
+
+```
+
+### Load in detections & bounding boxes from preprocessed Rdata file; 
+```{r eval=FALSE}
+ # Could do list of detections  from csv (takes forever, skipping)
+# data_file = "../data/all_frames.csv"
+# detections=read.csv(data_file) 
+
+## rdata is faster
+load('../data/openpose_detections.RData')
+
+```
+
+### Preprocess data (doesn't execute in markdown; loads processed data below)
+```{r eval=FALSE}
+# get shortened video names so they match across all files
+all_video_names = as_tibble(unique(detections$vid_name))
+all_video_names <- all_video_names %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(value,"[.]")[[1]][1])
+
+# reset levels of vid_name in big detections array for detections & bb (very slow rowwise)
+levels(detections$vid_name) <- all_video_names$vid_name
+
+# join with metadata and exclude bad videos
+d_all <- detections %>%
+  left_join(meta, by='vid_name') %>%
+  filter(!vid_name %in% flipped_videos$vid_name) 
+
+
+## All 6 of the video that were not in this file (but were in the detections file) happened to be 6 very bad quality videos; excluding from detections
+exclude_bad_quality <- d_all %>%
+  filter(!vid_name %in% right_side_up$video)
+
+d_all <- d_all %>%
+  filter(!vid_name %in% exclude_bad_quality$vid_name)
+
+# check that we actually excluded the videos
+num_orig_videos = length(unique(detections$vid_name))
+num_videos_retained = length(unique(d_all$vid_name))
+assert_that(num_videos_retained < num_orig_videos)
+
+# get rid of big data structure
+remove(detections)
+```
+
+### Make detections into logical vectors and compute "person" as either face/hand
+```{r}
+d_all$face_openpose = as.logical(d_all$face_openpose)
+d_all$hand_openpose = as.logical(d_all$hand_openpose)
+d_all$person_openpose = (as.logical(d_all$face_openpose) | as.logical(d_all$hand_openpose))
+d_all$both_openpose = (as.logical(d_all$face_openpose) & as.logical(d_all$hand_openpose))
+```
+
+### Look at any suspicious videos with very high face detections (candidate missed allocentric videos)
+```{r}
+vid_check <- d_all %>%
+  filter(child_id == "S") %>%
+  group_by(vid_name,vid_name, Databrary.Link) %>%
+  summarize(prop_faces =mean(face_openpose))
+
+high_faces <- vid_check %>%
+  filter(prop_faces>.8)
+```
+
+### Make bins across which to analyze data
+```{r}
+bin_size = 7
+min_age = min(d_all$age_days)
+max_age = max(d_all$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+```
+
+### And save out into dataframe
+```{r}
+d_all <- d_all %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
+d_all$age_day_bin = as.numeric(as.character(d_all$age_day_bin))
+```
+
+### Save this data so this doesn't have to be redone again
+```{r}
+save(d_all, file = '../data/openpose_detections_filtered.RData')
+```
+
+
+## Load bounding boxes to get cropped detections
+```{r}
+## import bounding boxes
+load('../data/all_bounding_boxes.RData')
+
+## frame
+height_px = 480; width_px = 640
+
+bb_all <- df %>%
+  filter(right_side_up==0) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin)))
+
+## get rid of extra dataframe
+remove(df)
+```
+
+## Make cropped detections in top 60% of frame
+```{R}
+detections_cropped <- bb_all %>%
+  filter(height <.6) %>%  ## cut off bottom part of frame
+  group_by(vid_name, frame, child_id, age_day_bin) %>%
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0)) %>% # if any faces or hands
+  distinct(vid_name, frame, age_day_bin,face_detected, hand_detected) 
+
+## clean up so that we can join with original dataframe
+detections_cropped <- detections_cropped %>%
+  ungroup() %>%
+  rename(hand_detected_cropped = hand_detected, face_detected_cropped = face_detected) %>%
+  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id))
+
+## now join with big dataframe
+d_cropped <- d_all %>%
+  as_tibble() %>%
+  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id),face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+  select(vid_name, frame, child_id, age_day_bin, face_openpose, hand_openpose) %>%
+  left_join(detections_cropped, by=c("vid_name","frame","age_day_bin","child_id")) 
+
+d_cropped <- d_cropped %>%
+  replace_na(list(hand_detected_cropped = FALSE, face_detected_cropped = FALSE))  ## replace NAs from cropped anlaysis
+
+# and save it out
+save(d_cropped, file = '../data/openpose_detections_filtered_cropped.RData')
+```
+
+
+# Render out images based on annotations if desired
+## True positives on faces?
+```{r eval=FALSE}
+faces_only_op_cor <- m %>%
+  filter(faces == TRUE) %>%
+  filter(face_openpose == TRUE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_tp/'))
+for (i in seq(1,length(faces_only_op_cor$full_image_path),1)){
+  image_read(as.character(faces_only_op_cor$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_tp/", faces_only_op_cor$short_image_path[i])))
+}
+
+```
+
+## False positives on facs?
+```{r eval=FALSE}
+to_write <- m %>%
+  filter(faces == FALSE) %>%
+  filter(face_openpose == TRUE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_fp/'))
+for (i in seq(1,length(to_write$full_image_path),1)){
+  image_read(as.character(to_write$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_fp/", to_write$short_image_path[i])))
+}
+
+```
+
+## False negatives on faces?
+```{r eval=FALSE}
+to_write <- m %>%
+  filter(faces == TRUE) %>%
+  filter(face_openpose == FALSE)
+
+# how about images where open pose got it? these should be most obvious
+dir.create(paste0('faces_fn/'))
+for (i in seq(1,length(to_write$full_image_path),1)){
+  image_read(as.character(to_write$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("faces_fn/", to_write$short_image_path[i])))
+}
+
+```
+

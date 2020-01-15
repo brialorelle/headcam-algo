@@ -341,9 +341,8 @@ prf_by_location_faces <- d %>%
   do(return_prf(.$face_eval_ketan))
 
 prf_by_location_faces$age_day_bin  = as.numeric(as.character(prf_by_location_faces$age_day_bin))
-ggplot(prf_by_location_faces, aes(x=age_day_bin, y=f, col=Location, size=num_detect)) +
+ggplot(prf_by_location_faces, aes(x=Location, y=f, col=Location, size=age_day_bin)) +
   geom_point(alpha=.5) +
-  facet_grid(~Location)
-  geom_smooth()  +
-  ylab('F-score - Face detection')
+  ylab('F-score - Face detection') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
