@@ -114,6 +114,13 @@ ggplot(summary_by_age, aes(x=age_day_bin, y=face_and_hand, size=num_detect, col=
 ## By location
 ### Summarize faces vs hands by location
 ```{r}
+
+check <- d_all %>%
+  filter(!is.na(Location)) %>%
+  filter(count_locations==1) %>%
+  group_by(Location,child_id,age_day_bin) %>%
+  summarize(num_frames = n())
+
 face_hand_by_location <- d_all %>%
   filter(!is.na(Location)) %>%
   filter(count_locations==1) %>%

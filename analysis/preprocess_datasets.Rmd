@@ -47,6 +47,8 @@ meta=read.csv(metadata_file) %>%
 # collapse duplicate labels
 meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
 
+save(meta, file = '../data/saycam_metadata.RData')
+
 ```
 
 ### Load in detections & bounding boxes from preprocessed Rdata file; 
