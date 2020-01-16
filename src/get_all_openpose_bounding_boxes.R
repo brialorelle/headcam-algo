@@ -34,3 +34,10 @@ for (i in 1:length(files)) {
 }
 
 save(df, file="all_bounding_boxes.RData")
+
+
+df$area = df$height * df$width
+require(ggplot2)
+df %>% filter(area>0) %>%
+  ggplot(aes(x=area, color=label, fill=label)) + 
+  geom_histogram(alpha=.5) 
