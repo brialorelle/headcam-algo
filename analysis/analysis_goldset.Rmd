@@ -87,6 +87,8 @@ child_adult_hand_annotations <- g_seg %>%
     summarize(child_hand_seg = (sum(child_hands))>0,  adult_hand_seg = (sum(adult_hands)>0)) %>%
     mutate(frame = frame_ind) %>%
     select(child_hand_seg, adult_hand_seg, full_image_path, vid_name, frame) 
+
+# save(child_adult_hand_annotations, file="../data/child_adult_hand_annotations.RData")
 ```
 
 ### Preprocess gold set data
@@ -122,10 +124,12 @@ d$age_day_bin <- as.numeric(as.character(d$age_day_bin))
 
 ### Hands vs. faces in manual annotations, broken down by child vs. adult hands
 ```{r}
-face_vs_hands_goldset <- d %>%
+d_with_child_hands <- d %>%
   full_join(child_adult_hand_annotations, by=c("vid_name", "frame")) %>%
   mutate(frame_id = paste0(vid_name, '-', frame)) %>%
-  replace_na(list(adult_hand_seg = FALSE, child_hand_seg = FALSE)) %>% ## replace NAs from segmentation with false for hands since all we got annotations for all frames with hands 
+  replace_na(list(adult_hand_seg = FALSE, child_hand_seg = FALSE)) ## replace NAs from segmentation with false for hands since all we got annotations for all frames with hands 
+  
+face_vs_hands_goldset <- d_with_child_hands
   group_by(child_id, age_day_bin) %>%
   summarize(num_detect = length(unique(frame_id)), prop_faces = sum(face_present_ketan) / num_detect, prop_hands = sum(hand_present_ketan) / num_detect, prop_adult_hands = sum(adult_hand_seg) / num_detect, prop_child_hands = sum(child_hand_seg) / num_detect) %>%
   filter(num_detect > 50) %>% ## need at least x samples per point
@@ -134,6 +138,115 @@ face_vs_hands_goldset <- d %>%
 
   
 ```
+
+```{r}
+ return_prf = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  num_detect = length(eval)
+  out <- data.frame(p,r,f,num_detect)
+  return(out)
+ }
+
+evaluate_detector <- function(truth, detection) {
+  if (truth == TRUE) {
+    if (truth == detection) return ("TP") # was face/wrist, detected face/wrist
+    else return("FN") # was face/wrist, missed face/wrist
+  }
+  else {
+    if (truth == detection) return("TN") # was not face/wrist, did not detect face/wrist
+    else return("FP") # was not face/wrist, detected face/wrist
+  }
+}
+
+bin_size = 30
+min_age = min(d_with_child_hands$age_days, na.rm=TRUE)
+max_age = max(d_with_child_hands$age_days,na.rm=TRUE)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+d_with_child_hands <- d_with_child_hands %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
+
+
+prf_by_age_child_hands <- d_with_child_hands %>%
+  filter(!is.na(hand_openpose)) %>%
+  mutate(child_hand_eval = evaluate_detector(child_hand_seg, hand_openpose)) %>%
+  mutate(adult_hand_eval = evaluate_detector(adult_hand_seg, hand_openpose)) %>%
+  group_by(age_day_bin, child_id) %>%
+  do(return_prf(.$child_hand_eval))
+
+
+prf_by_age_adult_hands <- d_with_child_hands %>%
+  filter(!is.na(hand_openpose)) %>%
+  mutate(adult_hand_eval = evaluate_detector(adult_hand_seg, hand_openpose)) %>%
+  group_by(age_day_bin, child_id) %>%
+  do(return_prf(.$adult_hand_eval))
+
+
+prf_by_age_child_hands$age_day_bin = as.numeric(prf_by_age_child_hands$age_day_bin)
+prf_by_age_adult_hands$age_day_bin = as.numeric(prf_by_age_adult_hands$age_day_bin)
+
+child_hand_scores  = ggplot(prf_by_age_child_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylim(0,.6) +
+  ylab('F-score - Child hand detection')
+
+adult_hand_scores = ggplot(prf_by_age_adult_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylab('F-score - Adult hand detection')
+  ylim(0,.6) +
+ggarrange(child_hand_scores,adult_hand_scores, nrow=1)
+  
+  
+  child_hand_scores  = ggplot(prf_by_age_child_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylim(0,.6) +
+  ylab('F-score - Child hand detection')
+
+adult_hand_scores = ggplot(prf_by_age_adult_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylab('F-score - Adult hand detection')
+  ylim(0,.6) +
+ggarrange(child_hand_scores,adult_hand_scores, nrow=1)
+  
+  
+  child_hand_scores_r  = ggplot(prf_by_age_child_hands, aes(x=age_day_bin, y=r, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylim(0,.6) +
+  ylab('Recall - Child hand detection')
+
+adult_hand_scores_r = ggplot(prf_by_age_adult_hands, aes(x=age_day_bin, y=r, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylab('Recall - Adult hand detection')
+  ylim(0,.6) +
+ggarrange(child_hand_scores_r,adult_hand_scores_r, nrow=1)
+  
+  
+    child_hand_scores_r  = ggplot(prf_by_age_child_hands, aes(x=age_day_bin, y=p, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylim(0,.6) +
+  ylab('Precision - Child hand detection')
+
+adult_hand_scores_r = ggplot(prf_by_age_adult_hands, aes(x=age_day_bin, y=p, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=10)  +
+  ylab('Precision - Adult hand detection')
+  ylim(0,.6) +
+ggarrange(child_hand_scores_r,adult_hand_scores_r, nrow=1)
+
+```
+
 
 ### Faces, Adult Hands, Child Hands x Age/Child
 ```{r}
@@ -180,10 +293,23 @@ faces_vs_all_hands = ggplot(face_vs_hands_goldset, aes(x=age_day_bin, y=prop_fac
   ylab(" faces - all hands") +
   ylim(-.5,.5)
 
-
 ggarrange(faces_vs_adult_hands, faces_vs_all_hands, nrow=1)
 ```
 
+```{r}
+ return_prf = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  num_detect = length(eval)
+  out <- data.frame(p,r,f,num_detect)
+  return(out)
+ }
+
+```
 
 ### Look at any variance by location from single-location videos
 ```{r}
@@ -299,31 +425,31 @@ ggplot(top_pos_goldset, aes(x=age_day_bin, y=y_center, col=label)) +
 
 ### Code ot render out bounding boxes from OP on sample frames
 ```{r}
-# g_seg_info <- g_seg %>%
-#   distinct(full_image_path, vid_name_short, frame_ind)
-#   
-# bb_check <- bb %>%
-#   mutate(frame_ind = frame, vid_name_short = vid_name) %>%
-#   left_join(g_seg_info, by=c("vid_name_short","frame_ind")) %>%
-#   filter(!is.na(full_image_path)) %>%
-#   filter(mean_conf > 0)
-
-# # dir.create(paste0('bbcheck/'))
-# unique_images <- bb_check$full_image_path[101:200]
+# # g_seg_info <- g_seg %>%
+# #   distinct(full_image_path, vid_name_short, frame_ind)
+# #   
+# # bb_check <- bb %>%
+# #   mutate(frame_ind = frame, vid_name_short = vid_name) %>%
+# #   left_join(g_seg_info, by=c("vid_name_short","frame_ind")) %>%
+# #   filter(!is.na(full_image_path)) %>%
+# #   filter(mean_conf > 0)
 # 
-# for (image in unique_images){
-#   this_image_rgb <- image_read(image)
-#   img <- image_draw(this_image_rgb)
-#   a <- bb_check %>%
-#     filter(full_image_path %in% image) 
-#   
-#   # rect(a$x_pos, a$y_pos-a$height_y, a$x_pos+a$width_x, a$y_pos)
-#   text(a$center_x, a$center_y, a$center_y)
-#   
-#   annotated_file = paste0('bbcheck/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-center.jpg')
-#   image_write(img, annotated_file)
-#   dev.off()
-# }
+# # # dir.create(paste0('bbcheck/'))
+# # unique_images <- bb_check$full_image_path[101:200]
+# # 
+# # for (image in unique_images){
+# #   this_image_rgb <- image_read(image)
+# #   img <- image_draw(this_image_rgb)
+# #   a <- bb_check %>%
+# #     filter(full_image_path %in% image) 
+# #   
+# #   # rect(a$x_pos, a$y_pos-a$height_y, a$x_pos+a$width_x, a$y_pos)
+# #   text(a$center_x, a$center_y, a$center_y)
+# #   
+# #   annotated_file = paste0('bbcheck/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-center.jpg')
+# #   image_write(img, annotated_file)
+# #   dev.off()
+# # }
 ```
 
 
@@ -416,27 +542,40 @@ hand_heatmap_oldest <- bb_forheatmap %>%
 ### CHild vs adult hand heatmaps from mturk sample
 ```{r}
 
+turk_annotations_seg = "../data/turk_segmentations_hands_only_processed.csv" 
+g_seg = read.csv(turk_annotations_seg) %>%
+  select(-HITID, -HITTypeId, -WorkerID) %>%
+  mutate(center_x = left + width/2, center_y = top + height/2) 
+
 child_hands <- g_seg %>%
-  filter(label=="Child hand")
+  filter(label=="Child hand") 
+
 
 adult_hands <- g_seg %>%
   filter(label=="Adult hand")
+
 ##
-ggplot(child_hands, aes(x=left, y=top)) +
+child_hand_plot <- ggplot(child_hands, aes(x=center_x, y=center_y)) +
   geom_point() + 
   stat_density_2d(aes(fill = ..level..), geom="polygon") +
   coord_fixed(ratio=1) +
-  ggtitle('Child hands (mturk)') +
-  ylim(0,height_px) +
+  ggtitle('(A). Child hand density') +
+  ylim(0,480) +
+  xlim(0,640) +
+  theme(legend.position="none") +
   scale_y_reverse()
 ##
-ggplot(adult_hands, aes(x=left, y=top)) +
+adult_hand_plot <- ggplot(adult_hands, aes(x=center_x, y=center_y)) +
   geom_point() + 
   stat_density_2d(aes(fill = ..level..), geom="polygon") +
   coord_fixed(ratio=1) +
-  ylim(0,height_px) +
+  ylim(0,480) +
+  xlim(0,640) +
   scale_y_reverse() +
-  ggtitle('Adult hands (mturk)') 
+  theme(legend.position="none") +
+  ggtitle('(B). Adult hand density') 
+
+ggarrange(child_hand_plot, adult_hand_plot, nrow=1)
 
 ```
 

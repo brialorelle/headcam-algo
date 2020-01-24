@@ -26,7 +26,7 @@ theme_set(theme_few())
 
 ### Instead load in detections and ketan's gold set annotations from preprocessed Rdata files
 ```{r}
-load('../data/openpose_detections.RData')
+# load('../data/openpose_detections.RData')
 load('../data/ketan_gold_sample.RData')
 ```
 
@@ -48,11 +48,6 @@ meta=read.csv(metadata_file) %>%
   mutate(vid_name_short = str_split_fixed(File.Name,'.AVI',2)[,1]) %>%
   rowwise() %>%
   mutate(count_locations = length(str_split(Location,',')[[1]]))
-
-# location_data <- meta %>%
-#   filter(count_locations==1) %>%
-  
-
 ```
 
 ### Read in turk anotation data  and merge
@@ -149,10 +144,6 @@ m_seg <- merged_g_seg %>%
 return_prf_short(m_seg$hand_eval)
 return_prf_short(m_seg$child_hand_eval)
 return_prf_short(m_seg$adult_hand_eval)
-
-# weird_gs_frames <- m_seg %>%
-#   mutate(weird = (label=='Child face')) %>%
-#   filter(weird==TRUE)
 
 ```
 

@@ -24,10 +24,16 @@ theme_set(theme_few())
 
 ## Read in data 
 ### Load preprocessed and filtered detections
+
+
 ```{r}
-load('../data/openpose_detections_filtered.RData') #d_all
-load('../data/openpose_detections_filtered_cropped.RData') # d_cropped
+load('../data/openpose_detections_filtered_threekids.RData') #d_all
+
+##
+load('../data/openpose_detections_filtered_cropped_allthreekids.RData') # d_cropped
 ```
+
+
 
 ### Make bins across which to analyze data
 ```{r}
@@ -40,6 +46,11 @@ bins = c(bin_starts, max_age)
 d_all <- d_all %>%
   mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
 d_all$age_day_bin = as.numeric(as.character(d_all$age_day_bin))
+
+d_all$face_openpose = as.logical(d_all$face_openpose)
+d_all$hand_openpose = as.logical(d_all$hand_openpose)
+d_all$person_openpose = (as.logical(d_all$face_openpose) | as.logical(d_all$hand_openpose))
+d_all$both_openpose = (as.logical(d_all$face_openpose) & as.logical(d_all$hand_openpose))
 ```
 
 
@@ -62,34 +73,46 @@ summary_by_age_limited <- summary_by_age %>%
 ### Plot faces x age x child
 ```{r}
 (faces <- ggplot(summary_by_age, aes(x=age_day_bin, y=prop_faces, size=num_detect, col=child_id)) +
-  geom_point(alpha=.8) +
+  geom_point(alpha=.5) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
   geom_smooth(span=10) + 
   ylab('Proportion Faces') + 
+     theme_few(base_size=16) +
   xlab('Age bin (months)') +
-  ylim(0,.5))
+  ylim(0,.5) +
+  theme(legend.position="none"))
 ```
 
 ### Plot hands x age x child
 ```{r}
 (hands <- ggplot(summary_by_age, aes(x=age_day_bin, y=prop_hands, size=num_detect, col=child_id)) +
-  geom_point(alpha=.8) +
+  geom_point(alpha=.5) +
   geom_smooth(span=10) + 
+     theme_few(base_size=16) +
   ylab('Proportion Hands') + 
   xlab('Age bin (months)') +
-  ylim(0,.5))
+  ylim(0,.5)+
+  theme(legend.position="none"))
 ```
 
 ### Plot Faces - Hands x age x child:  Key plot for fausey comparison
 ```{r}
 ## faces - hands
 (face_v_hand <- ggplot(summary_by_age, aes(x=age_day_bin, y=prop_faces - prop_hands, size=num_detect, col=child_id)) +
-  geom_point(alpha=.8) +
+  geom_point(alpha=.5) +
   geom_smooth(span=10) + 
-  theme_few(base_size=18) +
+  theme_few(base_size=16) +
   ylab('Proportion Faces - Hands') + 
-  xlab('Age (months)'))
+  xlab('Age (months)')+
+  theme(legend.position="right"))
 ```
+
+### Compiled plot
+```{r}
+
+ggarrange(faces,hands,face_v_hand, nrow=1)
+```
+
 
 ### Plot Face OR hand x age x child
 ```{r}
@@ -108,11 +131,9 @@ ggplot(summary_by_age, aes(x=age_day_bin, y=face_and_hand, size=num_detect, col=
   ylab('Proportion Face AND Hand') + 
   xlab('Age bin')
 ```
-
-
-
 ## By location
 ### Summarize faces vs hands by location
+
 ```{r}
 
 check <- d_all %>%
@@ -186,16 +207,35 @@ percentage_of_dataset = sum(faces_vs_hands_to_plot$num_detect)/length(d_all$fram
 
 
 # Cropped analysis
+
+### Make bins across which to analyze data
+```{r}
+bin_size = 7
+min_age = min(d_cropped$age_days)
+max_age = max(d_cropped$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+
+d_cropped <- d_cropped %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
+d_cropped$age_day_bin = as.numeric(as.character(d_cropped$age_day_bin))
+
+d_cropped$face_openpose = as.logical(d_cropped$face_openpose)
+# d_cropped$hand_openpose = as.logical(d_cropped$hand_openpose)
+
+```
+
 ## Faces vs hands
 ### Summary statistics
 ```{r}
 summary_by_age_cropped <- d_cropped %>%
   group_by(age_day_bin,child_id) %>%
   summarize(num_detect = length(face_openpose), prop_faces = sum(face_openpose) / num_detect,  prop_hands = sum(hand_detected_cropped) / num_detect) 
-
-summary_by_age_cropped_limited <- summary_by_age_cropped %>%
-  filter(age_day_bin < 24.1)
+# 
+# summary_by_age_cropped_limited <- summary_by_age_cropped %>%
+#   filter(age_day_bin < 24.1)
 ```
+
 
 ### Plot hands x age x child
 ```{r}

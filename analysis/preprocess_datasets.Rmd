@@ -74,69 +74,94 @@ all_video_names <- all_video_names %>%
 levels(detections$vid_name) <- all_video_names$vid_name
 
 # join with metadata and exclude bad videos
-d_all <- detections %>%
+d_SA <- detections %>%
   left_join(meta, by='vid_name') %>%
   filter(!vid_name %in% flipped_videos$vid_name) 
 
 
 ## All 6 of the video that were not in this file (but were in the detections file) happened to be 6 very bad quality videos; excluding from detections
-exclude_bad_quality <- d_all %>%
+exclude_bad_quality <- d_SA %>%
   filter(!vid_name %in% right_side_up$video)
 
-d_all <- d_all %>%
+d_SA <- d_SA %>%
   filter(!vid_name %in% exclude_bad_quality$vid_name)
 
 # check that we actually excluded the videos
 num_orig_videos = length(unique(detections$vid_name))
-num_videos_retained = length(unique(d_all$vid_name))
+num_videos_retained = length(unique(d_SA$vid_name))
 assert_that(num_videos_retained < num_orig_videos)
 
 # get rid of big data structure
 remove(detections)
 ```
 
-### Make detections into logical vectors and compute "person" as either face/hand
+## Load, process, merge Y's data
+### Now load in bounding box data from Y, which has detection rates built in
 ```{r}
-d_all$face_openpose = as.logical(d_all$face_openpose)
-d_all$hand_openpose = as.logical(d_all$hand_openpose)
-d_all$person_openpose = (as.logical(d_all$face_openpose) | as.logical(d_all$hand_openpose))
-d_all$both_openpose = (as.logical(d_all$face_openpose) & as.logical(d_all$hand_openpose))
+load('../data/Y_bounding_boxes.RData') #df again
+y_data <- df %>%
+  rowwise() %>%
+  mutate(age = str_split_fixed(vid_name, '_',4)[,3])
+
+remove(df)
+
+### wrangle age data for Y
+d_y <- y_data %>%
+  mutate(age_months = as.numeric(substr(age, 0,2)), days_to_add = as.numeric(substr(age, 3,4))) %>%
+  mutate(age_days = age_months*30 + days_to_add)  
+
+save(y_data, file = '../data/Y_bounding_boxes_cleaned.RData')
 ```
 
-### Look at any suspicious videos with very high face detections (candidate missed allocentric videos)
+### Do basic preprocessing on Y detection's
 ```{r}
-vid_check <- d_all %>%
-  filter(child_id == "S") %>%
-  group_by(vid_name,vid_name, Databrary.Link) %>%
-  summarize(prop_faces =mean(face_openpose))
 
-high_faces <- vid_check %>%
-  filter(prop_faces>.8)
+
+### count hands/faces from bounding box outputs for Y -- for d_all
+y_detections <- d_y %>%
+  group_by(vid_name, frame,age_days) %>%
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0))  
+
+y_detections <- y_detections %>%
+  # rename(hand_openpose = hand_detected, face_openpose = face_detected) %>%
+  mutate(child_id = "Y") %>%
+  left_join(meta)
+  
+save(y_detections, file='../data/y_detections_preprocessed.RData')
 ```
 
-### Make bins across which to analyze data
+### Merge detections from Y with other kids
 ```{r}
-bin_size = 7
-min_age = min(d_all$age_days)
-max_age = max(d_all$age_days)
-bin_starts = seq(min_age-1, max_age+1,bin_size)
-bins = c(bin_starts, max_age)
-```
-
-### And save out into dataframe
-```{r}
-d_all <- d_all %>%
-  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
-d_all$age_day_bin = as.numeric(as.character(d_all$age_day_bin))
+d_all <- d_SA %>%
+  mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+  full_join(y_detections)
 ```
 
 ### Save this data so this doesn't have to be redone again
 ```{r}
-save(d_all, file = '../data/openpose_detections_filtered.RData')
+save(d_all, file = '../data/openpose_detections_filtered_threekids.RData')
+```
+## Save out vid info for use with joining stuff later
+```{r}
+# vid_info_all <- d_all %>%
+#   select(vid_name, frame, age_days, child_id)
+# 
+# save(vid_info_all, '../data/vid_info_all.RData')
+```
+### Look at any suspicious Sam videos with very high face detections (candidate missed allocentric videos)
+```{r eval=FALSE}
+# vid_check <- d_all %>%
+#   filter(child_id == "S") %>%
+#   group_by(vid_name,vid_name, Databrary.Link) %>%
+#   summarize(prop_faces =mean(face_openpose))
+# 
+# high_faces <- vid_check %>%
+#   filter(prop_faces>.8)
 ```
 
 
-## Load bounding boxes to get cropped detections
+# Cropped detections
+## Load bounding boxes from S/A to get cropped detections
 ```{r}
 ## import bounding boxes
 load('../data/all_bounding_boxes.RData')
@@ -145,89 +170,94 @@ load('../data/all_bounding_boxes.RData')
 height_px = 480; width_px = 640
 
 bb_all <- df %>%
-  filter(right_side_up==0) %>%
-  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
-  mutate(age_day_bin = as.numeric(as.character(age_day_bin)))
+  filter(right_side_up==0) 
 
 ## get rid of extra dataframe
 remove(df)
 ```
 
-## Make cropped detections in top 60% of frame
+## Make cropped detections in top 60% of frame for Y
+```{r}
+load(file = '../data/Y_bounding_boxes_cleaned.RData')
+d_y <- y_data %>%
+  mutate(age_months = as.numeric(substr(age, 0,2)), days_to_add = as.numeric(substr(age, 3,4))) %>%
+  mutate(age_days = age_months*30 + days_to_add)  
+
+detections_cropped_Y <- d_y %>%
+  filter(person==0) %>% #only get frames where detections
+  filter(height <(.6*480)) %>%  ## cut off bottom part of frame
+  group_by(vid_name, frame, child_id, age_days) %>%
+  summarize(hand_detected_cropped = (sum(label=="hand")>0), face_detected_cropped = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose")) 
+
+detections_cropped_Y <- detections_cropped_Y %>%
+ ungroup() %>%
+ mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) 
+
+```
+
+## Make cropped detections in top 60% of frame for S,A
 ```{R}
-detections_cropped <- bb_all %>%
+detections_cropped_SA <- bb_all %>%
   filter(height <.6) %>%  ## cut off bottom part of frame
-  group_by(vid_name, frame, child_id, age_day_bin) %>%
-  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0)) %>% # if any faces or hands
-  distinct(vid_name, frame, age_day_bin,face_detected, hand_detected) 
+  group_by(vid_name, frame, child_id, age_days) %>%
+  summarize(hand_detected_cropped = (sum(label=="hand")>0), face_detected_cropped = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"))  
 
-## clean up so that we can join with original dataframe
-detections_cropped <- detections_cropped %>%
+all_cropped_detections <- detections_cropped_SA %>%
   ungroup() %>%
-  rename(hand_detected_cropped = hand_detected, face_detected_cropped = face_detected) %>%
-  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id))
+  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) %>%
+  full_join(detections_cropped_Y)
 
-## now join with big dataframe
-d_cropped <- d_all %>%
+```
+
+
+## need to get "FALSE" on frames where we didn't have info to be able to compute proportions; uses d_all from earlier and fills it all back in
+```{r}
+# load('../data/openpose_detections_filtered_threekids.RData') # d_all
+
+d_cropped <- d_all %>% ## needs to be loaded
   as_tibble() %>%
-  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id),face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
-  select(vid_name, frame, child_id, age_day_bin, face_openpose, hand_openpose) %>%
-  left_join(detections_cropped, by=c("vid_name","frame","age_day_bin","child_id")) 
-
-d_cropped <- d_cropped %>%
-  replace_na(list(hand_detected_cropped = FALSE, face_detected_cropped = FALSE))  ## replace NAs from cropped anlaysis
-
-# and save it out
-save(d_cropped, file = '../data/openpose_detections_filtered_cropped.RData')
+  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) %>%
+  select(vid_name, frame, child_id, age_days, face_openpose) %>%
+  left_join(all_cropped_detections, by=c("vid_name","frame","age_days","child_id")) %>%
+  replace_na(list(hand_detected_cropped = FALSE, face_detected_cropped = FALSE ))
 ```
 
-
-# Render out images based on annotations if desired
-## True positives on faces?
-```{r eval=FALSE}
-faces_only_op_cor <- m %>%
-  filter(faces == TRUE) %>%
-  filter(face_openpose == TRUE)
-
-# how about images where open pose got it? these should be most obvious
-dir.create(paste0('faces_tp/'))
-for (i in seq(1,length(faces_only_op_cor$full_image_path),1)){
-  image_read(as.character(faces_only_op_cor$full_image_path[i])) %>%
-  image_append(stack = FALSE) %>%
-  image_write(file.path(paste0("faces_tp/", faces_only_op_cor$short_image_path[i])))
-}
+### now save
+```{r}
+save(d_cropped, file = '../data/openpose_detections_filtered_cropped_allthreekids.RData')
 
 ```
 
-## False positives on facs?
-```{r eval=FALSE}
-to_write <- m %>%
-  filter(faces == FALSE) %>%
-  filter(face_openpose == TRUE)
+# Make bb detections only
+```{r}
+## import bounding boxes
+load('../data/all_bounding_boxes.RData')
+load('../data/Y_bounding_boxes_cleaned.RData')
 
-# how about images where open pose got it? these should be most obvious
-dir.create(paste0('faces_fp/'))
-for (i in seq(1,length(to_write$full_image_path),1)){
-  image_read(as.character(to_write$full_image_path[i])) %>%
-  image_append(stack = FALSE) %>%
-  image_write(file.path(paste0("faces_fp/", to_write$short_image_path[i])))
-}
+right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up =read.csv(right_side_up_file)
 
-```
-
-## False negatives on faces?
-```{r eval=FALSE}
-to_write <- m %>%
-  filter(faces == TRUE) %>%
-  filter(face_openpose == FALSE)
-
-# how about images where open pose got it? these should be most obvious
-dir.create(paste0('faces_fn/'))
-for (i in seq(1,length(to_write$full_image_path),1)){
-  image_read(as.character(to_write$full_image_path[i])) %>%
-  image_append(stack = FALSE) %>%
-  image_write(file.path(paste0("faces_fn/", to_write$short_image_path[i])))
-}
+# get INCORRECT videos 
+flipped_videos <- right_side_up %>%
+  filter(right_side_up==1) %>%
+  rename(vid_name = video)
 
 ```
 
+```{r}
+## frame
+height_px = 480; width_px = 640
+bb_all <- y_data %>%
+  filter(person==0) %>% # only rows with detections for now
+  filter(!is.na(child_id)) %>%
+  mutate(left = left*width_px, top = top*height_px, height = height*height_px, width = width*width_px) %>% #unnormalize data...
+  full_join(df) %>% # join with S/A
+  filter(right_side_up==0) %>% # get rid of allocentric
+  mutate(center_x = left + width/2, center_y = top - height/2, area = width*height) 
+
+
+save(bb_all, file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
+
+```
+
+```
