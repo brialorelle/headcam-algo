@@ -301,6 +301,56 @@ We thus re-analyzed the entire dataset while restricting our analysis to a small
 
 With this modified field of view, we now observed a more substantive decrease across age in the proportions of faces relative to hands. To quantify this trend, we fit a generalized linear mixed model to the binned detection rates from this smaller field of field to estimate changes in the proportion of faces vs. hands over age. To better approximate @Fausey2016, we also restricted our analysis to the age range seen in @Fausey2016, excluding videos when children were over 24 months of age, and indeed found that the proportion of faces vs. hands declined modestly with age (see Table 1).  
 
+```{r eval=FALSE}
+summary_by_age_days_cropped_limited <- d_cropped %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  group_by(age_day_bin,child_id) %>%
+  filter(age_day_bin < (24))  %>%
+  summarize(num_faces = sum(face_openpose), num_hands = sum(hand_detected_cropped)) %>%
+  rename(age_months = age_day_bin)
+
+summary_by_age_days_cropped <- d_cropped %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  group_by(age_day_bin,child_id) %>%
+  summarize(num_faces = sum(face_openpose), num_hands = sum(hand_detected_cropped)) %>%
+  rename(age_months = age_day_bin)
+
+```
+
+```{r eval=FALSE}
+### Proportion faces vs. hands 
+face_vs_hands_model_limited <- glmer(cbind(num_faces,num_hands) ~ scale(age_months) + (1 | child_id), 
+             summary_by_age_days_cropped_limited, family = "binomial")
+# doesn't converge with random slopes for age | child_id
+face_vs_hands_model_limited_out = summary(face_vs_hands_model_limited)
+
+```
+
+```{r eval=FALSE}
+### Proportion faces vs. hands 
+face_vs_hands_model_full_age <- glmer(cbind(num_faces,num_hands) ~ scale(age_months) + (1 | child_id), 
+             summary_by_age_days_cropped, family = "binomial")
+# doesn't converge with random slopes for age | child_id
+face_vs_hands_model_full_age_out <- summary(face_vs_hands_model_full_age)
+
+# xtable(face_vs_hands_model_full_age_out$coefficients, digits=c(2,2,2,2,3),"Model coefficients from a generalized linear mixed model predicting the proportion of faces vs. hands seen by infants.") 
+```
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrr}
+  \hline
+ & Estimate & Std. Error & z value & Pr($>$$|$z$|$) \\ 
+  \hline
+(Intercept) & -0.26 & 0.09 & -2.83 & 0.005 \\ 
+  scale(age\_months) & -0.15 & 0.00 & -225.40 & 0.000 \\ 
+   \hline
+\end{tabular}
+\caption{Model coefficients from a generalized linear mixed model predicting the proportion of faces vs. hands seen by infants.} 
+\end{table}
+
 However, when we considered the entire age range, we also observed an unexpected trend in which the relative proportion of faces vs. hands increased again after 24 months of life; this trend was stronger in the full dataset. While we did not have any a priori hypotheses about this age range, we suspect that this could have to do with an increase in children’s independence from their caregiver as they master walking around and interacting with objects in the world on their own.
 
 
@@ -321,6 +371,7 @@ How does variability across different contexts influence the social information 
 Intuitively, some activities in different contexts may be characterized by a much higher proportion of faces (e.g., diaper changes in bedrooms) than others (e.g., playtime in the living room). We thus next examined variation in presence of hands and faces across different locations. Of the `r num_videos` videos, `r num_videos_annotated` were annotated [@SAYcam] for the location o videos were filmed in. `r videos_included` were filmed in single location, representing 17 percent of the dataset and over 5 million frames (see @SAYcam). Activities varied somewhat predictability by these contexts: for example, eating tended to occur in the kitchen, whereas playtime was the dominant activity in the living room. Overall, we found that the proportion of faces vs. hands varied across filming locations, and, to some extent, across children.  For example, while both A and S saw a relatively similar proportion of faces vs. hands in the bedroom, they saw quite different amounts of faces vs. hands in kitchen.  
 
 
+
 ```{r}
 d_by_location_cropped <- d_cropped %>%
   mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
@@ -329,6 +380,7 @@ d_by_location_cropped <- d_cropped %>%
   filter(!is.na(Location)) %>%
   filter(count_locations==1) 
 # 
+
 # d_by_location_cropped$Location = droplevels(d_by_location_cropped$Location)
 # levels(d_by_location_cropped$Location)
 
