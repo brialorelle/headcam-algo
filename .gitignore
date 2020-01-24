@@ -1,6 +1,7 @@
 slurm*
 *_cache/
 data/*
+data_cogsci/*
 src/data/*
 .DS_Store
 .ipynb_checkpoints/
@@ -20,3 +21,4 @@ annotations/face_hands/analysis/pilot_hits/two_workers.csv
 *.aux
 *.out
 *.tex
+*.RData
