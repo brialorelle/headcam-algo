@@ -25,3 +25,5 @@ annotations/face_hands/analysis/pilot_hits/two_workers.csv
 *.csv
 paper/cogsci/paper.tex
 paper/cogsci/paper.log
+annotations/face_hands/experiment/calc_compensation.R
+annotations/face_hands/experiment/test.html
