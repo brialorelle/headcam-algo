@@ -425,31 +425,44 @@ ggplot(top_pos_goldset, aes(x=age_day_bin, y=y_center, col=label)) +
 
 ### Code ot render out bounding boxes from OP on sample frames
 ```{r}
-# # g_seg_info <- g_seg %>%
-# #   distinct(full_image_path, vid_name_short, frame_ind)
-# #   
-# # bb_check <- bb %>%
-# #   mutate(frame_ind = frame, vid_name_short = vid_name) %>%
-# #   left_join(g_seg_info, by=c("vid_name_short","frame_ind")) %>%
-# #   filter(!is.na(full_image_path)) %>%
-# #   filter(mean_conf > 0)
-# 
-# # # dir.create(paste0('bbcheck/'))
-# # unique_images <- bb_check$full_image_path[101:200]
-# # 
-# # for (image in unique_images){
-# #   this_image_rgb <- image_read(image)
-# #   img <- image_draw(this_image_rgb)
-# #   a <- bb_check %>%
-# #     filter(full_image_path %in% image) 
-# #   
-# #   # rect(a$x_pos, a$y_pos-a$height_y, a$x_pos+a$width_x, a$y_pos)
-# #   text(a$center_x, a$center_y, a$center_y)
-# #   
-# #   annotated_file = paste0('bbcheck/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-center.jpg')
-# #   image_write(img, annotated_file)
-# #   dev.off()
-# # }
+g_seg_info <- g_seg %>%
+  distinct(full_image_path, vid_name_short, frame_ind)
+
+bb_check <- bb_all %>%
+  mutate(frame_ind = frame, vid_name_short = vid_name) %>%
+  left_join(g_seg_info, by=c("vid_name_short","frame_ind")) %>%
+  filter(!is.na(full_image_path)) %>%
+  filter(mean_confidence > 0)
+
+# dir.create(paste0('bbcheck/'))
+unique_images <- bb_check$full_image_path[300:350]
+
+bb_check_face_tall <- bb_check_face %>%
+  filter(top>.7) %>%
+  filter(label=='face')
+
+bb_check_weird_vids <- bb_check %>%
+  filter(vid_name %in% weird_vids)
+
+unique_images = unique(bb_check_weird_vids$full_image_path)
+for (image in unique_images){
+  this_image_rgb <- image_read(image)
+  img <- image_draw(this_image_rgb)
+  a <- bb_check %>%
+    filter(full_image_path %in% image)
+
+  # rect(a$x_pos, a$y_pos-a$height_y, a$x_pos+a$width_x, a$y_pos)
+
+  text(a$left*680, a$top*480, a$top)
+
+  annotated_file = paste0('bbcheck_sanity/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-center.jpg')
+  image_write(img, annotated_file)
+  dev.off()
+}
+
+face_check <- bb_check_weird_vids %>%
+  filter(label=="face")
+
 ```
 
 
