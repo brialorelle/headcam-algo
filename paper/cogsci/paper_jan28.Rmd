@@ -47,6 +47,7 @@ library(viridis)
 library(magick)
 library(stringr)
 library(egg)
+library(xtable)
 theme_set(theme_few())
 ```
 
@@ -67,8 +68,8 @@ In the following paper, we first describe the dataset and validate the use of th
 ```{r}
 ## Read in data 
 ### Load preprocessed and filtered detections
-load('../../data/openpose_detections_filtered_threekids.RData') #d_all
-load('../../data/openpose_detections_filtered_cropped_allthreekids_jan28.RData') # d_cropped
+load('../../data_cogsci/openpose_detections_filtered_threekids_jan28.RData') #d_all
+load('../../data_cogsci/openpose_detections_filtered_cropped_allthreekids_jan28.RData') # d_cropped
 ```
 
 
@@ -121,7 +122,7 @@ To test the validity of OpenPose's hand and face detections, we compared the acc
 
 ```{r}
 ### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
-right_side_up_file = "../../data/video_right-side-up.csv"
+right_side_up_file = "../../data_cogsci/video_right-side-up.csv"
 right_side_up =read.csv(right_side_up_file)
 
 # get INCORRECT videos
@@ -129,7 +130,7 @@ flipped_videos <- right_side_up %>%
   filter(right_side_up==1)
 
 ## load goal sample annotations
-load('../../data/ketan_gold_sample.RData')
+load('../../data_cogsci/ketan_gold_sample.RData')
 
 ## preprocess them
  ketan_gold_out <- ketan_gold %>%
@@ -177,7 +178,7 @@ evaluate_detector <- function(truth, detection) {
 
 ```{r} 
 ### Load turk hand annotations wtih all bounding boxes (multiple dets per frame)
-turk_annotations_seg = "../../data/turk_segmentations_hands_only_processed.csv" 
+turk_annotations_seg = "../../data_cogsci/turk_segmentations_hands_only_processed.csv" 
 g_seg = read.csv(turk_annotations_seg) %>%
   select(-HITID, -HITTypeId, -WorkerID) %>%
   mutate(center_x = left + width/2, center_y = top + height/2) 
@@ -189,14 +190,16 @@ adult_hands <- g_seg %>%
   filter(label=="Adult hand")
 ```
 
-```{r eval=FALSE}
-hands_missed <- gold_sample %>%
-  select(-vid_name) %>%
-  rename(vid_name = vid_name_short) %>% 
-  mutate(vid_name = as.factor(vid_name)) %>%
-  left_join(child_adult_hand_annotations, by=(c("vid_name","frame"))) %>%
-  filter(!is.na(full_image_path)) %>%
-  filter(hand_eval_ketan == 'FN') 
+```{r}
+load('../../data_cogsci/child_adult_hand_annotations.RData')
+# 
+# hands_missed <- gold_sample %>%
+#   select(-vid_name) %>%
+#   rename(vid_name = vid_name_short) %>% 
+#   mutate(vid_name = as.factor(vid_name)) %>%
+#   left_join(child_adult_hand_annotations, by=(c("vid_name","frame"))) %>%
+#   filter(!is.na(full_image_path)) %>%
+#   filter(hand_eval_ketan == 'FN') 
 
 # render examples of missed hands
 # dir.create(paste0('det_examples/missed_hand'), recursive=TRUE)
@@ -242,6 +245,8 @@ ggarrange(child_hand_plot, adult_hand_plot, nrow=1)
 ```
 
 ```{r} 
+load('../../data_cogsci/child_adult_hand_annotations.RData')
+
 gold_sample_no_child_hands <- gold_sample %>%
   left_join(child_adult_hand_annotations) %>%
   replace_na(list(child_hand_seg = FALSE)) %>% # replace NAs so they are counted
@@ -255,7 +260,7 @@ As has been observed in other studies on automated annotation of headcam data [e
 
 To evaluate OpenPose's performance, we compared its detections to the manually-annotated gold set of frames, calculating precision (hits / hits + false alarms), recall (hits / hits + misses), and f-score (the harmonic mean of precision and recall).  In our data, for faces, the F-score was `r round(face_performance[3],2)`, with a precision of `r round(face_performance[1],2)` and recall of `r round(face_performance[2],2)`. For hands, the F-score was `r round(hand_performance[3],2)`, with a precision of `r round(hand_performance[1],2)` and recall of `r round(hand_performance[2],2)`. While face and hand detections showed moderately good precision, face detections were overall slightly more accurate than hand detections.  In general, hand detections suffered from fairly low recall, indicating that OpenPose likely underestimated the proportion of hands in the dataset. 
 
-We suspected that this is in part because children’s own hands were often in view of the camera and unconnected to a pose—a notoriously challenging detection problem [@bambach2015lending]. To assess this possibility, we obtained human annotations for a subsample of 9051 frames in which a hand was detected; participants (recruited via AMT) were asked to draw bounding boxes around children’s hands and adult’s hands. Overall, we found that almost half `r mean(hands_missed$child_hand_seg)` of missed hand detections were of child hands. When frames with children's hands were removed from the gold set, recall did improve to `r hand_performance_adults[3]` somewhat. We also observed that children’s hands tended to appear in the lower half of the frames; heatmaps of the bounding boxes obtained from these annotations can be seen in Figure 3.
+We suspected that this is in part because children’s own hands were often in view of the camera and unconnected to a pose—a notoriously challenging detection problem [@bambach2015lending]. To assess this possibility, we obtained human annotations for a subsample of 9051 frames in which a hand was detected; participants (recruited via AMT) were asked to draw bounding boxes around children’s hands and adult’s hands. Overall, we found that almost half  of missed hand detections were of child hands. When frames with children's hands were removed from the gold set, recall did improve to `r hand_performance_adults[3]` somewhat. We also observed that children’s hands tended to appear in the lower half of the frames; heatmaps of the bounding boxes obtained from these annotations can be seen in Figure 3.
 
 Finally, we examined whether the precision, recall, and F-score for hands and faces varied with age or child, and did not find substantial variation. Thus, while OpenPose was trained on photographs from the adult perspective, this model still generalized relatively well to the egocentric infant viewpoint with no fine-tuning or post-processing of the detections. 
 
@@ -354,12 +359,11 @@ ggarrange(faces, hands, face_v_hand, faces_cropped, hands_cropped, face_v_hand_c
 ```
 
 
-
 We analyzed the social information in view across the entire dataset, looking specifically at the proportions of faces and hands that were in view for each child. Data from videos were binned according to the age of the child (in weeks) (see Figure 2). First, when examining the younger age ranges (< 24 months), as in @Fausey2016, we saw that the proportion of faces vs. hands in view showed a moderate decrease across this age range, both when analyzing the random 24K frames as well as the entire dataset (see Figure 2A).  
 
 However, the most striking result is a much greater proportion of hands in view than have previously been reported [@Fausey2016]. We found this to be true across all ages, in all three children, and regardless of whether we analyzed human annotations (on the 24K random subset) or OpenPose annotations on the entire dataset. This is notable especially given that OpenPose showed relatively low recall for hands, indicating that this is still an underestimate of the proportion of hands in view. Nonetheless, one reason this could be the case is the much larger field of view that was captured by the cameras used in this study: unlike previous studies, our cameras were outfitted with a fish-eye lens in an attempt to capture as much of the children’s field of view as possible. Thus, the field of view (FOV) of the fisheye lens used was larger (109 degrees horizontal x 70 degrees vertical) than the FOV of the lens used in many previous studies; for example, in @Fausey2016 the FOV was 69 x 41 degrees. This larger field of view may have allowed the SAYcam cameras to capture not only the presence of a social partner’s hands interacting with objects, but also the children’s own hands, leading to these more frequent hand detections.
 
-We thus re-analyzed the entire dataset while restricting our analysis to a smaller, upper portion of the frame comparable to the field of view used in @Fausey2016. To do so, we excluded hand detections that occurred in the bottom 40% of the frame, while retaining all hand detections that occurred in the top 60% of the frame. This coarse cropping of decreased the proportion of hand detections from `r round(mean(d_all$hand_openpose),2)`percent to `r round(mean(d_cropped$hand_detected_cropped),2)` percent, but only decreased face detections from `r round(mean(d_all$face_openpose),2)` to `r round(mean(d_cropped$face_detected_cropped,2)`.  Within this modified field of view, we still observed, on average, more hand detections than face detections.
+We thus re-analyzed the entire dataset while restricting our analysis to a smaller, upper portion of the frame comparable to the field of view used in @Fausey2016. To do so, we excluded hand detections that occurred in the bottom 40% of the frame, while retaining all hand detections that occurred in the top 60% of the frame. This coarse cropping of decreased the proportion of hand detections from `r round(mean(d_all$hand_openpose),2)`percent to `r round(mean(d_cropped$hand_detected_cropped),2)` percent, but only decreased face detections from `r round(mean(d_all$face_openpose),2)` to `r round(mean(d_cropped$face_detected_cropped),2)`.  Within this modified field of view, we still observed, on average, more hand detections than face detections.
 
 However, we also still observed a moderate decrease in the proportion of faces vs. hands in view across age. To quantify this trend, we fit a generalized linear mixed model to the binned detection rates from this smaller field of field to estimate changes in the proportion of faces vs. hands over age. To better approximate @Fausey2016, we  restricted our analysis to the age range seen in @Fausey2016, excluding videos when children were over 24 months of age, and indeed found that the proportion of faces vs. hands declined modestly with age (see Table 1). Note that @Fausey2016 also included data from very young infants (from 1-4 months of age), while here the youngest videos coming from S and A around 6 and 9 months of age, respectively.
 
@@ -370,28 +374,32 @@ summary_by_age_days_cropped_younger <- d_cropped %>%
   filter(age_days < 730) %>% ## less than 24 months
   group_by(age_days,child_id) %>%
   summarize(num_faces = sum(face_openpose), num_hands = sum(hand_detected), num_detect = length(face_openpose)) %>%
-  mutate(prop_faces = num_faces / num_detect, prop_hands = num_hands / num_detect)
+  mutate(prop_faces = num_faces / num_detect, prop_hands = num_hands / num_detect) %>%
+  mutate(num_no_detect_faces = num_detect - num_faces, num_no_detect_hands = num_detect - num_hands)
 
 summary_by_age_days_cropped <- d_cropped %>%
   replace_na(list(hand_detected = FALSE, face_detected = FALSE)) %>%
   group_by(age_days,child_id) %>%
   summarize(num_faces = sum(face_openpose), num_hands = sum(hand_detected), num_detect = length(face_openpose)) %>%
-  mutate(prop_faces = num_faces / num_detect, prop_hands = num_hands / num_detect)
+  mutate(num_no_detect_faces = num_detect - num_faces, num_no_detect_hands = num_detect - num_hands)
 
 ```
 
 ```{r eval=FALSE}
 ### Proportion faces vs. hands 
-face_vs_hands_model_full_age <- lmer(prop_faces - prop_hands ~ scale(age_days) + scale(num_detect) + (age_days | child_id),  summary_by_age_days_cropped)
+faces_model_full_age <- glmer(cbind(num_faces,num_no_detect_faces) ~ scale(age_days) + (1 | child_id),  summary_by_age_days_cropped, family = "binomial")
+# summary(faces_model_full_age)
 
-face_vs_hands_model_younger <- lmer(prop_faces - prop_hands ~ scale(age_days) + scale(num_detect) + (age_days | child_id),  summary_by_age_days_cropped_younger)
+hands_model_full_age <- glmer(cbind(num_hands,num_no_detect_hands) ~ scale((age_days)) + (1 | child_id),  summary_by_age_days_cropped, family = "binomial", control=glmerControl(optCtrl=list(maxfun=20000),optimizer=c("bobyqa")))
+# summary(hands_model_full_age)
 
+##
+faces_model_younger <- glmer(cbind(num_faces,num_no_detect_faces) ~ scale((age_days)) + (1 | child_id),  summary_by_age_days_cropped_younger, family = "binomial",  control=glmerControl(optCtrl=list(maxfun=20000),optimizer=c("bobyqa")))
 
-face_vs_hands_model_full_age <- glmer(cbind(num_faces,num_hands) ~ scale(age_days) + (1 | child_id), 
-             summary_by_age_days_cropped, family = "binomial")
-face_vs_hands_model_full_age_out <- summary(face_vs_hands_model_full_age)
+hands_model_younger <- glmer(cbind(num_hands,num_no_detect_hands) ~ scale((age_days)) + (1 | child_id),  summary_by_age_days_cropped, family = "binomial", ,  control=glmerControl(optCtrl=list(maxfun=20000),optimizer=c("bobyqa")))
 
-# xtable(face_vs_hands_model_full_age_out$coefficients, digits=c(2,2,2,2,3),"Model coefficients from a generalized linear mixed model predicting the proportion of faces vs. hands seen by infants.") 
+# faces_model_full_age_out <- summary(faces_model_full_age)
+# xtable(faces_model_full_age_out$coefficients, digits=c(2,2,2,2,3),"Model coefficients from a generalized linear mixed model predicting the proportion of faces seen by infants.") 
 ```
 
 \begin{table}[ht]
@@ -400,11 +408,11 @@ face_vs_hands_model_full_age_out <- summary(face_vs_hands_model_full_age)
   \hline
  & Estimate & Std. Error & z value & Pr($>$$|$z$|$) \\ 
   \hline
-(Intercept) & -0.26 & 0.09 & -2.83 & 0.005 \\ 
-  scale(age\_months) & -0.15 & 0.00 & -225.40 & 0.000 \\ 
+(Intercept) & -1.55 & 0.03 & -52.47 & 0.000 \\ 
+  scale(age\_days) & -0.13 & 0.00 & -261.57 & 0.000 \\ 
    \hline
 \end{tabular}
-\caption{Model coefficients from a generalized linear mixed model predicting the proportion of faces vs. hands seen by infants.} 
+\caption{Model coefficients from a generalized linear mixed model predicting the proportion of faces seen by infants.} 
 \end{table}
 
 However, when we considered the entire age range, we also observed an unexpected trend in which the relative proportion of faces vs. hands increased again after 24 months of life; this trend was stronger in the full dataset. While we did not have any a priori hypotheses about this age range, we suspect that this could have to do with an increase in children’s independence from their caregiver as they master walking around and interacting with objects in the world on their own.
@@ -412,8 +420,7 @@ However, when we considered the entire age range, we also observed an unexpected
 
 ### Variability by Location 
 ```{r}
-load('../../data/child_adult_hand_annotations.RData')
-load('../../data/saycam_metadata.RData')
+load('../../data_cogsci/saycam_metadata.RData')
 
 num_videos_annotated = sum(!is.na(meta$Location))
 videos_included = sum(!is.na(meta$Location) & meta$count_locations==1)
