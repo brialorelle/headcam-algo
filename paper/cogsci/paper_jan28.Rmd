@@ -363,7 +363,7 @@ We analyzed the social information in view across the entire dataset, looking sp
 
 However, the most striking result is a much greater proportion of hands in view than have previously been reported [@Fausey2016]. We found this to be true across all ages, in all three children, and regardless of whether we analyzed human annotations (on the 24K random subset) or OpenPose annotations on the entire dataset. This is notable especially given that OpenPose showed relatively low recall for hands, indicating that this is still an underestimate of the proportion of hands in view. Nonetheless, one reason this could be the case is the much larger field of view that was captured by the cameras used in this study: unlike previous studies, our cameras were outfitted with a fish-eye lens in an attempt to capture as much of the children’s field of view as possible. Thus, the field of view (FOV) of the fisheye lens used was larger (109 degrees horizontal x 70 degrees vertical) than the FOV of the lens used in many previous studies; for example, in @Fausey2016 the FOV was 69 x 41 degrees. This larger field of view may have allowed the SAYcam cameras to capture not only the presence of a social partner’s hands interacting with objects, but also the children’s own hands, leading to these more frequent hand detections.
 
-We thus re-analyzed the entire dataset while restricting our analysis to a smaller, upper portion of the frame comparable to the field of view used in @Fausey2016. To do so, we excluded hand detections that occurred in the bottom 40% of the frame, while retaining all hand detections that occurred in the top 60% of the frame. This coarse cropping of decreased the proportion of hand detections from `r round(mean(d_all$hand_openpose),2)`percent to `r round(mean(d_cropped$hand_detected_cropped),2)` percent, but only decreased face detections from `r round(mean(d_all$face_openpose),2)` to `r round(mean(d_cropped$face_detected_cropped),2)`.  Within this modified field of view, we still observed, on average, more hand detections than face detections.
+We thus re-analyzed the entire dataset while restricting our analysis to a smaller, upper portion of the frame comparable to the field of view used in @Fausey2016. To do so, we excluded hand detections that occurred in the bottom 40% of the frame, while retaining all hand detections that occurred in the top 60% of the frame. This coarse cropping of decreased the proportion of hand detections from `r round(mean(d_all$hand_openpose),2)`percent to `r round(mean(d_cropped$hand_detected),2)` percent, but only decreased face detections from `r round(mean(d_all$face_openpose),2)` to `r round(mean(d_cropped$face_detected),2)`.  Within this modified field of view, we still observed, on average, more hand detections than face detections.
 
 However, we also still observed a moderate decrease in the proportion of faces vs. hands in view across age. To quantify this trend, we fit a generalized linear mixed model to the binned detection rates from this smaller field of field to estimate changes in the proportion of faces vs. hands over age. To better approximate @Fausey2016, we  restricted our analysis to the age range seen in @Fausey2016, excluding videos when children were over 24 months of age, and indeed found that the proportion of faces vs. hands declined modestly with age (see Table 1). Note that @Fausey2016 also included data from very young infants (from 1-4 months of age), while here the youngest videos coming from S and A around 6 and 9 months of age, respectively.
 
@@ -437,6 +437,7 @@ Intuitively, some activities in different contexts may be characterized by a muc
 
 ```{r}
 d_by_location_cropped <- d_cropped %>%
+  replace_na(list(hand_detected = FALSE, face_detected = FALSE)) %>%
   mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
   mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
   left_join(meta) %>%
@@ -449,7 +450,7 @@ d_by_location_cropped <- d_cropped %>%
 
 face_hand_by_location_cropped <- d_by_location_cropped %>%
   group_by(Location,child_id,age_day_bin) %>%
-  summarize(prop_faces = mean(face_openpose), prop_hands = mean(hand_detected_cropped), num_detect = length(hand_detected_cropped))  %>%
+  summarize(prop_faces = mean(face_openpose), prop_hands = mean(hand_detected), num_detect = length(hand_detected))  %>%
   filter(num_detect > 12000) %>% ## 18000 frames = 10 minutes of video at 30 fps %>%
   mutate(faces_vs_hands = prop_faces - prop_hands)
 
