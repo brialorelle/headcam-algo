@@ -22,3 +22,6 @@ annotations/face_hands/analysis/pilot_hits/two_workers.csv
 *.out
 *.tex
 *.RData
+*.csv
+paper/cogsci/paper.tex
+paper/cogsci/paper.log
