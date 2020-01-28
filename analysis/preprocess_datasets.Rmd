@@ -37,33 +37,30 @@ flipped_videos <- right_side_up %>%
 
 ### Load SAYCAM metadata from csv file; get metadata from detections .csv
 ```{r}
-metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
-
-meta=read.csv(metadata_file) %>%
-  rowwise() %>%
-  mutate(vid_name = str_split(File.Name,"[.]")[[1]][1]) %>%
-  mutate(count_locations = length(str_split(Location,',')[[1]]))
-
-# collapse duplicate labels
-meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
-
-save(meta, file = '../data/saycam_metadata.RData')
-
+# metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+# meta=read.csv(metadata_file) %>%
+#   rowwise() %>%
+#   mutate(vid_name = str_split(File.Name,"[.]")[[1]][1]) %>%
+#   mutate(count_locations = length(str_split(Location,',')[[1]]))
+# 
+# # collapse duplicate labels
+# meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
+# save(meta, file = '../data/saycam_metadata.RData')
+load(file = '../data/saycam_metadata.RData')
 ```
 
 ### Load in detections & bounding boxes from preprocessed Rdata file; 
-```{r eval=FALSE}
+```{r}
  # Could do list of detections  from csv (takes forever, skipping)
 # data_file = "../data/all_frames.csv"
 # detections=read.csv(data_file) 
 
 ## rdata is faster
 load('../data/openpose_detections.RData')
-
 ```
 
 ### Preprocess data (doesn't execute in markdown; loads processed data below)
-```{r eval=FALSE}
+```{r}
 # get shortened video names so they match across all files
 all_video_names = as_tibble(unique(detections$vid_name))
 all_video_names <- all_video_names %>%
@@ -77,7 +74,6 @@ levels(detections$vid_name) <- all_video_names$vid_name
 d_SA <- detections %>%
   left_join(meta, by='vid_name') %>%
   filter(!vid_name %in% flipped_videos$vid_name) 
-
 
 ## All 6 of the video that were not in this file (but were in the detections file) happened to be 6 very bad quality videos; excluding from detections
 exclude_bad_quality <- d_SA %>%
@@ -98,49 +94,55 @@ remove(detections)
 ## Load, process, merge Y's data
 ### Now load in bounding box data from Y, which has detection rates built in
 ```{r}
-load('../data/Y_bounding_boxes.RData') #df again
-y_data <- df %>%
-  rowwise() %>%
-  mutate(age = str_split_fixed(vid_name, '_',4)[,3])
-
-remove(df)
-
-### wrangle age data for Y
+# load('../data/Y_bounding_boxes.RData') #df again
+# y_data <- df %>%
+#   rowwise() %>%
+#   mutate(age = str_split_fixed(vid_name, '_',4)[,3])
+# remove(df)
+# 
+# ### wrangle age data for Y
 d_y <- y_data %>%
   mutate(age_months = as.numeric(substr(age, 0,2)), days_to_add = as.numeric(substr(age, 3,4))) %>%
-  mutate(age_days = age_months*30 + days_to_add)  
-
-save(y_data, file = '../data/Y_bounding_boxes_cleaned.RData')
+  mutate(age_days = age_months*30 + days_to_add)
+## 
+save(d_y, file = '../data/Y_bounding_boxes_cleaned_jan27.RData')
 ```
 
 ### Do basic preprocessing on Y detection's
 ```{r}
-
-
 ### count hands/faces from bounding box outputs for Y -- for d_all
-y_detections <- d_y %>%
-  group_by(vid_name, frame,age_days) %>%
-  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0))  
-
-y_detections <- y_detections %>%
-  # rename(hand_openpose = hand_detected, face_openpose = face_detected) %>%
-  mutate(child_id = "Y") %>%
-  left_join(meta)
-  
-save(y_detections, file='../data/y_detections_preprocessed.RData')
+# y_detections <- d_y %>%
+#   group_by(vid_name, frame,age_days) %>%
+#   summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0))
+# 
+# y_detections <- y_detections %>%
+#   mutate(child_id = "Y") %>%
+#   left_join(meta)
+#   
+# save(y_detections, file='../data/y_detections_preprocessed.RData')
 ```
 
 ### Merge detections from Y with other kids
 ```{r}
+load(file='../data/y_detections_preprocessed.RData')
+y_detections <-  y_detections %>%
+  rename(hand_openpose = hand_detected, face_openpose = face_detected) # standardize
+
 d_all <- d_SA %>%
   mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
   full_join(y_detections)
+
+# check
+length(unique(d_all$vid_name)) == (length(unique(y_detections$vid_name)) +  length(unique(d_SA$vid_name)))
+
+# clean up
+remove(d_SA)
+remove(d_y)
+
+# save
+save(d_all, file = '../data/openpose_detections_filtered_threekids_jan27.RData')
 ```
 
-### Save this data so this doesn't have to be redone again
-```{r}
-save(d_all, file = '../data/openpose_detections_filtered_threekids.RData')
-```
 ## Save out vid info for use with joining stuff later
 ```{r}
 # vid_info_all <- d_all %>%
@@ -159,105 +161,127 @@ save(d_all, file = '../data/openpose_detections_filtered_threekids.RData')
 #   filter(prop_faces>.8)
 ```
 
-
 # Cropped detections
 ## Load bounding boxes from S/A to get cropped detections
 ```{r}
 ## import bounding boxes
 load('../data/all_bounding_boxes.RData')
+bb_all <- df
+remove(df)
 
 ## frame
 height_px = 480; width_px = 640
 
-bb_all <- df %>%
-  filter(right_side_up==0) 
+# get shortened video names so they match across all files
+all_video_names_bb = as_tibble(unique(bb_all$vid_name))
+all_video_names_bb <- all_video_names_bb %>%
+  rowwise() %>%
+  mutate(vid_name = str_split(value,"[.]")[[1]][1])
 
-## get rid of extra dataframe
-remove(df)
+# reset levels of vid_name in big detections array for detections & bb (very slow rowwise)
+bb_all$vid_name <- as.factor(bb_all$vid_name)
+levels(bb_all$vid_name) <- all_video_names_bb$vid_name
+
+bb_all <- bb_all %>%
+  filter(!vid_name %in% flipped_videos$video) 
+
+save(bb_all, file = "../data/SA_bounding_boxes_cleaned.RData")
+
+# length(unique(bb_all_2$vid_name[bb_all_2$child_id=='S']))
+# length(unique(bb_all_2$vid_name[bb_all_2$child_id=='A']))
+# 
+# length(unique(d_all$vid_name[d_all$child_id=='S']))
+# length(unique(d_all$vid_name[d_all$child_id=='A']))
 ```
 
-## Make cropped detections in top 60% of frame for Y
+## Join detections for both and save out for later
 ```{r}
-load(file = '../data/Y_bounding_boxes_cleaned.RData')
-d_y <- y_data %>%
-  mutate(age_months = as.numeric(substr(age, 0,2)), days_to_add = as.numeric(substr(age, 3,4))) %>%
-  mutate(age_days = age_months*30 + days_to_add)  
+# load(file = '../data/Y_bounding_boxes_cleaned.RData') #  d_y from earlier if not loaded
 
+## frame
+# height_px = 480; width_px = 640
+# bb_all_three <- d_y %>%
+#   filter(person==0) %>% # only rows with detections for now so comparable to bb_all
+#   mutate(left = left*width_px, top = top*height_px, height = height*height_px, width = width*width_px) %>% #unnormalize data so comparable
+#   full_join(bb_all) %>% # join with SA bounding boxes
+#   mutate(center_x = left + width/2, center_y = top - height/2, area = width*height) 
+# 
+# save(bb_all_three, file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
+# remove(bb_all_three)
+```
+
+```{r}
+load(file='../data/openpose_detections_filtered_threekids_jan27.RData')
+load(file='../data/SA_bounding_boxes_cleaned.RData')
+load(file='../Y_bounding_boxes_cleaned_jan27.RData')
+```
+
+### Make cropped detections for Y/SA, join, make cropped large data
+```{r}
 detections_cropped_Y <- d_y %>%
-  filter(person==0) %>% #only get frames where detections
-  filter(height <(.6*480)) %>%  ## cut off bottom part of frame
+  filter(person==0) %>% #only get frames where detections so comparable
+  filter((height<(.6*480))) %>%  ## 
   group_by(vid_name, frame, child_id, age_days) %>%
-  summarize(hand_detected_cropped = (sum(label=="hand")>0), face_detected_cropped = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose")) 
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose")) 
 
 detections_cropped_Y <- detections_cropped_Y %>%
  ungroup() %>%
  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) 
 
-```
-
 ## Make cropped detections in top 60% of frame for S,A
-```{R}
 detections_cropped_SA <- bb_all %>%
-  filter(height <.6) %>%  ## cut off bottom part of frame
+  filter(height<(.6)) %>%  ## 
   group_by(vid_name, frame, child_id, age_days) %>%
-  summarize(hand_detected_cropped = (sum(label=="hand")>0), face_detected_cropped = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"))  
-
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"))  
+# join all together
 all_cropped_detections <- detections_cropped_SA %>%
   ungroup() %>%
   mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) %>%
   full_join(detections_cropped_Y)
 
-```
+## clean up workspace or else we run into memory limits
+# cropped detections
+remove(detections_cropped_Y)
+remove(detections_cropped_SA)
 
+# bb data
+remove(y_data)
+remove(bb_all)
 
 ## need to get "FALSE" on frames where we didn't have info to be able to compute proportions; uses d_all from earlier and fills it all back in
-```{r}
-# load('../data/openpose_detections_filtered_threekids.RData') # d_all
 
-d_cropped <- d_all %>% ## needs to be loaded
+all_cropped_detections <- all_cropped_detections %>%
+  select(-age_days, -child_id)
+
+d_cropped <- d_all %>% ## needs to be loaded!
   as_tibble() %>%
   mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) %>%
-  select(vid_name, frame, child_id, age_days, face_openpose) %>%
-  left_join(all_cropped_detections, by=c("vid_name","frame","age_days","child_id")) %>%
-  replace_na(list(hand_detected_cropped = FALSE, face_detected_cropped = FALSE ))
-```
+  select(vid_name, frame, child_id, age_days, face_openpose, hand_openpose) %>%
+  left_join(all_cropped_detections, by=c("vid_name","frame")) 
 
-### now save
-```{r}
-save(d_cropped, file = '../data/openpose_detections_filtered_cropped_allthreekids.RData')
+save(d_cropped, file = '../data/openpose_detections_filtered_cropped_allthreekids_jan27.RData')
 
 ```
 
-# Make bb detections only
-```{r}
-## import bounding boxes
-load('../data/all_bounding_boxes.RData')
-load('../data/Y_bounding_boxes_cleaned.RData')
 
-right_side_up_file = "../data/video_right-side-up.csv"
-right_side_up =read.csv(right_side_up_file)
 
-# get INCORRECT videos 
-flipped_videos <- right_side_up %>%
-  filter(right_side_up==1) %>%
-  rename(vid_name = video)
-
-```
 
 ```{r}
-## frame
-height_px = 480; width_px = 640
-bb_all <- y_data %>%
-  filter(person==0) %>% # only rows with detections for now
-  filter(!is.na(child_id)) %>%
-  mutate(left = left*width_px, top = top*height_px, height = height*height_px, width = width*width_px) %>% #unnormalize data...
-  full_join(df) %>% # join with S/A
-  filter(right_side_up==0) %>% # get rid of allocentric
-  mutate(center_x = left + width/2, center_y = top - height/2, area = width*height) 
+what <- d_cropped %>%
+  filter(face_openpose == TRUE) %>%
+  filter(fa)
 
+vid_summary <- d_cropped %>%
+  replace_na(list(hand_detected = FALSE, face_detected = FALSE)) %>%
+  group_by(vid_name) %>%
+  summarize(prop_faces = mean(face_openpose), prop_faces_cropped = mean(face_detected), prop_hands_cropped = mean(hand_detected), diff = prop_faces - prop_faces_cropped) %>%
+  filter(diff>.2)
 
-save(bb_all, file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
+weird_vids = unique(vid_summary$vid_name[vid_summary$prop_hands_cropped==0])
 
-```
+weird_d_all <- d_all %>%
+  filter(vid_name %in% weird_vids)
 
+bb_all_check <- bb_all %>%
+  filter(vid_name %in% weird_vids)
 ```

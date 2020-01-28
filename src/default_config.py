@@ -4,7 +4,10 @@ import os
 VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/']
 
 #Overall output directory.
-OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
+OUTPUT = '/Users/brialong/Documents/GitHub/headcam-algo/data'
+
+
+# OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
 
 #Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
@@ -27,7 +30,7 @@ VID_ROTATE = 180
 
 #Dict from child id => birthdate in (year, month, day) format.
 #NOTE: Actual birthdates not included for privacy reasons.
-BIRTHDATES = {'A': (YYYY, MM, DD), 'S': (YYYY, MM, DD)}
+BIRTHDATES = {'A': (1980, 1, 1), 'S': (1980, 1, 1)}
 
 #Number of frames to extract for gold sample.
 GOLD_SET_NUM_FRAMES = 24000

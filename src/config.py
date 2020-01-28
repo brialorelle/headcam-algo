@@ -7,20 +7,20 @@ from default_config import *
 # VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/']
 
 #Overall output directory.
-# OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
+OUTPUT = '/Users/brialong/Documents/GitHub/headcam-algo/data'
 
 #Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
-# OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
+OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
 
 #Directory for condensed Openpose output (one file per video) 
-# OPENPOSE_CONDENSED_OUTPUT = os.path.join(OUTPUT, 'openpose_condensed')
+OPENPOSE_CONDENSED_OUTPUT = os.path.join(OUTPUT, 'openpose_condensed')
 
 #File path for the video-level dataframe.
-# VID_DATAFRAME_PATH = os.path.join(OUTPUT, 'master_vid_info.json')
+VID_DATAFRAME_PATH = os.path.join(OUTPUT, 'master_vid_info.json')
 
 #FIle path for the frame-level dataframe 
 #(which will contain openpose outputs as well.)
-# FRAME_DATAFRAME_PATH = os.path.join(OUTPUT, 'master_frames_openpose.h5')
+FRAME_DATAFRAME_PATH = os.path.join(OUTPUT, 'master_frames_openpose.h5')
 
 #How much to rotate videos by (default 180, as most headcam videos are recorded upside down)
 # VID_ROTATE = 180
