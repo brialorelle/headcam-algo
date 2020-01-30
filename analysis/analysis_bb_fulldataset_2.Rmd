@@ -24,7 +24,6 @@ theme_set(theme_few())
 
 ### Load preprocessed bb's for all kids
 ```{r}
-load(file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
 
 ```
 
