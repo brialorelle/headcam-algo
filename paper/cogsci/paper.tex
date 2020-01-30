@@ -77,8 +77,8 @@ we first validate the use of a modern convolutional neural network for
 pose detection (OpenPose) for the detection of faces and hands. We then
 apply this model to the entire dataset, finding a decrease in the
 proportion of faces vs.~hands across age up to the end of the second
-year of life (Fausey, Jayaraman, \& Smith, 2016). In addition, we find
-considerable variability in the proportion of faces/hands viewed by
+year of life (C. M. Fausey, Jayaraman, \& Smith, 2016). In addition, we
+find considerable variability in the proportion of faces/hands viewed by
 children in different locations (e.g., living room vs.~kitchen),
 demonstrating that variability across activity contexts may be a driving
 factor in the amount of social information that infants' experience.
@@ -96,41 +96,42 @@ social cognition; face perception; infancy; head cameras; deep learning
 \section{Introduction}\label{introduction}
 
 Infants are confronted by a blooming, buzzing onslaught of stimuli
-({\textbf{???}}) which they must learn to parse to make sense of the
-world around them. Yet they do not embark on this learning process
-alone: From as early as 3 months of age, young infants follow overt gaze
-shifts (Gredeback, Fikke, \& Melinder, 2010), and even newborns prefer
-to look at faces with direct vs.~averted gaze (Farroni, Csibra, Simion,
-\& Johnson, 2002), despite their limited acuity. As faces are likely to
-be an important conduit of social information that scaffolds cognitive
-development, cognitive scientists have long hypothesized that faces are
-prevalent in the visual experience of young infants.
+(James, Burkhardt, Bowers, \& Skrupskelis, 1890) which they must learn
+to parse to make sense of the world around them. Yet they do not embark
+on this learning process alone: From as early as 3 months of age, young
+infants follow overt gaze shifts (Gredeb\wrapmf{\"{a}}ck, Theuring,
+Hauf, \& Kenward, 2008), and even newborns prefer to look at faces with
+direct vs.~averted gaze (Farroni, Csibra, Simion, \& Johnson, 2002),
+despite their limited acuity. As faces are likely to be an important
+conduit of social information that scaffolds cognitive development,
+cognitive scientists have long hypothesized that faces are prevalent in
+the visual experience of young infants.
 
 Yet until recently most hypotheses about infants' visual experience have
 gone untested. Though parents and scientists alike have strong
 intuitions about what infant's see, even the viewpoint of a walking
 child is not easily predicted by these intuitions (Clerkin, Hart, Rehg,
-Yu, \& Smith, 2017; Franchak et al., 2011; Yoshida \& Smith, 2008). By
+Yu, \& Smith, 2017; Franchak, Kretch, Soska, \& Adolph, 2011). By
 equipping infants and toddlers with head-mounted cameras, researchers
 have begun to document the infant egocentric perspective on the world.
 Using these methods, a growing body of work now demonstrates that the
 viewpoints of very young infants (less than 4 months of age) are indeed
 dominated by frequent, persistent views of the faces of their caregivers
 (Jayaraman \& Smith, 2018; Jayaraman, Fausey, \& Smith, 2015; Sugden,
-Mohamed-Ali, \& Moulson, n.d.).
+Mohamed-Ali, \& Moulson, 2014).
 
 As infants motor and cognitive abilities mature beyond these early
 months, their perspective on the world becomes even more varied.
-Crawlers see fewer faces and hands than do walking children
-({\textbf{???}} papers; Sanchez, Long, Kraus, \& Frank, 2018) as well as
-different view of objects ({\textbf{???}}). Further, as infants learn to
-use their own hands to act on the world, they seem to focus on manual
-actions taken by their social partners, as their perspective starts to
-capture views of hands paired with the objects they are acting on
-(Fausey et al., 2016). In turn, caregivers may start to use their hands
-with more communicative intent, directing infants attention with
-pointing and gestures to different events or objects during play
-({\textbf{???}}).
+Crawlers see fewer faces and hands than do walking children (Franchak,
+Kretch, \& Adolph, 2017; Kretch, Franchak, \& Adolph, 2014; A. Sanchez,
+Long, Kraus, \& Frank, 2018) as well as different view of objects
+(Smith, Yu, \& Pereira, 2011). Further, as infants learn to use their
+own hands to act on the world, they seem to focus on manual actions
+taken by their social partners, as their perspective starts to capture
+views of hands paired with the objects they are acting on (C. M. Fausey
+et al., 2016). In turn, caregivers may start to use their hands with
+more communicative intent, directing infants attention with pointing and
+gestures to different events or objects during play (Yu \& Smith, 2013).
 
 Here, we analyze the social information present in the infant visual
 perspective by analyzing a longitudinal collection of over 1400 headcam
@@ -148,16 +149,16 @@ cameras used in the SAYcam dataset captured a substantially larger field
 of view than those typically used, allowing a more complete picture of
 the infant perspective. Head-mounted cameras with a more restricted
 field of view do still capture where infants are foveating most of the
-time ({\textbf{???}}, ({\textbf{???}})) but may still fail to capture
-short saccades to either faces or hands in the periphery, as the
-timescale of head movements is much longer.
+time (H. Yoshida \& Smith, 2008, Smith, Yu, Yoshida, \& Fausey (2015))
+but may still fail to capture short saccades to either faces or hands in
+the periphery, as the timescale of head movements is much longer.
 
 With hundreds of hours of footage (\textgreater{}29M frames), this large
 dataset necessitates a shift to an automated annotation strategy.
 Indeed, annotation of the frames extracted from egocentric videos has
 been prohibitively time-consuming, meaning that many frames are
 typically not inspected, even in the most comprehensive studies. For
-example, Fausey et al. (2016) collected a total of 143 hours of
+example, C. M. Fausey et al. (2016) collected a total of 143 hours of
 head-mounted camera footage (15.5 million frames), of which one frame
 every five seconds was hand annotated (by four coders), totalling
 103,383 frames (per coder)---an impressive number of annotations but
@@ -247,13 +248,14 @@ additionally annotated 3150 frames; agreement with the primary coder was
 hands}\label{detection-accuracy-for-faces-and-hands}
 
 As has been observed in other studies on automated annotation of headcam
-data (e.g. {\textbf{???}}, ({\textbf{???}})), detection tasks that are
-easy in third-person video can be quite challenging in egocentric
-videos, due to difficult angles and sizes as well as substantial
-occlusion. For example, the infant perspective often contains
-non-canonical viewpoints of faces (e.g., looking up at a caregiver's
-chin) as well as partially-occluded or oblique viewpoints of both faces
-and hands.
+data (e.g. M. C. Frank, Simmons, Yurovsky, \& Pusiol, 2013, Alessandro
+Sanchez, Long, Kraus, \& Frank (2018), Bambach, Lee, Crandall, \& Yu
+(2015)), detection tasks that are easy in third-person video can be
+quite challenging in egocentric videos, due to difficult angles and
+sizes as well as substantial occlusion. For example, the infant
+perspective often contains non-canonical viewpoints of faces (e.g.,
+looking up at a caregiver's chin) as well as partially-occluded or
+oblique viewpoints of both faces and hands.
 
 To evaluate OpenPose's performance, we compared its detections to the
 manually-annotated gold set of frames, calculating precision (hits /
@@ -291,12 +293,13 @@ faces in view showed a moderate decrease across this age range, both
 when analyzing the random 24K frames as well as the entire dataset (see
 Figure 2A).
 
-While these trends appear somewhat different than those observed in
-Fausey et al. (2016), note that Fausey et al. (2016) included data from
-very young infants (from 1-4 months of age), while here the youngest
-videos coming from S and A around 6 and 9 months of age, respectively.
-Similarly, our age range extends 8 months later than those infants in
-Fausey et al. (2016), throughout a portion of third year of life.
+While these trends appear somewhat different than those observed in C.
+M. Fausey et al. (2016), note that C. M. Fausey et al. (2016) included
+data from very young infants (from 1-4 months of age), while here the
+youngest videos coming from S and A around 6 and 9 months of age,
+respectively. Similarly, our age range extends 8 months later than those
+infants in C. M. Fausey et al. (2016), throughout a portion of third
+year of life.
 
 \begin{CodeChunk}
 \begin{figure*}[h]
@@ -305,28 +308,28 @@ Fausey et al. (2016), throughout a portion of third year of life.
 
 }
 
-\caption[Proportion of faces vs]{Proportion of faces vs. hands in the entire dataset (A) and when hand detections are restricted to the upper 60 percent of the field of view (B). Data from each child (A, S) are plotted separately and binned by each week that the videos were filmed; data is scaled by the number of frames in that age range.}\label{fig:FaceVsHands}
+\caption[Proportion of faces (A), hands (B), and faces vs]{Proportion of faces (A), hands (B), and faces vs. hands (C) in the entire dataset and (D). when hand detections are restricted to the upper 60 percent of the field of view (B). Data from each child are plotted separately and binned by each week that the videos were filmed; data pointsscaled by the number of frames in that age range.}\label{fig:FaceVsHands}
 \end{figure*}
 \end{CodeChunk}
 
 However, the most striking result is a much greater proportion of hands
-in view than have previously been reported (Fausey et al., 2016). We
-found this to be true across all ages, in both children, and regardless
-of whether we analyzed human annotations (on the 24K random subset) or
-OpenPose annotations on entire dataset. This is notable especially given
-that OpenPose showed relatively low recall for hands, indicating that
-this is still an underestimate of the proportion of hands in view. One
-reason this could be the case is the much larger field of view that was
-captured by the cameras used in this study: unlike previous studies, our
-cameras were outfitted with a fish-eye lens in an attempt to capture as
-much of the children's field of view as possible. Thus, the field of
-view (FOV) of the fisheye lens used was larger (109 degrees horizontal x
-70 degrees vertical) than the FOV of the lens used in many previous
-studies; for example, in Fausey et al. (2016) the FOV was 69 x 41
-degrees. This larger field of view may have allowed the SAYcam cameras
-to capture not only the presence of a social partner's hands interacting
-with objects, but also the children's own hands, leading to more
-frequent hand detections.
+in view than have previously been reported (C. M. Fausey et al., 2016).
+We found this to be true across all ages, in both children, and
+regardless of whether we analyzed human annotations (on the 24K random
+subset) or OpenPose annotations on entire dataset. This is notable
+especially given that OpenPose showed relatively low recall for hands,
+indicating that this is still an underestimate of the proportion of
+hands in view. One reason this could be the case is the much larger
+field of view that was captured by the cameras used in this study:
+unlike previous studies, our cameras were outfitted with a fish-eye lens
+in an attempt to capture as much of the children's field of view as
+possible. Thus, the field of view (FOV) of the fisheye lens used was
+larger (109 degrees horizontal x 70 degrees vertical) than the FOV of
+the lens used in many previous studies; for example, in C. M. Fausey et
+al. (2016) the FOV was 69 x 41 degrees. This larger field of view may
+have allowed the SAYcam cameras to capture not only the presence of a
+social partner's hands interacting with objects, but also the children's
+own hands, leading to more frequent hand detections.
 
 \begin{CodeChunk}
 \begin{figure}[h]
@@ -335,7 +338,7 @@ frequent hand detections.
 
 }
 
-\caption[Density estimates for the child (left) and adult (right) hands that were detected int eh 24K random gold set]{Density estimates for the child (left) and adult (right) hands that were detected int eh 24K random gold set; each dot represents the center of a bounding box made by an adult participant.}\label{fig:density}
+\caption[Density estimates for the child (left) and adult (right) hands that were detected in teh 24K random gold set]{Density estimates for the child (left) and adult (right) hands that were detected in teh 24K random gold set; each dot represents the center of a bounding box made by an adult participant.}\label{fig:density}
 \end{figure}
 \end{CodeChunk}
 
@@ -344,29 +347,42 @@ subsample of 9051 frames in which a hand was detected in the random gold
 set; participants (recruited via AMT) were asked to draw bounding boxes
 around children's hands and adult's hands. Overall, we found that 34\%
 of the hands in the random 24K sample were of children's own hands
-(compared to 8\% reported in Fausey et al. (2016)) suggesting that this
-difference in field of view did contribute substantially to the higher
-rate of hand detections in the frames. Heatmaps of the bounding boxes
-obtained from these annotations can be seen in Figure 3, showing that
-children's hands tended to appear in the lower half of the frames.
+(compared to 8\% reported in C. M. Fausey et al. (2016)) suggesting that
+this difference in field of view did contribute substantially to the
+higher rate of hand detections in the frames. Heatmaps of the bounding
+boxes obtained from these annotations can be seen in Figure 3, showing
+that children's hands tended to appear in the lower half of the frames.
 
 We thus re-analyzed the entire dataset while restricting our analysis to
 a smaller, upper portion of the frame comparable to the field of view
-used in Fausey et al. (2016). To do so, we excluded hand detections that
-occurred in the bottom 40\% of the frame, while retaining all hand
-detections that occurred in the top 60\% of the frame. This coarse
-cropping of decreased the proportion of hand detections from
-0.3263743percent to 0.2156618 percent.
+used in C. M. Fausey et al. (2016). To do so, we excluded hand
+detections that occurred in the bottom 40\% of the frame, while
+retaining all hand detections that occurred in the top 60\% of the
+frame. This coarse cropping of decreased the proportion of hand
+detections from 0.3263743percent to 0.2156618 percent.
 
 With this modified field of view, we now observed a more substantive
 decrease across age in the proportions of faces relative to hands. To
 quantify this trend, we fit a generalized linear mixed model to the
 binned detection rates from this smaller field of field to estimate
 changes in the proportion of faces vs.~hands over age. To better
-approximate Fausey et al. (2016), we also restricted our analysis to the
-age range seen in Fausey et al. (2016), excluding videos when children
-were over 24 months of age, and indeed found that the proportion of
-faces vs.~hands declined modestly with age (see Table 1).
+approximate C. M. Fausey et al. (2016), we also restricted our analysis
+to the age range seen in C. M. Fausey et al. (2016), excluding videos
+when children were over 24 months of age, and indeed found that the
+proportion of faces vs.~hands declined modestly with age (see Table 1).
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrr}
+  \hline
+ & Estimate & Std. Error & z value & Pr($>$$|$z$|$) \\ 
+  \hline
+(Intercept) & -0.26 & 0.09 & -2.83 & 0.005 \\ 
+  scale(age\_months) & -0.15 & 0.00 & -225.40 & 0.000 \\ 
+   \hline
+\end{tabular}
+\caption{Model coefficients from a generalized linear mixed model predicting the proportion of faces vs. hands seen by infants.} 
+\end{table}
 
 However, when we considered the entire age range, we also observed an
 unexpected trend in which the relative proportion of faces vs.~hands
@@ -412,12 +428,12 @@ Broadly, the present analysis of this dense, longitudinal dataset has
 yielded a better understanding of infants' evolving access to social
 information. First, we found a relatively high proportion of faces in
 view in the videos from the youngest age ranges in each child,
-confirming previous findings (Fausey et al., 2016). This is particularly
-notable given that, in cross-sectional data, this effect seems to be
-most strongly driven by infants younger than 4 months of age (e.g.,
-Fausey 2016; Jayaraman, Fausey, \& Smith, 2015; Sugden, Mohamed-Ali, \&
-Moulson, 2014) who see both more frequent and more persistent faces
-(Jayaraman \& Smith, 2018).
+confirming previous findings (C. M. Fausey et al., 2016). This is
+particularly notable given that, in cross-sectional data, this effect
+seems to be most strongly driven by infants younger than 4 months of age
+(e.g., Fausey 2016; Jayaraman, Fausey, \& Smith, 2015; Sugden,
+Mohamed-Ali, \& Moulson, 2014) who see both more frequent and more
+persistent faces (Jayaraman \& Smith, 2018).
 
 Second, we found considerable variability in the social information in
 view depending on the activity context in which children were present.
@@ -434,7 +450,7 @@ computer vision model to vastly increase the efficiency of processing
 egocentric headcam footage, allowing us to annotate the entirety of very
 large datasets (here, \textgreater{}30 million frames) for the presence
 and size of people, hands, and faces, representing a 300-fold increase
-in data relative to prior work (Fausey et al., 2016). As these
+in data relative to prior work (C. M. Fausey et al., 2016). As these
 detections were imperfect compared to human annotators, fine-tuning
 these models to better optimize for the infant viewpoint remains an open
 avenue for future work. Standard computer vision models are rarely
@@ -475,10 +491,21 @@ We would like to thank X and Y for helpful comments, and\ldots{}
 \setlength{\parindent}{-0.1in} \setlength{\leftskip}{0.125in} \noindent
 
 \hypertarget{refs}{}
+\hypertarget{ref-bambach2015lending}{}
+Bambach, S., Lee, S., Crandall, D. J., \& Yu, C. (2015). Lending a hand:
+Detecting hands and recognizing activities in complex egocentric
+interactions. In \emph{Proceedings of the ieee international conference
+on computer vision} (pp. 1949--1957).
+
 \hypertarget{ref-Cao2018openpose}{}
 Cao, Z., Hidalgo, G., Simon, T., Wei, S.-E., \& Sheikh, Y. (2018).
 OpenPose: Realtime multi-person 2D pose estimation using Part Affinity
 Fields. In \emph{ArXiv preprint arXiv:1812.08008}.
+
+\hypertarget{ref-clerkin2017}{}
+Clerkin, E. M., Hart, E., Rehg, J. M., Yu, C., \& Smith, L. B. (2017).
+Real-world visual statistics and infants' first-learned object names.
+\emph{Phil. Trans. R. Soc. B}, \emph{372}(1711), 20160055.
 
 \hypertarget{ref-Farroni2002}{}
 Farroni, T., Csibra, G., Simion, F., \& Johnson, M. H. (2002). Eye
@@ -490,11 +517,30 @@ Fausey, C. M., Jayaraman, S., \& Smith, L. B. (2016). From faces to
 hands: Changing visual input in the first two years. \emph{Cognition},
 \emph{152}, 101--107.
 
-\hypertarget{ref-Gredeback2010}{}
-Gredeback, G., Fikke, L., \& Melinder, A. (2010). The development of
-joint visual attention: A longitudinal study of gaze following during
-interactions with mothers and strangers. \emph{Developmental Science},
-\emph{13}(6), 839--848.
+\hypertarget{ref-franchak2017see}{}
+Franchak, J. M., Kretch, K. S., \& Adolph, K. E. (2017). See and be
+seen: Infant--caregiver social looking during locomotor free play.
+\emph{Developmental Science}.
+
+\hypertarget{ref-franchak2011}{}
+Franchak, J. M., Kretch, K. S., Soska, K. C., \& Adolph, K. E. (2011).
+Head-mounted eye tracking: A new method to describe infant looking.
+\emph{Child Development}, \emph{82}(6), 1738--1750.
+
+\hypertarget{ref-frank2013}{}
+Frank, M. C., Simmons, K., Yurovsky, D., \& Pusiol, G. (2013).
+Developmental and postural changes in childrens visual access to faces.
+In \emph{Proceedings of the 35th annual meeting of the cognitive science
+society} (pp. 454--459).
+
+\hypertarget{ref-gredeback2008microstructure}{}
+Gredeb\wrapmf{\"{a}}ck, G., Theuring, C., Hauf, P., \& Kenward, B.
+(2008). The microstructure of infants' gaze as they view adult shifts in
+overt attention. \emph{Infancy}, \emph{13}(5), 533--543.
+
+\hypertarget{ref-james1890principles}{}
+James, W., Burkhardt, F., Bowers, F., \& Skrupskelis, I. K. (1890).
+\emph{The principles of psychology} (Vol. 1). Macmillan London.
 
 \hypertarget{ref-Jayaraman2018}{}
 Jayaraman, S., \& Smith, L. B. (2018). Faces in early visual
@@ -505,19 +551,39 @@ Jayaraman, S., Fausey, C. M., \& Smith, L. B. (2015). The faces in
 infant-perspective scenes change over the first year of life. \emph{PLoS
 One}. \url{http://doi.org/10.1371/journal.pone.0123780}
 
+\hypertarget{ref-kretch2014}{}
+Kretch, K. S., Franchak, J. M., \& Adolph, K. E. (2014). Crawling and
+walking infants see the world differently. \emph{Child Development},
+\emph{85}(4), 1503--1518.
+
 \hypertarget{ref-Sanchez2018}{}
 Sanchez, A., Long, B., Kraus, A. M., \& Frank, M. C. (2018). Postural
 developments modulate children's visual access to social information. In
 \emph{Proceedings of the 40th annual conference of the cognitive science
 society}.
 
+\hypertarget{ref-sanchez2018postural}{}
+Sanchez, A., Long, B., Kraus, A. M., \& Frank, M. C. (2018). Postural
+developments modulate children's visual access to social information.
+
 \hypertarget{ref-Simon2017hand}{}
 Simon, T., Joo, H., Matthews, I., \& Sheikh, Y. (2017). Hand keypoint
 detection in single images using multiview bootstrapping. In
 \emph{CVPR}.
 
+\hypertarget{ref-smith2011not}{}
+Smith, L. B., Yu, C., \& Pereira, A. F. (2011). Not your mother?s view:
+The dynamics of toddler visual experience. \emph{Developmental Science},
+\emph{14}(1), 9--17.
+
+\hypertarget{ref-smith2015contributions}{}
+Smith, L. B., Yu, C., Yoshida, H., \& Fausey, C. M. (2015).
+Contributions of head-mounted cameras to studying the visual
+environments of infants and young children. \emph{Journal of Cognition
+and Development}, \emph{16}(3), 407--419.
+
 \hypertarget{ref-Sugden2014}{}
-Sugden, N. A., Mohamed-Ali, M. I., \& Moulson, M. C. (n.d.). I spy with
+Sugden, N. A., Mohamed-Ali, M. I., \& Moulson, M. C. (2014). I spy with
 my little eye: Typical, daily exposure to faces documented from a
 first-person infant perspective. \emph{Developmental Psychobiology},
 \emph{56}(2), 249--261.
@@ -525,6 +591,16 @@ first-person infant perspective. \emph{Developmental Psychobiology},
 \hypertarget{ref-SAYcam}{}
 Sullivan, J., Mei, M., Perfors, A., Wojcik, E., \& Frank, M. (under
 review). Head cameras on children aged 6 months through 31 months.
+
+\hypertarget{ref-yoshida2008}{}
+Yoshida, H., \& Smith, L. (2008). What's in view for toddlers? Using a
+head camera to study visual experience. \emph{Infancy}, \emph{13},
+229--248.
+
+\hypertarget{ref-yu2013joint}{}
+Yu, C., \& Smith, L. B. (2013). Joint attention without gaze following:
+Human infants and their parents coordinate visual attention to objects
+through eye-hand coordination. \emph{PloS One}, \emph{8}(11).
 
 \bibliographystyle{apacite}
 
