@@ -30,3 +30,5 @@ annotations/face_hands/experiment/test.html
 data_cogsci_jan24.zip
 paper/cogsci/paper.log
 paper/cogsci/paper.tex
+analysis/.Rprofile
+data_cogsci.zip
