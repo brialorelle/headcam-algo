@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  29 JAN 2020 17:16
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  30 JAN 2020 11:50
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -406,73 +406,78 @@ Underfull \vbox (badness 10000) detected at line 64
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <9> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 86.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 99.
-LaTeX Font Info:    Try loading font information for OML+ptm on input line 162.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 96.
+LaTeX Font Info:    Try loading font information for OML+ptm on input line 158.
 
 (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/omlptm.fd
 File: omlptm.fd 
 )
 LaTeX Font Info:    Font shape `OML/ptm/m/n' in size <10> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 162.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 158.
 [1{/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
 
-] <figs/examples-1.pdf, id=45, 489.83pt x 252.945pt>
+]
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 203.
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 203.
+<figs/examples-1.pdf, id=46, 489.83pt x 252.945pt>
 File: figs/examples-1.pdf Graphic file (type pdf)
 <use figs/examples-1.pdf>
-Package pdftex.def Info: figs/examples-1.pdf used on input line 216.
+Package pdftex.def Info: figs/examples-1.pdf used on input line 212.
 (pdftex.def)             Requested size: 489.8288pt x 252.94438pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
+Underfull \hbox (badness 10000) in paragraph at lines 227--227
+[][][][]$\OT1/pcr/m/n/9 https :// github [] .com / CMU [] -Perceptual [] -Compu
+ting [] -Lab /
+ []
 
-[2] <figs/handLocation-1.pdf, id=57, 234.8775pt x 92.345pt>
+[2] <figs/handLocation-1.pdf, id=62, 234.8775pt x 92.345pt>
 File: figs/handLocation-1.pdf Graphic file (type pdf)
 <use figs/handLocation-1.pdf>
-Package pdftex.def Info: figs/handLocation-1.pdf used on input line 314.
+Package pdftex.def Info: figs/handLocation-1.pdf used on input line 308.
 (pdftex.def)             Requested size: 234.87692pt x 92.34476pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<figs/FacesAndHands-1.pdf, id=58, 501.875pt x 230.8625pt>
+<figs/FacesAndHands-1.pdf, id=63, 499.8675pt x 230.8625pt>
 File: figs/FacesAndHands-1.pdf Graphic file (type pdf)
 <use figs/FacesAndHands-1.pdf>
-Package pdftex.def Info: figs/FacesAndHands-1.pdf used on input line 330.
-(pdftex.def)             Requested size: 501.87376pt x 230.86192pt.
+Package pdftex.def Info: figs/FacesAndHands-1.pdf used on input line 324.
+(pdftex.def)             Requested size: 499.86627pt x 230.86192pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+Underfull \vbox (badness 3417) has occurred while \output is active []
 
 [3 <./figs/examples-1.pdf> <./figs/handLocation-1.pdf>]
-Overfull \hbox (8.65709pt too wide) in paragraph at lines 377--385
+Overfull \hbox (8.65709pt too wide) in paragraph at lines 378--386
  [][] 
  []
 
 
-Overfull \hbox (15.03697pt too wide) in paragraph at lines 390--398
+Overfull \hbox (15.03697pt too wide) in paragraph at lines 391--399
  [][] 
  []
 
-
-Underfull \vbox (badness 2221) has occurred while \output is active []
-
-<figs/DetByLocation-1.pdf, id=89, 485.815pt x 193.72375pt>
+<figs/DetByLocation-1.pdf, id=98, 487.8225pt x 198.7425pt>
 File: figs/DetByLocation-1.pdf Graphic file (type pdf)
 <use figs/DetByLocation-1.pdf>
-Package pdftex.def Info: figs/DetByLocation-1.pdf used on input line 423.
-(pdftex.def)             Requested size: 485.81381pt x 193.72327pt.
-Missing character: There is no â in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no ™ in font ptmr7t!
-Missing character: There is no â in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no ™ in font ptmr7t!
+Package pdftex.def Info: figs/DetByLocation-1.pdf used on input line 407.
+(pdftex.def)             Requested size: 487.8213pt x 198.742pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[4 <./figs/FacesAndHands-1.pdf>] [5 <./figs/DetByLocation-1.pdf>]
+[4 <./figs/FacesAndHands-1.pdf>]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+[5 <./figs/DetByLocation-1.pdf>]
 Package atveryend Info: Empty hook `BeforeClearDocument' on input line 634.
 [6]
 Package atveryend Info: Empty hook `AfterLastShipout' on input line 634.
@@ -484,13 +489,13 @@ Package rerunfilecheck Info: File `paper_jan28.out' has not changed.
 Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 634.
  ) 
 Here is how much of TeX's memory you used:
- 8240 strings out of 492995
- 122656 string characters out of 6132704
+ 8275 strings out of 492995
+ 123079 string characters out of 6132704
  217160 words of memory out of 5000000
- 11636 multiletter control sequences out of 15000+600000
- 28055 words of font info for 59 fonts, out of 8000000 for 9000
+ 11663 multiletter control sequences out of 15000+600000
+ 40826 words of font info for 89 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 36i,11n,39p,594b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,11n,39p,558b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/te
 xlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/tex
@@ -498,10 +503,10 @@ live/2017/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/201
 7/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2017/texmf-di
 st/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/t
 ype1/urw/times/utmri8a.pfb>
-Output written on paper_jan28.pdf (6 pages, 4127406 bytes).
+Output written on paper_jan28.pdf (6 pages, 4136788 bytes).
 PDF statistics:
- 196 PDF objects out of 1000 (max. 8388607)
- 166 compressed objects within 2 object streams
- 53 named destinations out of 1000 (max. 500000)
+ 206 PDF objects out of 1000 (max. 8388607)
+ 176 compressed objects within 2 object streams
+ 55 named destinations out of 1000 (max. 500000)
  85 words of extra memory for PDF output out of 10000 (max. 10000000)
 
