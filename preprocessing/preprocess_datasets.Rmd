@@ -298,6 +298,29 @@ save(d_cropped, file = paste0('../data/preprocessed_data/openpose_detections_fil
 }
 ```
 
+
+```{r}
+### Code to start to see if it maatters how many people are in the frame
+age_info <- d_cropped %>%
+  select(vid_name, frame, child_id, age_days)
+
+one_person <- detections_cropped_SA %>%
+  filter(num_people < 2) %>%
+  left_join(d_cropped) %>%
+  group_by(age_days, child_id) %>%
+  summarize(prop_hands = mean(hand_detected), prop_faces = mean(face_detected))
+
+wide_one_person <- one_person %>%
+  gather(region, prop, prop_hands, prop_faces)
+
+ggplot(wide_one_person, aes(x=age_days, y=prop, col=region)) +
+  geom_point() +
+  geom_smooth() +
+  facet_grid(.~child_id) +
+  ggtitle('hands vs faces (cropped) -- frames with only 1 person')
+```
+
+
 # Other data files that get cleaned up for cogsci
 ### Gold sample annotations
 ```{r}
