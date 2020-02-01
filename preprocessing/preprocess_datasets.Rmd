@@ -335,12 +335,12 @@ load('../data/raw_data/ketan_gold_sample.RData')
    filter(!vid_name_short %in% flipped_videos$video) %>%
    mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
    rename(face_present_ketan = face_present, hand_present_ketan = hand_present)
- 
 
 gold_sample <- ketan_gold_out %>%
   select(-vid_name) %>%
   rename(vid_name = vid_name_short) %>% 
-  mutate(vid_name = as.factor(vid_name)) 
+  mutate(vid_name = as.factor(vid_name)) %<%
+  filter(!vid_name %in% to_exclude$vid_name)
 
 if (saveFiles){
 save(gold_sample, file = paste0('../data/preprocessed_data/gold_sample_annotations', today(), '.RData'))
