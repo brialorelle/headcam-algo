@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  24 JAN 2020 15:48
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  3 FEB 2020 09:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**paper.tex
-(./paper.tex
+**paper_initial_submission_blinded.tex
+(./paper_initial_submission_blinded.tex
 LaTeX2e <2017-04-15>
 Babel <3.10> and hyphenation patterns for 84 language(s) loaded.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/base/article.cls
@@ -291,33 +291,33 @@ Package: color 2016/07/10 v1.1e Standard LaTeX Color (DPC)
 File: color.cfg 2016/01/02 v1.6 sample color configuration
 )
 Package color Info: Driver file: pdftex.def on input line 147.
-) (./paper.aux)
-\openout1 = `paper.aux'.
+) (./paper_initial_submission_blinded.aux)
+\openout1 = `paper_initial_submission_blinded.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OMS/pzccm/m/n on input line 61.
-LaTeX Font Info:    Try loading font information for OMS+pzccm on input line 61
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OMS/pzccm/m/n on input line 60.
+LaTeX Font Info:    Try loading font information for OMS+pzccm on input line 60
 .
 (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/omspzccm.fd
 File: omspzccm.fd 2000/01/03 Fontinst v1.801 font definitions for OMS/pzccm.
 )
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 61.
-LaTeX Font Info:    ... okay on input line 61.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 60.
+LaTeX Font Info:    ... okay on input line 60.
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
 \AtBeginShipoutBox=\box31
-Package hyperref Info: Link coloring OFF on input line 61.
+Package hyperref Info: Link coloring OFF on input line 60.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
 (/usr/local/texlive/2017/texmf-dist/tex/generic/oberdiek/gettitlestring.sty
@@ -325,12 +325,13 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count116
 )
-LaTeX Info: Redefining \ref on input line 61.
-LaTeX Info: Redefining \pageref on input line 61.
-LaTeX Info: Redefining \nameref on input line 61.
-(./paper.out) (./paper.out)
+LaTeX Info: Redefining \ref on input line 60.
+LaTeX Info: Redefining \pageref on input line 60.
+LaTeX Info: Redefining \nameref on input line 60.
+(./paper_initial_submission_blinded.out) (./paper_initial_submission_blinded.ou
+t)
 \@outlinefile=\write4
-\openout4 = `paper.out'.
+\openout4 = `paper_initial_submission_blinded.out'.
 
 (/usr/local/texlive/2017/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
@@ -367,151 +368,153 @@ LaTeX Info: Redefining \BPBI on input line 129.
 LaTeX Info: Redefining \BHBI on input line 130.
 )
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <14.4> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 64.
-LaTeX Font Info:    Try loading font information for OT1+ptmcm on input line 64
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 63.
+LaTeX Font Info:    Try loading font information for OT1+ptmcm on input line 63
 .
 (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/ot1ptmcm.fd
 File: ot1ptmcm.fd 2000/01/03 Fontinst v1.801 font definitions for OT1/ptmcm.
 )
-LaTeX Font Info:    Try loading font information for OML+ptmcm on input line 64
+LaTeX Font Info:    Try loading font information for OML+ptmcm on input line 63
 .
 (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/omlptmcm.fd
 File: omlptmcm.fd 2000/01/03 Fontinst v1.801 font definitions for OML/ptmcm.
 )
-LaTeX Font Info:    Try loading font information for OMX+psycm on input line 64
+LaTeX Font Info:    Try loading font information for OMX+psycm on input line 63
 .
 (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/omxpsycm.fd
 File: omxpsycm.fd 2000/01/03 Fontinst v1.801 font definitions for OMX/psycm.
 )
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 64.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 63.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7.4> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 64.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 63.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <6> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 64.
-LaTeX Font Info:    Try loading font information for U+msa on input line 64.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 63.
+LaTeX Font Info:    Try loading font information for U+msa on input line 63.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 64.
+LaTeX Font Info:    Try loading font information for U+msb on input line 63.
 (/usr/local/texlive/2017/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 64.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 63.
 
-Underfull \vbox (badness 10000) detected at line 64
+Underfull \vbox (badness 10000) detected at line 63
  []
 
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <9> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 86.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 85.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 96.
-LaTeX Font Info:    Try loading font information for OML+ptm on input line 156.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 95.
+LaTeX Font Info:    Try loading font information for OML+ptm on input line 157.
 
 (/usr/local/texlive/2017/texmf-dist/tex/latex/psnfss/omlptm.fd
 File: omlptm.fd 
 )
 LaTeX Font Info:    Font shape `OML/ptm/m/n' in size <10> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 156.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 157.
 [1{/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
 
-] <figs/examples-1.pdf, id=45, 489.83pt x 252.945pt>
+]
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 200.
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 200.
+<figs/examples-1.pdf, id=58, 483.8075pt x 252.945pt>
 File: figs/examples-1.pdf Graphic file (type pdf)
 <use figs/examples-1.pdf>
-Package pdftex.def Info: figs/examples-1.pdf used on input line 207.
-(pdftex.def)             Requested size: 489.8288pt x 252.94438pt.
+Package pdftex.def Info: figs/examples-1.pdf used on input line 209.
+(pdftex.def)             Requested size: 483.80632pt x 252.94438pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <7> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 222.
-LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <5> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 222.
 
-Underfull \hbox (badness 10000) in paragraph at lines 222--222
+Underfull \hbox (badness 10000) in paragraph at lines 220--220
 [][][][]$\OT1/pcr/m/n/9 https :// github [] .com / CMU [] -Perceptual [] -Compu
 ting [] -Lab /
  []
 
 
-Underfull \vbox (badness 2213) has occurred while \output is active []
+Underfull \vbox (badness 5490) has occurred while \output is active []
 
-[2] <figs/FaceVsHands-1.pdf, id=58, 499.8675pt x 206.7725pt>
-File: figs/FaceVsHands-1.pdf Graphic file (type pdf)
-<use figs/FaceVsHands-1.pdf>
-Package pdftex.def Info: figs/FaceVsHands-1.pdf used on input line 307.
-(pdftex.def)             Requested size: 499.86627pt x 206.77199pt.
+[2] <figs/handLocation-1.pdf, id=70, 239.89626pt x 92.345pt>
+File: figs/handLocation-1.pdf Graphic file (type pdf)
+<use figs/handLocation-1.pdf>
+Package pdftex.def Info: figs/handLocation-1.pdf used on input line 275.
+(pdftex.def)             Requested size: 239.89566pt x 92.34476pt.
+<figs/FacesAndHands-1.pdf, id=72, 500.87125pt x 198.7425pt>
+File: figs/FacesAndHands-1.pdf Graphic file (type pdf)
+<use figs/FacesAndHands-1.pdf>
+Package pdftex.def Info: figs/FacesAndHands-1.pdf used on input line 316.
+(pdftex.def)             Requested size: 500.87001pt x 198.742pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-<figs/density-1.pdf, id=59, 260.975pt x 85.31876pt>
-File: figs/density-1.pdf Graphic file (type pdf)
-<use figs/density-1.pdf>
-Package pdftex.def Info: figs/density-1.pdf used on input line 337.
-(pdftex.def)             Requested size: 260.97437pt x 85.31853pt.
-
-Overfull \hbox (17.06311pt too wide) in paragraph at lines 337--338
+[3 <./figs/examples-1.pdf> <./figs/handLocation-1.pdf>]
+Overfull \hbox (8.65709pt too wide) in paragraph at lines 374--382
  [][] 
  []
 
 
-LaTeX Warning: `h' float specifier changed to `ht'.
-
-[3 <./figs/examples-1.pdf>]
-Overfull \hbox (28.83629pt too wide) in paragraph at lines 376--384
+Overfull \hbox (15.03697pt too wide) in paragraph at lines 387--395
  [][] 
  []
 
-<figs/DetByLocation-1.pdf, id=74, 194.7275pt x 279.0425pt>
+<figs/DetByLocation-1.pdf, id=110, 487.8225pt x 198.7425pt>
 File: figs/DetByLocation-1.pdf Graphic file (type pdf)
 <use figs/DetByLocation-1.pdf>
-Package pdftex.def Info: figs/DetByLocation-1.pdf used on input line 417.
-(pdftex.def)             Requested size: 194.727pt x 279.04181pt.
-Missing character: There is no â in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no ™ in font ptmr7t!
-Missing character: There is no â in font ptmr7t!
-Missing character: There is no € in font ptmr7t!
-Missing character: There is no ™ in font ptmr7t!
+Package pdftex.def Info: figs/DetByLocation-1.pdf used on input line 404.
+(pdftex.def)             Requested size: 487.8213pt x 198.742pt.
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
-[4 <./figs/FaceVsHands-1.pdf> <./figs/density-1.pdf>] [5 <./figs/DetByLocation-
-1.pdf>]
-Missing character: There is no Â in font ptmr7t!
-Missing character: There is no ’ in font ptmr7t!
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 608.
+LaTeX Font Info:    Font shape `OML/ptm/m/n' in size <9> not available
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 427.
+[4 <./figs/FacesAndHands-1.pdf>]
+Underfull \hbox (badness 1087) in paragraph at lines 434--446
+\OT1/ptm/m/n/10 lon-gi-tu-di-nal dataset, ap-ply-ing a mod-ern computer-vision
+ []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+[5 <./figs/DetByLocation-1.pdf>]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 635.
 [6]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 608.
-(./paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 608.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 608.
-Package rerunfilecheck Info: File `paper.out' has not changed.
-(rerunfilecheck)             Checksum: 50939D9928BFC3745C24B8F62338375F;456.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 608.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 635.
+(./paper_initial_submission_blinded.aux)
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 635.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 635.
+Package rerunfilecheck Info: File `paper_initial_submission_blinded.out' has no
+t changed.
+(rerunfilecheck)             Checksum: 638591EC4B2EBC01ED276123DE1A0C96;654.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 635.
  ) 
 Here is how much of TeX's memory you used:
- 8273 strings out of 492995
- 122926 string characters out of 6132704
- 217160 words of memory out of 5000000
+ 8279 strings out of 492995
+ 123346 string characters out of 6132704
+ 216160 words of memory out of 5000000
  11667 multiletter control sequences out of 15000+600000
- 40826 words of font info for 89 fonts, out of 8000000 for 9000
+ 42320 words of font info for 91 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 36i,11n,39p,613b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 36i,11n,39p,671b,325s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2017/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/te
-xlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/tex
-live/2017/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/201
-7/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2017/texmf-di
-st/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/t
-ype1/urw/times/utmri8a.pfb>
-Output written on paper.pdf (6 pages, 4155117 bytes).
+xlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb></usr/local/texl
+ive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texli
+ve/2017/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2017/
+texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2017/texmf-dist
+/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2017/texmf-dist/fonts/typ
+e1/urw/times/utmri8a.pfb>
+Output written on paper_initial_submission_blinded.pdf (6 pages, 4155813 bytes)
+.
 PDF statistics:
- 183 PDF objects out of 1000 (max. 8388607)
- 153 compressed objects within 2 object streams
- 49 named destinations out of 1000 (max. 500000)
- 85 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 221 PDF objects out of 1000 (max. 8388607)
+ 190 compressed objects within 2 object streams
+ 53 named destinations out of 1000 (max. 500000)
+ 109 words of extra memory for PDF output out of 10000 (max. 10000000)
 
