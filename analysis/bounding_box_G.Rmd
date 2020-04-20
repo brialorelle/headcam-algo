@@ -1,0 +1,88 @@
+---
+title: "Bounding Box Analysis"
+author: "George"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T)
+
+require(tidyverse)
+require(data.table)
+require(here)
+require(stringr)
+```
+
+## Load Data
+
+Detections by type:
+
+```{r load-data}
+load(here("data/all_bounding_boxes.RData"))
+#summary(df)
+table(df$label)
+```
+
+## Filter Weird Data
+
+We'll also get rid of detections in videos that were not named with the standard format (and therefore we could not extract age from; e.g. 161384-Baby_Scene videos).
+We may also want to get rid of detections below some level of mean confidence (a skewed distro: most <.1): we'll start with $\geq 0.1$.
+
+```{r filter-data, echo=FALSE}
+# normalize Y vids height=480, width=640
+
+sdf <- df %>% filter(!is.na(age_days),
+                     area>.0001, # keep detections larger than .01*.01
+                     mean_confidence > .3)
+
+
+sdf <- sdf %>% mutate(age_months = round(age_days / 30.42))
+```
+
+Keeping `r round(nrow(sdf)/nrow(df),3)*100`% of the detections.
+
+## Detection size by type
+
+Detected people are generally much larger than faces, or hands (which are quite small) -- all very reasonable.
+
+```{r}
+sdf %>% ggplot(aes(x=area, fill=label)) + 
+  geom_histogram(alpha=.5) + theme_bw() #+ facet_wrap(~age_months)
+```
+
+```{r}
+hands_by_age <- sdf %>%
+  filter(label=="hand") %>%
+  group_by(vid_name, age_months, child_id) %>% # do per frame ?
+  summarize(N = n(), avg_area = mean(area))
+
+faces_by_age <- sdf %>%
+  filter(label=="face") %>%
+  group_by(vid_name, age_months, child_id) %>%
+  summarize(N = n(), avg_area = mean(area))
+
+poses_by_age <- sdf %>%
+  filter(label=="pose") %>%
+  group_by(vid_name, age_months, child_id) %>%
+  summarize(N = n(), avg_area = mean(area))
+```
+
+
+```{r}
+ggplot(hands_by_age, aes(x=N, y=avg_area, col=child_id)) +
+  geom_jitter(alpha=.2) +
+  ggtitle('Hand size by #') +
+  facet_wrap(~age_months) + theme_bw()
+
+ggplot(faces_by_age, aes(x=N, y=avg_area, col=child_id)) +
+  geom_jitter(alpha=.2) +
+  ggtitle('Hand size by #') +
+  facet_wrap(~age_months) + theme_bw()
+
+ggplot(poses_by_age, aes(x=N, y=avg_area, col=child_id)) +
+  geom_jitter(alpha=.2) +
+  ggtitle('Pose size by #') +
+  facet_wrap(~age_months) + theme_bw()
+```
+
