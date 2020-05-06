@@ -110,7 +110,7 @@ remove(detections)
 ## Load, process, merge Y's data
 ### Now load in bounding box data from Y, which has detection rates built in
 ```{r}
-load('../data/Y_bounding_boxes.RData') #df again as import
+load('../data/raw_data/Y_bounding_boxes.RData') #df again as import
 y_data <- df %>%
   rowwise() %>%
   mutate(age = str_split_fixed(vid_name, '_',4)[,3])
@@ -226,18 +226,18 @@ save(bb_SA, file = paste0('../data/temp_data/SA_bounding_boxes_cleaned_', today(
 # load(file = '../data/Y_bounding_boxes_cleaned.RData') #  d_y from earlier if not loaded
 
 ## frame
-# height_px = 480; width_px = 640
-# bb_all_three <- d_y %>%
-#   filter(person==0) %>% # only rows with detections for now so comparable to bb_all
-#   mutate(left = left*width_px, top = top*height_px, height = height*height_px, width = width*width_px) %>% #unnormalize data so comparable
-#   full_join(bb_all) %>% # join with SA bounding boxes
-#   mutate(center_x = left + width/2, center_y = top - height/2, area = width*height) 
-# 
-# save(bb_all_three, file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
-# remove(bb_all_three)
+height_px = 480; width_px = 640
+bb_all_three <- d_y %>%
+  filter(person==0) %>% # only rows with detections for now so comparable to bb_all
+  # mutate(left = left*width_px, top = top*height_px, height = height*height_px, width = width*width_px) %>% #unnormalize data so comparable
+  full_join(bb_SA) %>% # join with SA bounding boxes
+  mutate(center_x = left + width/2, center_y = top - height/2, area = width*height)
+
+save(bb_all_three, file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
+remove(bb_all_three)
 ```
 
-## Load temp files if we are skipping steps above run if we are skipping steps above
+# Load temp files if we are skipping steps above run if we are skipping steps above
 ```{r eval=FALSE}
 ## For cropped detections, need..
 # 1. full set of detections (d_all from above)
@@ -253,8 +253,10 @@ load(file='../data/temp_data/Y_bounding_boxes_cleaned_2020-01-29.RData')
 ### Make cropped detections for Y/SA, join, make cropped large data
 ```{r}
 detections_cropped_Y <- d_y %>%
-  filter(person==0) %>% #only get frames where detections so comparable
-  filter((height<(.6*480))) %>%  ## 
+  filter(person>0) %>% #only get frames where detections so comparable
+  mutate(top_real = top - height) %>% ## TOP IS ACTULALY BOTTOM AND 0,0 IS in the "TOP/LEFT" ! OMG.
+  mutate(center_y = top_real + height/2, center_x = left + width/2) %>%
+  filter(center_y<(.6*480)) %>%  ## 
   group_by(vid_name, frame, child_id, age_days) %>%
   summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose")) 
 
@@ -264,9 +266,12 @@ detections_cropped_Y <- detections_cropped_Y %>%
 
 ## Make cropped detections in top 60% of frame for S,A
 detections_cropped_SA <- bb_SA %>%
-  filter(height<(.6)) %>%  ## 
+  mutate(top_real = top - height) %>% ## TOP IS ACTULALY BOTTOM AND 0,0 IS TOP
+  mutate(center_y = top_real + height/2, center_x = left + width/2) %>%
+  filter(center_y<(.6)) %>%  ## 
   group_by(vid_name, frame, child_id) %>%
   summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"))  
+
 # join all together
 all_cropped_detections <- detections_cropped_SA %>%
   ungroup() %>%
@@ -298,6 +303,66 @@ save(d_cropped, file = paste0('../data/preprocessed_data/openpose_detections_fil
 }
 ```
 
+
+### Make center detections for Y/SA, join, make centered large data
+```{r}
+limit_lower =.2
+limit_upper =.8
+y_max = 480
+x_max = 640
+
+detections_center_Y <- d_y %>%
+  filter(person>0) %>% #only get frames where detections so comparable
+  mutate(top_real = top - height) %>%
+  mutate(center_y = top_real + height/2, center_x = left + width/2) %>%
+  filter(center_y<(limit_upper*y_max) & center_x<(limit_upper*x_max) & center_y>(limit_lower*y_max) & center_x>(limit_lower*x_max)) %>%  ## 
+  group_by(vid_name, frame, child_id, age_days) %>%
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose")) 
+
+detections_center_Y <- detections_center_Y %>%
+ ungroup() %>%
+ mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) 
+
+## Make center detections in top 60% of frame for S,A
+detections_center_SA <- bb_SA %>%
+  mutate(top_real = top - height) %>%
+  mutate(center_y = top_real + height/2, center_x = left + width/2) %>%
+  filter(center_y<(limit_upper) & center_x<(limit_upper) & center_y>(limit_lower) & center_x>(limit_lower)) %>%  ## 
+  group_by(vid_name, frame, child_id) %>%
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"))  
+# join all together
+all_center_detections <- detections_center_SA %>%
+  ungroup() %>%
+  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) %>%
+  full_join(detections_center_Y)
+```
+
+## Join back with big data structure
+```{r}
+## clean up workspace or else we run into memory limits
+# center detections
+remove(detections_center_Y)
+remove(detections_center_SA)
+
+# # bb data
+# remove(y_data)
+# remove(bb_all)
+
+## need to get "FALSE" on frames where we didn't have info to be able to compute proportions; uses d_all from earlier and fills it all back in
+all_center_detections <- all_center_detections %>%
+  select(-age_days, -child_id) %>%
+  mutate(face_openpose_center = face_detected, hand_openpose_center = hand_detected) 
+
+d_center <- d_all %>% ## needs to be loaded!
+  as_tibble() %>%
+  mutate(vid_name = as.factor(vid_name), child_id = as.factor(child_id)) %>%
+  select(vid_name, frame, child_id, age_days, face_openpose, hand_openpose) %>%
+  left_join(all_center_detections, by=c("vid_name","frame")) 
+
+if (saveFiles){
+save(d_center, file = paste0('../data/preprocessed_data/openpose_detections_filtered_center2', today(), '.RData'))
+}
+```
 
 ```{r}
 ### Code to start to see if it maatters how many people are in the frame
