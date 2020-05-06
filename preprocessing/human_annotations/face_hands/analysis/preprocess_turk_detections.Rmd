@@ -20,19 +20,17 @@ theme_set(theme_few())
 ```
 
 # Preprocessing
-
+## Not finished cleaning this up yet...
 ```{r}
-f <- dir("turk_annotations_single/")
-jf <- paste("turk_annotations_single/",f,sep="")
+jf <- paste0(here::here(), '/data/turk_data/raw/face_hand_detections/Batch_3858789_batch_results.csv')
+
 jd <- read_csv(jf)
 
 summary <- jd %>%
   group_by(WorkerId) %>%
   summarize(count_images = n(), avg_time = mean(WorkTimeInSeconds))
 
-
 jd$response = jd$`Answer.trial-1.label`
-
 agreement <- jd %>%
   group_by(Input.img_src1) %>%
   summarize(agree = response[1] == response[2])
@@ -42,18 +40,13 @@ agreement <- jd %>%
 ```{r}
 d.raw <- data.frame()
 trial_indexes = seq(1,252,1)
-files <- dir("turk_annotations/")
 num_workers=20
-
-
-for (f in files) {
-  jf <- paste("turk_annotations/",f,sep="")
-  jd <- read_csv(jf)
+d <- read_csv(jf)
   
-  ## really not sure why there's this weird discrepancy for the last trial, but OK
-  jd$`Answer.trial-252` = jd$`Answer.trial-252.label`
+## really not sure why there's this weird discrepancy for the last trial, but OK
+jd$`Answer.trial-252` = jd$`Answer.trial-252.label`
   
-  for (trial_ind in trial_indexes){
+for (trial_ind in trial_indexes){
     trial_data = data.frame(
       ## including HITId and HITTYpe
       this_response = eval(parse(text = paste0("jd$`Answer.trial-",trial_ind,"`"))),
@@ -64,7 +57,6 @@ for (f in files) {
       WorkerID = jd$WorkerId
     )
     d.raw <- bind_rows(d.raw, trial_data)
-  }
 }
 
 d <- d.raw

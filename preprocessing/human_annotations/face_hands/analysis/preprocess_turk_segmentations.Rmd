@@ -15,8 +15,9 @@ library(langcog)
 library(lmerTest)
 library(viridis)
 library(magick)
-library(egg)
 library(jsonlite)
+library(here)
+library(lubridate)
 theme_set(theme_few())
 ```
 
@@ -24,12 +25,8 @@ theme_set(theme_few())
 # Preprocessing
 
 ```{r}
-# f <- dir("turk_annotations_segmentation/")
-# jf <- paste("turk_annotations_segmentation/",f,sep="")
-# jd <- read_csv(jf)
-
 f = "turk_segmentations_hands_only.csv"
-jf <- paste("../../../data/",f,sep="")
+jf <- paste0(here::here(), '/data/turk_data/',f)
 jd <- read_csv(jf)
 
 d.raw <- data.frame()
@@ -123,14 +120,13 @@ d <- d.raw %>%
 child_face_frames <- d %>%
   filter(label=="Child face")
 
-
 # render out some of these...
 # dir.create(paste0('child_face/'))
-# for (i in seq(1,length(child_face_frames$full_image_path),1)){
-#   image_read(as.character(child_face_frames$full_image_path[i])) %>%
-#   image_append(stack = FALSE) %>%
-#   image_write(file.path(paste0("child_face/", child_face_frames$short_image_path[i])))
-# }
+for (i in seq(1,length(child_face_frames$full_image_path),1)){
+  image_read(as.character(child_face_frames$full_image_path[i])) %>%
+  image_append(stack = FALSE) %>%
+  image_write(file.path(paste0("child_face/", child_face_frames$short_image_path[i])))
+}
 
 # dir.create(paste0('annotated-images-child-face/'))
 # unique_images = child_face_frames$full_image_path
@@ -153,16 +149,18 @@ child_face_frames <- d %>%
 
 ### Write out csv for use in analysis
 ```{r}
-write_csv(d,'turk_segmentations_hands_only_processed.csv')
+write_csv(d, paste0(here::here(), '/data/turk_data/turk_segmentations_hands_only_processed', today(), '.csv'))
 ```
 
+
+
+## Write out some images
 ```{r}
 d <- d %>%
   mutate(short_image_path = str_split_fixed(full_image_path,'/',7)[,7])
 ```
 
 ```{r eval=FALSE}
-
 unique_images = d$full_image_path
 for (image in unique_images){
   this_image_rgb <- image_read(image)
@@ -194,8 +192,6 @@ child_hand <- d %>%
 
 rect(child_hand$left, child_hand$top+child_hand$height, child_hand$left+child_hand$width, child_hand$top)
 text(child_hand$left+10, child_hand$top+10, child_hand$label)
-
-
 
 ```
 
