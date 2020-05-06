@@ -26,23 +26,24 @@ theme_set(theme_few())
 
 ### Instead load in detections and ketan's gold set annotations from preprocessed Rdata files
 ```{r}
-# load('../data/openpose_detections.RData')
-load('../data/ketan_gold_sample.RData')
+## 25K annotations are only on S/A
+load('../data/raw_data/openpose_detections_SA.RData')
+load('../data/raw_data/ketan_gold_sample.RData')
 ```
 
 ### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
 ```{r}
-right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up_file = "../data/raw_data/SAYCAM_allocentric_videos.csv"
 right_side_up =read.csv(right_side_up_file)
 
 # get INCORRECT videos
 flipped_videos <- right_side_up %>%
-  filter(right_side_up==1)
+  filter(allocentric==1)
 ```
 
 ### Get metadata from file
 ```{r}
-metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+metadata_file = "../data/raw_data/Metadata_SAYcam-2019-12-0922_54_28.csv"
 
 meta=read.csv(metadata_file) %>%
   mutate(vid_name_short = str_split_fixed(File.Name,'.AVI',2)[,1]) %>%
@@ -53,7 +54,7 @@ meta=read.csv(metadata_file) %>%
 ### Read in turk anotation data  and merge
 #### First read in hand/face present only here, ~4K images
 ```{r}
-turk_annotations = "../data/turk_annotations_dec5.csv" # 20 turkers who did ~250 frames each
+turk_annotations = "../data/turk_data/turk_annotations_dec5.csv" # 20 turkers who did ~250 frames each
 gold_set = read.csv(turk_annotations)
 
 ## cleanup these goldset annotations so we can merge
@@ -92,7 +93,7 @@ merged <- g %>%
 
 ### Import hand segmentations
 ```{r eval=FALSE}
-turk_annotations_seg = "../data/turk_segmentations_hands_only_processed.csv" 
+turk_annotations_seg = "../data/turk_data/turk_segmentations_hands_only_processed.csv" 
 g_seg = read.csv(turk_annotations_seg)
 
 ## And merge with detections
@@ -271,6 +272,50 @@ prf_by_age_hands <- d %>%
   mutate(hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_openpose)) %>%
   group_by(age_day_bin, child_id) %>%
   do(return_prf(.$hand_eval_ketan))
+
+
+##
+prf_by_age_hands_both_kids <- d %>%
+  mutate(hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_openpose)) %>%
+  group_by(age_day_bin) %>%
+  do(return_prf(.$hand_eval_ketan))
+```
+
+```{r}
+prf_by_child_hands <- d %>%
+  mutate(hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_openpose)) %>%
+  group_by(vid_name_short) %>%
+  do(return_prf(.$hand_eval_ketan))
+
+prf_by_child_faces <- d %>%
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_openpose)) %>%
+  group_by(child_id) %>%
+  do(return_prf(.$face_eval_ketan)) 
+  
+```
+
+```{r}
+
+# not that useful since vids are so long for A
+
+# face_prf_by_vid <- d %>%
+#   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_openpose)) %>%
+#   group_by(vid_name_short, Databrary.Link) %>%
+#   do(return_prf(.$face_eval_ketan)) 
+# 
+# low_p_vids <-  face_prf_by_vid %>%
+#   filter(p<.2) %>%
+#   filter(num_detect > 40)
+```
+
+
+```{r}
+ggplot(prf_by_age_hands_both_kids, aes(x=age_day_bin, y=p, col=age_day_bin, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth()  +
+  ylab('F-score - Face detection')
+
+
 ```
 
 ### Plot p/r/f/ by age/child for goldset annotations for FACES
