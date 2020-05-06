@@ -19,8 +19,8 @@ files = os.listdir(VID_PATH)
 
 def get_bounding_box(X, Y):
 	left = np.min(X)
-	top = np.max(Y) # is (0,0) top or bottom left? assume bottom left for now -- check python
-	height = top - np.min(Y)
+	top = np.min(Y) # (0,0) is top left
+	height = np.max(Y) - top
 	width = np.max(X) - left
 	return([height, width, left, top])
 
