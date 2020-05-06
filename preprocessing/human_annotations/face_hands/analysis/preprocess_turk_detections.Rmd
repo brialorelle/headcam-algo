@@ -15,12 +15,13 @@ library(langcog)
 library(lmerTest)
 library(viridis)
 library(magick)
+library(here)
+library(lubridate)
 library(egg)
 theme_set(theme_few())
 ```
 
 # Preprocessing
-## Not finished cleaning this up yet...
 ```{r}
 jf <- paste0(here::here(), '/data/turk_data/raw/face_hand_detections/Batch_3858789_batch_results.csv')
 
@@ -28,12 +29,8 @@ jd <- read_csv(jf)
 
 summary <- jd %>%
   group_by(WorkerId) %>%
-  summarize(count_images = n(), avg_time = mean(WorkTimeInSeconds))
+  summarize(avg_time = mean(WorkTimeInSeconds))
 
-jd$response = jd$`Answer.trial-1.label`
-agreement <- jd %>%
-  group_by(Input.img_src1) %>%
-  summarize(agree = response[1] == response[2])
 ```
 
 ### Go through raw data and put in dataframe
@@ -62,9 +59,7 @@ for (trial_ind in trial_indexes){
 d <- d.raw
 
 ## Would like to get rando responses in .label field here:
-
 ### Sometimes we get NAs and they end up in ".label fields", but not every trial has them (so it throws errors in a loop). I'm too tired to write an appropriate function so just leaving those NAs for now but the data is there. Starter code is below.
-
 # empty_labels = as.character(array(matrix(data=NA, nrow=1, ncol=num_workers)))
 # 
 # 
@@ -184,7 +179,7 @@ d.filtered <- d %>%
 
 ### Write out csv for use in analysis
 ```{r}
-write_csv(d.filtered,'turk_annotations_dec5.csv')
+write_csv(d.filtered,paste0(here::here, '/data/turk_data/face_hand_detections', today(), '.csv'))
 ```
 
 
