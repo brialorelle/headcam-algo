@@ -19,8 +19,8 @@ files = os.listdir(VID_PATH)
 
 def get_bounding_box(X, Y):
 	left = np.min(X)
-	top = np.max(Y) # is (0,0) top or bottom left? assume bottom left for now -- check python
-	height = top - np.min(Y)
+	top = np.min(Y) # (0,0) is top left
+	height = np.max(Y) - top
 	width = np.max(X) - left
 	return([height, width, left, top])
 
@@ -70,10 +70,11 @@ for f in files:
 						df.append([i, p, "hand"] + bbs[2])
 						df.append([i, p, "hand"] + bbs[3])
 				# add a row indicating no detection for that frame (makes the file much larger)
-				if not detection:
-					df.append([i, -1,-1,  -1,-1,-1,-1,-1])
+				#if not detection:
+				#	df.append([i, -1,-1,  -1,-1,-1,-1,-1])
 			df = pd.DataFrame(df)
 			df.columns = col_names
 			df.to_csv(OUT_PATH + vid_name+"_bounding_boxes.csv")
 		except:
 			print("Problem processing "+vid_name)
+
