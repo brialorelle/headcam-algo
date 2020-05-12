@@ -15,7 +15,7 @@ from config import *
 #TODO: run_openpose() if condense() is true, the job that it submits also condenses once the openpose finishes.
 
 
-def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=None, **kwargs):
+def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
 
     :param vid_path: path to video file.
@@ -30,7 +30,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=None, 
     vid_output_dir = os.path.join(op_output_dir, f'{vid_name}')
 
     if os.path.exists(vid_output_dir):
-        if (overwrite is None and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes') or not overwrite:
+        if not overwrite and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes':
             print(f'aborting on video {vid_path}.')
             return
     os.makedirs(vid_output_dir, exist_ok=True)
@@ -46,9 +46,10 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=None, 
     if hand:
         cmd += '--hand '
     cmd += f'--write_keypoint_json {vid_output_dir}\''
+    print('command submitted to sbatch job: ', cmd)
 
     msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
-    print(msg)
+    print('command line output: ', msg)
 
 
 def collect_filepaths(frame_df, portion_size=2000000, verbose=False):
