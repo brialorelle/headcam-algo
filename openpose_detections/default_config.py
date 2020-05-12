@@ -9,6 +9,10 @@ OUTPUT = '/Users/brialong/Documents/GitHub/headcam-algo/data'
 
 # OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
 
+OPENPOSE_FACE_NOSE_KEYPT = 30
+OPENPOSE_POSE_LEFT_WRIST_KEYPT = 7
+OPENPOSE_POSE_RIGHT_WRIST_KEYPT = 4
+
 #Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
 
