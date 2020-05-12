@@ -19,11 +19,17 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False,
     """run_openpose: submit sbatch job to run Openpose on given video.
 
     :param vid_path: path to video file.
-    :param op_output_dir: directory containing Openpose output folders.
-    :param face: outputs face keypoints if True.
-    :param hand: outputs hand keypoints if True.
-    :param **kwargs: additional command-line arguments to pass to Openpose (see Openpose
-    demo documentation).
+    :param op_output_dir: directory that will house Openpose output folders.
+    :param face: outputs face keypoints (in addition to pose keypoints) if True.
+    :param hand: outputs hand keypoints (in addition to pose keypoints) if True.
+    :param **kwargs: additional command-line arguments to pass to Openpose
+    (see https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/demo_overview.md
+    for complete documentation on command-line flags).
+
+    Example usage:
+    test_vid =
+    run_openpose('/path/to/myheadcamvid.mp4', '/path/to/output_dir',
+                 keypoint_scale=3, frame_rotate=180)
     """
     os.makedirs(op_output_dir, exist_ok=True)
     vid_name = ntpath.basename(vid_path)[:-4]
@@ -55,9 +61,10 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False,
 def collect_filepaths(frame_df, portion_size=2000000, verbose=False):
     """collect_filepaths: aggregates Openpose filepaths from given frame dataframe.
 
-    :param frame_df: Pandas frame-level dataframe.
+    :param frame_df: df containing video name and frame for each frame.
     :param portion_size: chunk size to pass to multiprocessing
     :param verbose: if True, prints progress.
+    :return: list of filepaths of Openpose outputs for each frame in frame_df
     """
     fps = []
     for portion in range(0, len(frame_df), portion_size):
@@ -68,6 +75,7 @@ def collect_filepaths(frame_df, portion_size=2000000, verbose=False):
         p = multiprocessing.Pool()
         fps.extend(p.map(_openpose_filepath, data))
     return fps
+
 
 def condense_openpose(frame_df, fps=None, overwrite=False):
     """condense_openpose: condenses folders of frame-level JSON outputs into video-level JSON
@@ -93,6 +101,7 @@ def _openpose_filepath(tupl):
     """_openpose_filepath: applied function to generate filepaths for raw Openpose outputs.
 
     :param tupl: tuple of (vid_name, frame_num)
+    :return: filepath to Openpose JSON output file
     """
     vid_name, frame_num = tupl
     vid_name = vid_name
@@ -127,6 +136,7 @@ def _get_json(fp):
     """_get_json: opens JSON file at given path.
 
     :param fp: Path to JSON file.
+    :return: content of JSON as a dict.
     """
     try:
         return json.load(open(fp, 'r'))
@@ -137,6 +147,9 @@ def extract_face_hand(frame_df):
     """extract_face_hand: Extracts face and hand presence from the saved Openpose video keypoints for the entire dataset.
 
     :param frame_df: Dataframe with a row for each frame of video in the dataset.
+    :return: frame_df, with additional columns attached indicating detection of a face ('face_openpose'),
+    detection of a hand ('hand_openpose'), average nose keypoint confidence ('nose_conf'), and
+    average wrist keypoint confidence ('wrist_conf').
     """
     print('Opening/extracting keypoints from video JSONs...')
 
@@ -161,6 +174,7 @@ def extract_face_hand_video(frame_df):
     """extract_face_hand_video: Extracts nose and wrist keypoints (corresponding to face and hand presence) for a given video's Openpose outputs.
 
     :param frame_df: Dataframe with a row for each frame of video in the video.
+    :return: list of [nose avg confidence, wrist avg confidence] for each frame of video
     """
     print(frame_df.name)
     with open(os.path.join(OPENPOSE_CONDENSED_OUTPUT, '{}.msgpack'.format(frame_df.name)), 'rb') as infile:
@@ -172,15 +186,31 @@ def extract_face_hand_frame(keypts):
     """extract_face_hand_frame: extracts nose and wrist keypoints from Openpose output for a single frame
 
     :param keypts: Dictionary of keypoints for an individual frame (Openpose format)
+    :return: Average nose and average wrist confidence for the frame as a list
     """
     #Single nose keypoint for each person.
-    nose_keypts = [person[b'face_keypoints'][92] for person in keypts[b'people']]
+    nose_keypts = [get_keypoint_conf(person[b'face_keypoints'], OPENPOSE_FACE_NOSE_KEYPT)
+                   for person in keypts[b'people']]
 
     #Both left and right wrists for each person, flattened into 1-D list [L, R, L, R, ....].
-    wrist_keypts = list(chain.from_iterable((person[b'pose_keypoints'][4], person[b'pose_keypoints'][7]) for person in keypts[b'people']))
+    wrist_keypts = list(chain.from_iterable((get_keypoint_conf(person[b'pose_keypoints'], OPENPOSE_POSE_RIGHT_WRIST_KEYPT),
+                                             get_keypoint_conf(person[b'pose_keypoints'], OPENPOSE_POSE_RIGHT_WRIST_KEYPT))
+                                            for person in keypts[b'people']))
 
     nose_avg = 0 if len(nose_keypts) == 0 else np.average(nose_keypts)
     wrist_avg = 0 if len(wrist_keypts) == 0 else np.average(wrist_keypts)
 
     return [nose_avg, wrist_avg]
 
+def get_keypoint_conf(keypt_list, keypt_num):
+    """get_keypoint_conf: extract the keypoint specified by keypt_num from Openpose keypoint list.
+
+    :param keypt_list: list of Openpose keypoints in [x, y, conf, x, y, conf ...] format
+    :param keypt_num: number of keypoint to extract for keypt_list.
+    See https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md for description of keypoint maps.
+    :return: confidence in range [0, 1]
+
+    Example usage:
+    get_keypoint_conf(face_keypoints, 30)
+    """
+    return keypt_list[keypt_num*3+2]
