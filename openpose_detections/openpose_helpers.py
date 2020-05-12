@@ -182,20 +182,23 @@ def extract_face_hand_video(frame_df):
     p = multiprocessing.Pool()
     return p.map(extract_face_hand_frame, vid_keypts) #list of lists
 
-def extract_face_hand_frame(keypts):
+def extract_face_hand_frame(frame_keypts):
     """extract_face_hand_frame: extracts nose and wrist keypoints from Openpose output for a single frame
 
-    :param keypts: Dictionary of keypoints for an individual frame (Openpose format)
+    :param frame_keypts: Dictionary of keypoints for an individual frame (Openpose format)
     :return: Average nose and average wrist confidence for the frame as a list
     """
-    #Single nose keypoint for each person.
-    nose_keypts = [get_keypoint_conf(person[b'face_keypoints'], OPENPOSE_FACE_NOSE_KEYPT)
-                   for person in keypts[b'people']]
+    # might need to convert all the below to person[b'face_keypoints'] and
+    # frame_keypts[b'people'], for example, if working with .msgpack files
+
+    # Single nose keypoint confidence for each person.
+    nose_keypts = [get_keypoint_conf(person['face_keypoints'], OPENPOSE_FACE_NOSE_KEYPT)
+                   for person in frame_keypts['people']]
 
     #Both left and right wrists for each person, flattened into 1-D list [L, R, L, R, ....].
-    wrist_keypts = list(chain.from_iterable((get_keypoint_conf(person[b'pose_keypoints'], OPENPOSE_POSE_RIGHT_WRIST_KEYPT),
-                                             get_keypoint_conf(person[b'pose_keypoints'], OPENPOSE_POSE_RIGHT_WRIST_KEYPT))
-                                            for person in keypts[b'people']))
+    wrist_keypts = list(chain.from_iterable((get_keypoint_conf(person['pose_keypoints'], OPENPOSE_POSE_RIGHT_WRIST_KEYPT),
+                                             get_keypoint_conf(person['pose_keypoints'], OPENPOSE_POSE_LEFT_WRIST_KEYPT))
+                                            for person in frame_keypts['people']))
 
     nose_avg = 0 if len(nose_keypts) == 0 else np.average(nose_keypts)
     wrist_avg = 0 if len(wrist_keypts) == 0 else np.average(wrist_keypts)
