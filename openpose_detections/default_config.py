@@ -9,9 +9,25 @@ OUTPUT = '/Users/brialong/Documents/GitHub/headcam-algo/data'
 
 # OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
 
+# see https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md
+OPENPOSE_NUM_POSE_KEYPTS = 18
+OPENPOSE_NUM_FACE_KEYPTS = 70
+OPENPOSE_NUM_LEFT_HAND_KEYPTS = 21
+OPENPOSE_NUM_RIGHT_HAND_KEYPTS = 21
+OPENPOSE_NUM_KEYPTS = OPENPOSE_NUM_POSE_KEYPTS + \
+    OPENPOSE_NUM_FACE_KEYPTS + \
+    OPENPOSE_NUM_LEFT_HAND_KEYPTS + \
+    OPENPOSE_NUM_RIGHT_HAND_KEYPTS # i.e. 130 keypts
+
 OPENPOSE_FACE_NOSE_KEYPT = 30
 OPENPOSE_POSE_LEFT_WRIST_KEYPT = 7
 OPENPOSE_POSE_RIGHT_WRIST_KEYPT = 4
+
+NPY_POSE_START = 0
+NPY_POSE_END = NPY_FACE_START = 18
+NPY_FACE_END = NPY_HAND_LEFT_START = 88
+NPY_HAND_LEFT_END = NPY_HAND_RIGHT_START = 109
+NPY_HAND_RIGHT_END = 130
 
 #Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
