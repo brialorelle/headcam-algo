@@ -3,7 +3,7 @@ import numpy as np
 from itertools import chain
 import time
 import msgpack
-import multiprocessing as mp # hack to get mp access to process
+import multiprocessing as mp
 import os
 import ntpath
 import ujson
@@ -12,7 +12,7 @@ import ujson
 from utils import submit_job
 from config import *
 
-# TODO run_openpose() if condense() is true, the job that it submits also condenses once the openpose finishes.
+# TODO wait for openpose to finish running, then run condensation code
 
 def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
@@ -154,7 +154,7 @@ def json_list_to_npy(json_list):
         people = frame['people']
         if len(people) == 0:
             return arr
-        for i in range(max_num_people): #3 people
+        for i in range(max_num_people):
             for j in range(3): #x, y, and confidence
                 l = []
                 for keypt in people[i]:
