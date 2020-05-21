@@ -154,7 +154,7 @@ def json_list_to_npy(json_list):
         people = frame['people']
         if len(people) == 0:
             return arr
-        for i in range(min(len(people), 3)): #3 people
+        for i in range(max_num_people): #3 people
             for j in range(3): #x, y, and confidence
                 l = []
                 for keypt in people[i]:
