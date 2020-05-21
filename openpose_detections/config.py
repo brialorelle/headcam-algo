@@ -7,7 +7,7 @@ from default_config import *
 # VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/']
 
 #Overall output directory.
-OUTPUT = '/Users/brialong/Documents/GitHub/headcam-algo/data'
+OUTPUT = '/Users/brialong/Documents/GitHub/headcam-algo/data/op_outputs/'
 
 #Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose')
