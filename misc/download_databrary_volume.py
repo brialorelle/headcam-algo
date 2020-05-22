@@ -9,15 +9,6 @@ import requests
 # TODO: use native csvwriter for portability
 import pandas as pd
 
-parser = argparse.ArgumentParser(description='Download a volume from databrary.')
-
-# defaults to volume 564, Sullivan et al. headcam dataset
-parser.add_argument('volume_num', metavar='NUM', type=str, nargs='?', default=564,
-                    help='number of the Databrary volume to be downloaded')
-parser.add_argument('--output_dir', '-o',
-                    help='Directory to save the downloaded volume')
-args = parser.parse_args()
-
 
 def main():
     s = login_databrary()
@@ -77,4 +68,11 @@ def download_videos(s, volume_info_csv, output_dir, overwrite=False):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Download a volume from databrary.')
+    # defaults to volume 564, Sullivan et al. headcam dataset
+    parser.add_argument('volume_num', metavar='NUM', type=str, nargs='?', default=564,
+                        help='number of the Databrary volume to be downloaded')
+    parser.add_argument('--output_dir', '-o',
+                        help='Directory to save the downloaded volume')
+    args = parser.parse_args()
     main()
