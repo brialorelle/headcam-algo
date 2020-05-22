@@ -10,6 +10,8 @@ import requests
 import pandas as pd
 
 parser = argparse.ArgumentParser(description='Download a volume from databrary.')
+
+# defaults to volume 564, Sullivan et al. headcam dataset
 parser.add_argument('volume_num', metavar='NUM', type=str, nargs='?', default=564,
                     help='number of the Databrary volume to be downloaded')
 parser.add_argument('--output_dir', '-o',
@@ -19,7 +21,8 @@ args = parser.parse_args()
 
 def main():
     s = login_databrary()
-    download_videos(s, args.volume_num, args.output_dir)
+    volume_info_csv = download_volume_info(s, args.volume_num, args.output_dir)
+    download_videos(s, volume_info_csv, args.output_dir)
 
 
 def login_databrary():
@@ -32,6 +35,12 @@ def login_databrary():
     print(f'Result of login command (200 = success): {r.status_code}')
     return s
 
+def download_volume_info(s, volume_num, output_dir):
+    r = s.get('https://nyu.databrary.org/volume/{volume_num}/csv')
+    volume_info_csv = os.path.join(output_dir, 'volume_{volume_num}_info.csv')
+    with open(volume_info_csv, 'wb') as f:
+        f.write(r.content)
+    return volume_info_csv
 
 def download_videos(s, volume_info_csv, output_dir, overwrite=False):
     def get_asset_ids_names(s, session_id):
@@ -47,19 +56,20 @@ def download_videos(s, volume_info_csv, output_dir, overwrite=False):
         session_id, session_name = row['session-id'], row['session-name']
         print(f'Session {i+1}/len(vol_info): {session_name}')
         for asset_id, asset_name in get_asset_ids_names(s, session_id):
-            formatted_filename = re.search(r'(.+)(?:\.AVI)?', asset_name)[1]
-            formatted_filepath = os.path.join(output_dir, formatted_filename)
-            if not overwrite and os.path.exists(formatted_filepath):
-                print('{formatted_filename} already exists, continuing...')
+            # Remove AVI from session names that accidentally have it
+            vid_name = re.search(r'(.+)(?:\.AVI)?', asset_name)[1] + '.mp4'
+            vid_path = os.path.join(output_dir, vid_name)
+            if not overwrite and os.path.exists(vid_path):
+                print('{vid_name} already exists, continuing...')
                 continue
-            print('Downloading {formatted_filename}...')
+            print('Downloading {vid_name}...')
             r = s.get(url=url_for_download(session_id, asset_id))
             if (r.status_code != 200):
-                print(f'Got status code {r.status_code} downloading {formatted_filename}!')
+                print(f'Got status code {r.status_code} downloading {vid_name}!')
                 continue
-            # some session names for headcam dataset accidentally have AVI in them
-            with open(formatted_filepath, 'wb') as f:
+            with open(vid_path, 'wb') as f:
                 f.write(r.content)
+                del r  # Free memory
 
 
 if __name__ == "__main__":
