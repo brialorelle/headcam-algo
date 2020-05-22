@@ -35,6 +35,7 @@ def login_databrary():
     print(f'Result of login command (200 = success): {r.status_code}')
     return s
 
+
 def download_volume_info(s, volume_num, output_dir):
     print(f'Downloading volume {volume_num}\'s info csv...')
     r = s.get(f'https://nyu.databrary.org/volume/{volume_num}/csv')
@@ -43,6 +44,8 @@ def download_volume_info(s, volume_num, output_dir):
         f.write(r.content)
     return volume_info_csv
 
+
+# TODO don't also download 'Misc Files Testing' / append mp4 to those files
 def download_videos(s, volume_info_csv, output_dir, overwrite=False):
     def get_asset_ids_names(s, session_id):
         r = s.get(f'https://nyu.databrary.org/api/slot/{session_id}/-?assets')
