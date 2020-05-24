@@ -2,14 +2,13 @@ import pandas as pd
 import numpy as np
 from itertools import chain
 import time
-import msgpack
+# import msgpack
 import multiprocessing as mp
 import os
 import ntpath
 import ujson
 
-
-from utils import submit_job
+# from utils import submit_job
 from config import *
 
 # TODO wait for openpose to finish running, then run condensation code
@@ -38,7 +37,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False,
         if not overwrite and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes':
             print(f'aborting on video {vid_path}.')
             return
-    os.makedirs(vid_output_dir, exist_ok=True)
+        os.makedirs(vid_output_dir, exist_ok=True)
 
     #this could also be openpose_latest.sif, instead of openpose-latest.img.
     cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
@@ -50,25 +49,31 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False,
         cmd += '--face '
     if hand:
         cmd += '--hand '
-    cmd += f'--write_keypoint_json {vid_output_dir}\''
-    # print('command submitted to sbatch job: ', cmd)
+        cmd += f'--write_keypoint_json {vid_output_dir}\''
+        # print('command submitted to sbatch job: ', cmd)
 
     msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
     # print('command line output: ', msg)
 
 
-def create_video_dataframe(vid_name, vid_json_files_dir, save_path=None):
+def create_video_dataframe(vid_json_files_dir, save_path=None):
     vid_df = pd.DataFrame()
-    vid_df['openpose_npy'] = jsons_to_npy(vid_json_files_dir)
+    vid_df['openpose_npy'] = list(jsons_to_npy(vid_json_files_dir))
     vid_df['frame_num'] = [i for i in range(len(vid_df))]
     if save_path:
         vid_df.to_json(save_path, index=False)
-
     return vid_df
 
 
+def recover_npy(vid_df):
+    # will be useful in classifier work, when we want the original numpy array back
+    return np.stack(vid_df['openpose_npy'], axis=0)
+
+
 def jsons_to_npy(json_files_dir):
-    json_filepaths = sorted(os.listdir(json_files_dir))
+    # breakpoint()
+    json_filepaths = sorted(os.path.abspath(os.path.join(json_files_dir, f))
+                            for f in os.listdir(json_files_dir))
     json_list = load_json_list(json_filepaths)
     npy = json_list_to_npy(json_list)
     return npy
@@ -81,7 +86,7 @@ def load_json_chunk(chunk):
 def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
     num_frames = len(json_filepaths)
     chunks = lambda fps, chunk_size: [fps[i:i+chunk_size]
-                                    for i in range(0, part_size, chunk_size)]
+                                      for i in range(0, part_size, chunk_size)]
     json_list = []
     print('loading json files...')
     for i in range(0, num_frames, part_size):
@@ -91,7 +96,7 @@ def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
         chunk_size = len(fps_cut) // num_chunks
         chunk_list = chunks(fps_cut, chunk_size)
         json_list += p.map(load_json_chunk, chunk_list)
-    json_list = [frame for chunk in json_list for frame in chunk]
+        json_list = [frame for chunk in json_list for frame in chunk]
     print('done loading json files.')
     return json_list
 
@@ -121,9 +126,7 @@ def json_list_to_npy(json_list):
 
         arr = np.full((max_num_people, 3, OPENPOSE_NUM_KEYPTS), np.NaN)
         people = frame['people']
-        if len(people) == 0:
-            return arr
-        for i in range(max_num_people):
+        for i in range(len(people)):
             for j in range(3): #x, y, and confidence
                 l = []
                 for keypt in people[i]:
@@ -174,7 +177,7 @@ def extract_face_hand_video(frame_df):
     print(frame_df.name)
     with open(os.path.join(OPENPOSE_CONDENSED_OUTPUT, '{}.msgpack'.format(frame_df.name)), 'rb') as infile:
         vid_keypts = msgpack.unpack(infile)
-    p = multiprocessing.Pool()
+        p = multiprocessing.Pool()
     return p.map(extract_face_hand_frame, vid_keypts) #list of lists
 
 
