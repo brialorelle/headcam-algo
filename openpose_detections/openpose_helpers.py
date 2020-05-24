@@ -14,6 +14,7 @@ from config import *
 
 # TODO wait for openpose to finish running, then run condensation code
 
+
 def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
 
@@ -26,7 +27,6 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False,
     for complete documentation on command-line flags).
 
     Example usage:
-    test_vid =
     run_openpose('/path/to/myheadcamvid.mp4', '/path/to/output_dir',
                  keypoint_scale=3, frame_rotate=180)
     """
@@ -51,64 +51,32 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False,
     if hand:
         cmd += '--hand '
     cmd += f'--write_keypoint_json {vid_output_dir}\''
-    print('command submitted to sbatch job: ', cmd)
+    # print('command submitted to sbatch job: ', cmd)
 
     msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
-    print('command line output: ', msg)
+    # print('command line output: ', msg)
 
-def collect_filepaths(frame_df, portion_size=2000000, verbose=False):
-    """collect_filepaths: aggregates Openpose filepaths from given frame dataframe.
 
-    :param frame_df: df containing video name and frame for each frame.
-    :param portion_size: chunk size to pass to multiprocessing
-    :param verbose: if True, prints progress.
-    :return: list of filepaths of Openpose outputs for each frame in frame_df
-    """
-    fps = []
-    for portion in range(0, len(frame_df), portion_size):
-        if verbose:
-            print(f'progress: {portion}/{len(frame_df)}')
-        data = zip(frame_df['vid_name'][portion:portion+portion_size].values,
-                   frame_df['frame'][portion:portion+portion_size].values)
-        p = multiprocessing.Pool()
-        fps.extend(p.map(_openpose_filepath, data))
-    return fps
+def create_video_dataframe(vid_name, vid_json_files_dir, save_path=None):
+    vid_df = pd.DataFrame()
+    vid_df['openpose_npy'] = jsons_to_npy(vid_json_files_dir)
+    vid_df['frame_num'] = [i for i in range(len(vid_df))]
+    if save_path:
+        vid_df.to_json(save_path, index=False)
 
-def condense_openpose(frame_df, fps=None, overwrite=False):
-    """condense_openpose: condenses folders of frame-level JSON outputs into video-level JSON
-    outputs, stored as msgpack files.
+    return vid_df
 
-    :param frame_df: df containing video name and frame for each frame.
-    :param fps: Openpose filepaths; if provided, skips filepath collection
-    :param overwrite: if True, overwrites existing msgpack files.
-    """
 
-    if fps is None:
-        print('Collecting openpose filepaths....')
-        fps = collect_filepaths(frame_df)
-        frame_df['op_file'] = fps
-    else:
-        print('Using provided filepaths. Skipping collection')
+def jsons_to_npy(json_files_dir):
+    json_filepaths = sorted(os.listdir(json_files_dir))
+    json_list = load_json_list(json_filepaths)
+    npy = json_list_to_npy(json_list)
+    return npy
 
-    print('Condensing into video-level files....')
-    g = frame_df.groupby('vid_name')
-    g.apply(lambda df: _save_vid_json(df, overwrite))
-
-# def jsons_to_npy(json_filepaths):
-def get_json_filepaths(vid_name, num_frames):
-    # TODO: don't hardcode stuff, use OPENPOSE_OUTPUT_DIR
-    GROUP_SCRATCH = '/scratch/groups/mcfrank/'
-    vid_dir = os.path.join(GROUP_SCRATCH,
-                        'Home_Headcam',
-                        'openpose_raw_json',
-                        vid_name)
-    json_name = lambda i: f'{vid_name}_{str(i).zfill(12)}_keypoints.json'
-    fps = [os.path.join(vid_dir, json_name(i))
-        for i in range(0, num_frames)]
-    return fps
 
 def load_json_chunk(chunk):
     return [ujson.load(open(f, 'r')) for f in chunk]
+
 
 def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
     num_frames = len(json_filepaths)
@@ -126,6 +94,7 @@ def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
     json_list = [frame for chunk in json_list for frame in chunk]
     print('done loading json files.')
     return json_list
+
 
 def json_list_to_npy(json_list):
     """json_list_to_npy: converts list of json (dictionaries)
@@ -165,56 +134,7 @@ def json_list_to_npy(json_list):
     flattened = np.array([frame_to_npy(frame_json, max_num_people)
                           for frame_json in json_list])
     return flattened
-    # json_filepaths = get_json_filepaths()
-    # json_list = load_json_list(json_filepaths)
-    # npy = json_list_to_npy(json_list)
-    # return npy
-def _openpose_filepath(tupl):
-    """_openpose_filepath: applied function to generate filepaths for raw Openpose outputs.
 
-    :param tupl: tuple of (vid_name, frame_num)
-    :return: filepath to Openpose JSON output file
-    """
-    vid_name, frame_num = tupl
-    vid_name = vid_name
-    frame_num = str(frame_num).zfill(12)
-    filename = f'{vid_name}_{frame_num}_keypoints.json'
-    return os.path.join(OPENPOSE_OUTPUT, vid_name, filename)
-
-def _save_vid_json(vid_df, overwrite):
-    """_save_vid_json: applied function to save a video df.
-
-    :param vid_df: Pandas frame-level df for a given video.
-    :return: a list of Openpose JSONs for that video
-    """
-    vid_name = vid_df.name
-    vid_df = vid_df.sort_values(by='frame')
-    save_path = os.path.join(OPENPOSE_CONDENSED_OUTPUT, f'{vid_name}.msgpack')
-
-    if os.path.exists(save_path):
-        print(f'Overwriting save path {save_path} !' if overwrite else f'Already have {save_path}, continuing')
-        if not overwrite:
-            return
-
-
-    print(f'vidname: {vid_name} len: {len(vid_df)}')
-    start = time.time()
-    p = multiprocessing.Pool()
-    json_list = p.map(_get_json, vid_df['op_file'].values)
-    print(f'vidname: {vid_name} took {time.time() - start} secs')
-    with open(save_path, 'wb') as outfile:
-        msgpack.pack(json_list, outfile)
-
-def _get_json(fp):
-    """_get_json: opens JSON file at given path.
-
-    :param fp: Path to JSON file.
-    :return: content of JSON as a dict.
-    """
-    try:
-        return json.load(open(fp, 'r'))
-    except:
-        print(f"Could not open {fp}")
 
 def extract_face_hand(frame_df):
     """extract_face_hand: Extracts face and hand presence from the saved Openpose video keypoints for the entire dataset.
@@ -243,6 +163,7 @@ def extract_face_hand(frame_df):
 
     return frame_df
 
+
 def extract_face_hand_video(frame_df):
     """extract_face_hand_video: Extracts nose and wrist keypoints (corresponding to face
     and hand presence) for a given video's Openpose outputs.
@@ -255,6 +176,7 @@ def extract_face_hand_video(frame_df):
         vid_keypts = msgpack.unpack(infile)
     p = multiprocessing.Pool()
     return p.map(extract_face_hand_frame, vid_keypts) #list of lists
+
 
 def extract_face_hand_frame(frame_keypts):
     """extract_face_hand_frame: extracts nose and wrist keypoints from Openpose output for a single frame
@@ -279,6 +201,7 @@ def extract_face_hand_frame(frame_keypts):
     wrist_avg = 0 if len(wrist_keypts) == 0 else np.average(wrist_keypts)
 
     return [nose_avg, wrist_avg]
+
 
 def get_keypoint_conf(keypt_list, keypt_num):
     """get_keypoint_conf: extract the keypoint specified by keypt_num from Openpose keypoint list.
