@@ -14,48 +14,6 @@ from config import *
 # TODO wait for openpose to finish running, then run condensation code
 
 
-def run_openpose(vid_path, op_output_dir, face=True, hand=True, overwrite=False, **kwargs):
-    """run_openpose: submit sbatch job to run Openpose on given video.
-
-    :param vid_path: path to video file.
-    :param op_output_dir: directory that will house Openpose output folders.
-    :param face: outputs face keypoints (in addition to pose keypoints) if True.
-    :param hand: outputs hand keypoints (in addition to pose keypoints) if True.
-    :param **kwargs: additional command-line arguments to pass to Openpose
-    (see https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/demo_overview.md
-    for complete documentation on command-line flags).
-
-    Example usage:
-    run_openpose('/path/to/myheadcamvid.mp4', '/path/to/output_dir',
-                 keypoint_scale=3, frame_rotate=180)
-    """
-    os.makedirs(op_output_dir, exist_ok=True)
-    vid_name = ntpath.basename(vid_path)[:-4]
-    vid_output_dir = os.path.join(op_output_dir, f'{vid_name}')
-
-    if os.path.exists(vid_output_dir):
-        if not overwrite and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes':
-            print(f'aborting on video {vid_path}.')
-            return
-        os.makedirs(vid_output_dir, exist_ok=True)
-
-    #this could also be openpose_latest.sif, instead of openpose-latest.img.
-    cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
-    cmd += 'cd /openpose-master && ./build/examples/openpose/openpose.bin '
-    cmd += f'--video {vid_path} '
-    for opt, optval in kwargs.items():
-        cmd += f'--{opt} {optval} '
-    if face:
-        cmd += '--face '
-    if hand:
-        cmd += '--hand '
-        cmd += f'--write_keypoint_json {vid_output_dir}\''
-        # print('command submitted to sbatch job: ', cmd)
-
-    msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
-    # print('command line output: ', msg)
-
-
 def create_video_dataframe(vid_json_files_dir, save_path=None):
     vid_df = pd.DataFrame()
     vid_df['openpose_npy'] = list(jsons_to_npy(vid_json_files_dir))
