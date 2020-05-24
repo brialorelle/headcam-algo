@@ -39,7 +39,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
         print(f'NOTE: overwriting data in {vid_output_dir}')
         os.makedirs(vid_output_dir, exist_ok=True)
 
-    #this could also be openpose_latest.sif, instead of openpose-latest.img.
+    # this could also be openpose_latest.sif, instead of openpose-latest.img.
     cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
     cmd += 'cd /openpose-master && ./build/examples/openpose/openpose.bin '
     cmd += f'--video {vid_path} '
@@ -50,7 +50,6 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
     if hand:
         cmd += '--hand '
         cmd += f'--write_keypoint_json {vid_output_dir}\''
-        # print('command submitted to sbatch job: ', cmd)
     if condense:  # After Openpose command completes, condense into single JSON
         save_path = os.path.join(OPENPOSE_OUTPUT, vid_name + '.json')
         cmd += f'&& python condense_openpose_output.py {vid_output_dir} -o {save_path}'
@@ -62,7 +61,6 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Submit a job to run'
                                      'openpose binary on a video.')
-    # defaults to volume 564, Sullivan et al. headcam dataset
     parser.add_argument('vid_path', metavar='PATH', type=str,
                         help='path to video to run openpose on')
     parser.add_argument('--output_dir', '-o', type=str, default=OPENPOSE_OUTPUT,
