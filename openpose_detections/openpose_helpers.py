@@ -54,7 +54,7 @@ def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
         chunk_size = len(fps_cut) // num_chunks
         chunk_list = chunks(fps_cut, chunk_size)
         json_list += p.map(load_json_chunk, chunk_list)
-        json_list = [frame for chunk in json_list for frame in chunk]
+    json_list = [frame for chunk in json_list for frame in chunk]
     print('done loading json files.')
     return json_list
 
@@ -135,7 +135,7 @@ def extract_face_hand_video(frame_df):
     print(frame_df.name)
     with open(os.path.join(OPENPOSE_CONDENSED_OUTPUT, '{}.msgpack'.format(frame_df.name)), 'rb') as infile:
         vid_keypts = msgpack.unpack(infile)
-        p = multiprocessing.Pool()
+    p = multiprocessing.Pool()
     return p.map(extract_face_hand_frame, vid_keypts) #list of lists
 
 
