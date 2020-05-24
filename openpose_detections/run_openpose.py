@@ -11,6 +11,7 @@ from config import *
 
 from openpose_helpers import create_video_dataframe
 
+
 def run_openpose(vid_path, op_output_dir, face=True, hand=True,
                  overwrite=False, condense=True, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
@@ -35,6 +36,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
         if not overwrite and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes':
             print(f'aborting on video {vid_path}.')
             return
+        print(f'NOTE: overwriting data in {vid_output_dir}')
         os.makedirs(vid_output_dir, exist_ok=True)
 
     #this could also be openpose_latest.sif, instead of openpose-latest.img.
@@ -49,24 +51,17 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
         cmd += '--hand '
         cmd += f'--write_keypoint_json {vid_output_dir}\''
         # print('command submitted to sbatch job: ', cmd)
+    if condense:  # After Openpose command completes, condense into single JSON
+        save_path = os.path.join(OPENPOSE_OUTPUT, vid_name + '.json')
+        cmd += f'&& python condense_openpose_output.py {vid_output_dir} -o {save_path}'
 
     msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
     print(msg)
 
-    if condense:
-        def job_exists(vid_name):
-            jobs = subprocess.check_output(['sacct' '--format', "JobName%30"])
-            return vid_name in jobs
-
-        print('Waiting for job to finish...')
-        while job_exists(vid_name):
-            time.sleep(100)
-        print('Job finished - condensing outputs into single JSON file...')
-        create_video_dataframe(vid_output_dir, save_path=op_output_dir)
-
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Download a volume from databrary.')
+    parser = argparse.ArgumentParser(description='Submit a job to run'
+                                     'openpose binary on a video.')
     # defaults to volume 564, Sullivan et al. headcam dataset
     parser.add_argument('vid_path', metavar='PATH', type=str,
                         help='path to video to run openpose on')
