@@ -58,7 +58,17 @@ def download_videos(s, volume_info_csv, output_dir, overwrite=False):
                 print(f'{vid_name} already exists, continuing...')
                 continue
             print(f'Downloading {vid_name}...')
-            r = s.get(url=url_for_download(session_id, asset_id))
+            try:
+                r = s.get(url=url_for_download(session_id, asset_id), timeout=2000)
+            except requests.exceptions.Timeout:
+                print(f'Timed out on video {vid_name}. Continuing')
+                continue
+            except requests.exceptions.RequestException as e:
+                # catastrophic error. bail.
+                print(f'{vid_name} encountered error: ')
+                print(e)
+                continue
+
             if (r.status_code != 200):
                 print(f'Got status code {r.status_code} downloading {vid_name}!')
                 continue
