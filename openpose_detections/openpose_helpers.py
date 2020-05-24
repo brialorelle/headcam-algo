@@ -11,15 +11,12 @@ import ujson
 # from utils import submit_job
 from config import *
 
-# TODO wait for openpose to finish running, then run condensation code
-
-
 def create_video_dataframe(vid_json_files_dir, save_path=None):
     vid_df = pd.DataFrame()
     vid_df['openpose_npy'] = list(jsons_to_npy(vid_json_files_dir))
     vid_df['frame_num'] = [i for i in range(len(vid_df))]
     if save_path:
-        vid_df.to_json(save_path, index=False)
+        vid_df.to_json(save_path)
     return vid_df
 
 
