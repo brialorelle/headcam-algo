@@ -42,6 +42,8 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
     # this could also be openpose_latest.sif, instead of openpose-latest.img.
     cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
     cmd += 'cd /openpose-master && ./build/examples/openpose/openpose.bin '
+    cmd += f'--no_display true '
+    cmd += f'--render_pose 0 '
     cmd += f'--video {vid_path} '
     for opt, optval in kwargs.items():
         cmd += f'--{opt} {optval} '
