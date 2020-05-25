@@ -1,10 +1,12 @@
-import pandas as pd
-import numpy as np
-from itertools import chain
-import time
-# import msgpack
+import warnings
 import multiprocessing as mp
 import os
+from itertools import chain
+import time
+
+import pandas as pd
+import numpy as np
+# import msgpack
 import ntpath
 import ujson
 
@@ -22,7 +24,7 @@ def create_video_dataframe(vid_json_files_dir, save_path=None):
 
 def recover_npy(vid_df):
     # will be useful in classifier work, when we want the original numpy array back
-    return np.stack(vid_df['openpose_npy'], axis=0)
+    return np.stack(vid_df['openpose_npy'], axis=0).astype(np.float)
 
 
 def jsons_to_npy(json_files_dir):
@@ -102,10 +104,13 @@ def extract_face_hand_presence(vid_df):
     """
     openpose_npy = recover_npy(vid_df)
 
-    # average over the num_people dimension, ignoring np.nan's (for nonexistent people)
-    vid_df['nose_conf'] = np.nanmean(openpose_npy[:, :, 2, NPY_FACE_START + OPENPOSE_FACE_NOSE_KEYPT], axis=1)
-    vid_df['wrist_conf'] = np.nanmean(openpose_npy[:, :, 2, [NPY_POSE_START + OPENPOSE_POSE_RIGHT_WRIST_KEYPT,
-                                                             NPY_POSE_START + OPENPOSE_POSE_LEFT_WRIST_KEYPT]], axis=1)
+    # I expect to see RuntimeWarnings in this block
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        # average over the num_people dimension, ignoring np.nan's (for nonexistent people)
+        vid_df['nose_conf'] = np.nanmean(openpose_npy[:, :, 2, NPY_FACE_START + OPENPOSE_FACE_NOSE_KEYPT], axis=1)
+        vid_df['wrist_conf'] = np.nanmean(openpose_npy[:, :, 2, [NPY_POSE_START + OPENPOSE_POSE_RIGHT_WRIST_KEYPT,
+                                                                NPY_POSE_START + OPENPOSE_POSE_LEFT_WRIST_KEYPT]], axis=(1, 2))
     vid_df['face_openpose'] = vid_df['nose_conf'] > 0
     vid_df['hand_openpose'] = vid_df['wrist_conf'] > 0
 
