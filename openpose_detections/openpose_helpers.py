@@ -93,83 +93,20 @@ def json_list_to_npy(json_list):
                           for frame_json in json_list])
     return flattened
 
-
-def extract_face_hand(frame_df):
+def extract_face_hand_presence(vid_df):
     """extract_face_hand: Extracts face and hand presence from the saved Openpose video keypoints for the entire dataset.
 
-    :param frame_df: Dataframe with a row for each frame of video in the dataset.
-    :return: frame_df, with additional columns attached indicating detection of a face ('face_openpose'),
-    detection of a hand ('hand_openpose'), average nose keypoint confidence ('nose_conf'), and
-    average wrist keypoint confidence ('wrist_conf').
+    :param vid_df: Dataframe containing openpose outputs in column 'openpose_npy' for a given video.
+    :return: vid_df, with additional columns attached indicating detection of a face ('face_openpose'),
+    and average nose keypoint confidence ('nose_conf')
     """
-    print('Opening/extracting keypoints from video JSONs...')
+    openpose_npy = recover_npy(vid_df)
 
-    frame_df = frame_df.sort_values(by=['vid_name', 'frame'])
+    # average over the num_people dimension, ignoring np.nan's (for nonexistent people)
+    vid_df['nose_conf'] = np.nanmean(openpose_npy[:, :, 2, NPY_FACE_START + OPENPOSE_FACE_NOSE_KEYPT], axis=1)
+    vid_df['wrist_conf'] = np.nanmean(openpose_npy[:, :, 2, [NPY_POSE_START + OPENPOSE_POSE_RIGHT_WRIST_KEYPT,
+                                                             NPY_POSE_START + OPENPOSE_POSE_LEFT_WRIST_KEYPT]], axis=1)
+    vid_df['face_openpose'] = vid_df['nose_conf'] > 0
+    vid_df['hand_openpose'] = vid_df['wrist_conf'] > 0
 
-    vid_groups = frame_df.groupby('vid_name')
-    nose_wrist_keypts = vid_groups.apply(extract_face_hand_video)
-    nose_wrist_keypts = [item for sublist in nose_wrist_keypts for item in sublist] #flatten
-
-    print('Attaching nose and wrist columns to dataframe...')
-    frame_df['nose_conf'], frame_df['wrist_conf'] = zip(*nose_wrist_keypts)
-    frame_df['face_openpose'] = frame_df['nose_conf'] > 0
-    frame_df['hand_openpose'] = frame_df['wrist_conf'] > 0
-
-    print('Downcasting columns...')
-    frame_df['nose_conf'] = pd.to_numeric(frame_df['nose_conf'], downcast='float')
-    frame_df['wrist_conf'] = pd.to_numeric(frame_df['wrist_conf'], downcast='float')
-
-    return frame_df
-
-
-def extract_face_hand_video(frame_df):
-    """extract_face_hand_video: Extracts nose and wrist keypoints (corresponding to face
-    and hand presence) for a given video's Openpose outputs.
-
-    :param frame_df: Dataframe with a row for each frame of video in the video.
-    :return: list of [nose avg confidence, wrist avg confidence] for each frame of video
-    """
-    print(frame_df.name)
-    with open(os.path.join(OPENPOSE_CONDENSED_OUTPUT, '{}.msgpack'.format(frame_df.name)), 'rb') as infile:
-        vid_keypts = msgpack.unpack(infile)
-    p = multiprocessing.Pool()
-    return p.map(extract_face_hand_frame, vid_keypts) #list of lists
-
-
-def extract_face_hand_frame(frame_keypts):
-    """extract_face_hand_frame: extracts nose and wrist keypoints from Openpose output for a single frame
-
-    :param frame_keypts: Dictionary of keypoints for an individual frame (Openpose format)
-    :return: Average nose and average wrist confidence for the frame as a list
-    if working with data loaded in byte-format from msgpack files,
-    person['face_keypoints'] => person[b'face_keypoints'] and
-    frame_keypts['people'] => frame_keypts[b'people']
-    """
-
-    # Single nose keypoint confidence for each person.
-    nose_keypts = [get_keypoint_conf(person['face_keypoints'], OPENPOSE_FACE_NOSE_KEYPT)
-                   for person in frame_keypts['people']]
-
-    #Both left and right wrists for each person, flattened into 1-D list [L, R, L, R, ....].
-    wrist_keypts = list(chain.from_iterable((get_keypoint_conf(person['pose_keypoints'], OPENPOSE_POSE_RIGHT_WRIST_KEYPT),
-                                             get_keypoint_conf(person['pose_keypoints'], OPENPOSE_POSE_LEFT_WRIST_KEYPT))
-                                            for person in frame_keypts['people']))
-
-    nose_avg = 0 if len(nose_keypts) == 0 else np.average(nose_keypts)
-    wrist_avg = 0 if len(wrist_keypts) == 0 else np.average(wrist_keypts)
-
-    return [nose_avg, wrist_avg]
-
-
-def get_keypoint_conf(keypt_list, keypt_num):
-    """get_keypoint_conf: extract the keypoint specified by keypt_num from Openpose keypoint list.
-
-    :param keypt_list: list of Openpose keypoints in [x, y, conf, x, y, conf ...] format
-    :param keypt_num: number of keypoint to extract for keypt_list.
-    See https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md for description of keypoint maps.
-    :return: confidence in range [0, 1]
-
-    Example usage:
-    get_keypoint_conf(face_keypoints, 30)
-    """
-    return keypt_list[keypt_num*3+2]
+    return vid_df
