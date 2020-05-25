@@ -7,7 +7,7 @@ from default_config import *
 # VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/']
 
 #Overall output directory.
-OUTPUT = os.path.json(os.path.expandvars('$GROUP_SCRATCH'), 'outputs')
+OUTPUT = os.path.json(os.path.expandvars('$GROUP_SCRATCH'), 'Home_Headcam_new', 'outputs')
 
 #Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose_raw_json')
