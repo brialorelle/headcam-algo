@@ -13,6 +13,7 @@ from openpose_helpers import create_video_dataframe
 
 
 def run_openpose(vid_path, op_output_dir, face=True, hand=True,
+
                  overwrite=False, condense=True, condensed_output_dir=OPENPOSE_CONDENSED_OUTPUT, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
 
@@ -39,7 +40,6 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
             print(f'aborting on video {vid_path}.')
             return
         print(f'NOTE: overwriting data in {vid_output_dir}')
-        os.makedirs(vid_output_dir, exist_ok=True)
 
     # this could also be openpose_latest.sif, instead of openpose-latest.img.
     cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
