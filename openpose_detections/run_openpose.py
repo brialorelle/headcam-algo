@@ -13,13 +13,15 @@ from openpose_helpers import create_video_dataframe
 
 
 def run_openpose(vid_path, op_output_dir, face=True, hand=True,
-                 overwrite=False, condense=True, **kwargs):
+                 overwrite=False, condense=True, condensed_output_dir=OPENPOSE_CONDENSED_OUTPUT, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
 
     :param vid_path: path to video file.
     :param op_output_dir: directory that will house Openpose output folders.
     :param face: outputs face keypoints (in addition to pose keypoints) if True.
     :param hand: outputs hand keypoints (in addition to pose keypoints) if True.
+    :param overwrite: if True, overwrites existing openpose output folders.
+    :param condense: if True, condenses openpose outputs into a single dataframe.
     :param **kwargs: additional command-line arguments to pass to Openpose
     (see https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/demo_overview.md
     for complete documentation on command-line flags).
@@ -53,7 +55,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
         cmd += '--hand '
         cmd += f'--write_keypoint_json {vid_output_dir}\''
     if condense:  # After Openpose command completes, condense into single JSON
-        save_path = os.path.join(OPENPOSE_CONDENSED_OUTPUT, vid_name + '.json')
+        save_path = os.path.join(condensed_output_dir, vid_name + '.json')
         cmd += f' && python condense_openpose_output.py {vid_output_dir} -o {save_path}'
 
     msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
