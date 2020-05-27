@@ -95,10 +95,21 @@ def json_list_to_npy(json_list):
                           for frame_json in json_list])
     return flattened
 
-def extract_face_hand_presence(vid_df):
+def extract_face_hand_presence(vid_df, face_keypt=NPY_FACE_START + OPENPOSE_FACE_NOSE_KEYPT,
+                               hand_keypts=[NPY_POSE_START + OPENPOSE_POSE_LEFT_WRIST_KEYPT,
+                                            NPY_POSE_START + OPENPOSE_POSE_RIGHT_WRIST_KEYPT]):
     """extract_face_hand: Extracts face and hand presence from the saved Openpose video keypoints for the entire dataset.
 
     :param vid_df: Dataframe containing openpose outputs in column 'openpose_npy' for a given video.
+    :param face_keypt: the keypoint that we wish to use as a proxy for face presence
+    :param hand_keypts: the list of keypoints that we wish to use as a proxy for hand presence
+
+    (Pass in the keypoint as NPY_*_START + keypoint_num, where
+
+    NPY_*_START is the starting index of the appropriate keypoint map (defined in config.py), and
+    keypoint_num is the number of that keypoint as specified by
+    https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md)
+
     :return: vid_df, with additional columns attached indicating detection of a face ('face_openpose'),
     and average nose keypoint confidence ('nose_conf')
     """
@@ -108,9 +119,8 @@ def extract_face_hand_presence(vid_df):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         # average over the num_people dimension, ignoring np.nan's (for nonexistent people)
-        vid_df['nose_conf'] = np.nanmean(openpose_npy[:, :, 2, NPY_FACE_START + OPENPOSE_FACE_NOSE_KEYPT], axis=1)
-        vid_df['wrist_conf'] = np.nanmean(openpose_npy[:, :, 2, [NPY_POSE_START + OPENPOSE_POSE_RIGHT_WRIST_KEYPT,
-                                                                NPY_POSE_START + OPENPOSE_POSE_LEFT_WRIST_KEYPT]], axis=(1, 2))
+        vid_df['nose_conf'] = np.nanmean(openpose_npy[:, :, 2, face_keypt], axis=1)
+        vid_df['wrist_conf'] = np.nanmean(openpose_npy[:, :, 2, hand_keypts], axis=(1, 2))
     vid_df['face_openpose'] = vid_df['nose_conf'] > 0
     vid_df['hand_openpose'] = vid_df['wrist_conf'] > 0
 
