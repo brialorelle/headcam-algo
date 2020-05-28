@@ -5,7 +5,7 @@ import pandas as pd
 # load flattened numpy arrays per video, extracts bounding boxes for hands and faces
 # per frame, and saves as long format CSV (one row per bounding box, maximum 9 per frame)
 
-VID_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/openpose_flattened_whole" # /scratch/groups/mcfrank/Home_Headcam_new/openpose_flattened_whole
+VID_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/outputs/openpose_flattened_whole_2" 
 OUT_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/"
 #VID_PATH = "openpose_flattened"
 #f = "A_20130531_0818_01.npy" # for testing
@@ -17,12 +17,14 @@ files = os.listdir(VID_PATH)
 
 # 130 for pose (18), face (70), L hand (21), and R hand (21) keypoints, in that order
 
-def get_bounding_box(X, Y):
+def get_bounding_box(X, Y, conf):
+	if np.sum(conf)==0:
+		return [np.nan, np.nan, np.nan, np.nan]
 	left = np.min(X)
 	top = np.min(Y) # (0,0) is top left
 	height = np.max(Y) - top
 	width = np.max(X) - left
-	return([height, width, left, top])
+	return [height, width, left, top, conf]
 
 def get_face_hand_bounding_boxes(detection):
 	# (X, Y, confidence) x 130 keypoints
@@ -37,10 +39,14 @@ def get_face_hand_bounding_boxes(detection):
 	Lhand_y = Y[88:109]
 	Rhand_x = X[109:]
 	Rhand_y = Y[109:]
-	bbs = [get_bounding_box(pose_x, pose_y) + [np.mean(conf[:18])], 
-		get_bounding_box(face_x, face_y) + [np.mean(conf[18:88])], 
-		get_bounding_box(Lhand_x, Lhand_y) + [np.mean(conf[88:109])], 
-		get_bounding_box(Rhand_x, Rhand_y) + [np.mean(conf[109:])]]
+	pose_conf = np.mean(conf[:18])
+	face_conf = np.mean(conf[18:88])
+	Lhand_conf = np.mean(conf[88:109])
+	Rhand_conf = np.mean(conf[109:])
+	bbs = [ get_bounding_box(pose_x, pose_y, pose_conf), 
+		get_bounding_box(face_x, face_y, face_conf), 
+		get_bounding_box(Lhand_x, Lhand_y, Lhand_conf), 
+		get_bounding_box(Rhand_x, Rhand_y, Rhand_conf) ]
 	return bbs # could add mean confidences for face and each hand
 	# return height, width, left, top
 
@@ -70,11 +76,12 @@ for f in files:
 						df.append([i, p, "hand"] + bbs[2])
 						df.append([i, p, "hand"] + bbs[3])
 				# add a row indicating no detection for that frame (makes the file much larger)
-				#if not detection:
-				#	df.append([i, -1,-1,  -1,-1,-1,-1,-1])
+				if not detection:
+					df.append([i, np.nan,np.nan,  np.nan,np.nan,np.nan,np.nan,np.nan])
 			df = pd.DataFrame(df)
 			df.columns = col_names
-			df.to_csv(OUT_PATH + vid_name+"_bounding_boxes.csv")
+			df.fillna('') # replace NaNs with emptiness
+			df.to_csv(OUT_PATH + vid_name+"_bounding_boxes.csv", index=False)
 		except:
 			print("Problem processing "+vid_name)
 
