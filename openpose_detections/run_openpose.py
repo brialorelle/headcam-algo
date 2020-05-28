@@ -13,7 +13,6 @@ from openpose_helpers import create_video_dataframe
 
 
 def run_openpose(vid_path, op_output_dir, face=True, hand=True,
-
                  overwrite=False, condense=True, condensed_output_dir=OPENPOSE_CONDENSED_OUTPUT, **kwargs):
     """run_openpose: submit sbatch job to run Openpose on given video.
 
