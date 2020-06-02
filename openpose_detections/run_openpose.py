@@ -35,10 +35,11 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
     vid_output_dir = os.path.join(op_output_dir, f'{vid_name}')
 
     if os.path.exists(vid_output_dir):
-        if not overwrite and input(f'overwrite existing directory {vid_output_dir}? (yes/no)') != 'yes':
-            print(f'aborting on video {vid_path}.')
+        if not overwrite:
+            print(f'Outputs already exist for video {vid_path}- continuing...')
             return
-        print(f'NOTE: overwriting data in {vid_output_dir}')
+        else:
+            print(f'NOTE: overwriting data in {vid_output_dir}')
 
     # this could also be openpose_latest.sif, instead of openpose-latest.img.
     cmd = 'singularity exec --nv $SINGULARITY_CACHEDIR/openpose-latest.img bash -c \''
