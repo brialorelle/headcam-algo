@@ -1,0 +1,234 @@
+---
+title: "SAYCAM Main analyses from bounding box outputs"
+author: "Bria Long"
+date: "6/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Basic data loading and setup
+## Packages
+
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(stringr)
+library(here)
+theme_set(theme_few())
+```
+
+## OP bounding box outputs
+```{r}
+op_file_dir = here::here("data/op_outputs_per_vid/")
+op_files = dir(op_file_dir)
+```
+
+## Read in bounding box outputs from each vid, summarize and compile.
+```{r}
+reload_data=FALSE
+# instead of loading each vid, load summary...
+load(here::here('data/preprocessed_data/all_vid_data_from_bbs_may2020.RData'))
+
+if (reload_data){
+vid_index = 0
+for (vid_file in op_files) {
+  vid_index = vid_index + 1
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+   summary_vid_data <- this_vid_data %>%
+     group_by(frame, child_id, vid_name, right_side_up, age_days) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     group_by(child_id, vid_name, right_side_up, age_days) %>%
+     summarize(prop_hands = mean(hand_detected), prop_faces = mean(face_detected), num_detect = length(hand_detected))
+   
+   if (vid_index == 1 ){
+     all_vid_data <- summary_vid_data
+   }
+   else if (vid_index > 1) {
+   all_vid_data <- all_vid_data %>%
+     full_join(summary_vid_data)
+   }
+}
+}
+```
+
+## Data cleaning
+### Choose bins across which to analyze data
+```{r}
+bin_size = 7 # days
+min_age = min(all_vid_data$age_days, na.rm=TRUE)
+max_age = max(all_vid_data$age_days, na.rm=TRUE)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+```
+
+### Regualrize vid names
+```{r}
+all_vid_data <- all_vid_data %>%
+  rowwise() %>%
+  mutate(vid_name_cleaned = str_split(vid_name,"[.]")[[1]][1])
+```
+
+### Load list of videos we should exclude -- allocentric videos
+```{r}
+allocentric_file = here::here("data/raw_data/SAYCAM_allocentric_videos.csv")
+to_exclude =read.csv(allocentric_file)
+
+# get INCORRECT videos where allocentric videopoint 
+to_exclude <- to_exclude %>%
+  filter(allocentric==1) %>%
+  rename(vid_name = video)
+```
+
+### Get rid of vids to exclude from allocentric file
+```{r}
+all_vid_data <- all_vid_data %>%
+  mutate(vid_name_old = vid_name) %>%
+  select(-vid_name) %>%
+  filter(!vid_name_cleaned %in% to_exclude$vid_name)
+```
+
+### Some videos still need metadata (!)
+```{r}
+missing_age <-all_vid_data %>%
+  filter(is.na(age_days))
+```
+
+# Basic analysis #1: face/hand by age x child
+### Summarize by age x child
+```{r}
+summary_by_age <- all_vid_data %>%
+  filter(!is.na(age_days)) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  group_by(age_day_bin, child_id) %>%
+  summarize(num_frames_total = sum(num_detect), num_faces = sum(prop_faces*num_detect), num_hands = sum(prop_hands*num_detect), prop_faces_summary = num_faces / num_frames_total, prop_hands_summary = num_hands / num_frames_total)
+```
+
+#### Make wide format for plotting
+```{R}
+wide_uncropped <- summary_by_age %>%
+  gather(region, prop, prop_faces_summary, prop_hands_summary) %>%
+  mutate(approach = "uncropped",
+         region = ifelse(region == "prop_faces_summary","Face","Hands"))  %>%
+  filter(num_frames_total > 5000) # eliminate small data point that skews scaling 
+```
+
+### Plot face/hand detections by age by child
+```{r}
+ggplot(wide_uncropped,
+       aes(x=age_day_bin, y=prop,
+           size=log10(num_frames_total),
+           col=region)) +
+  geom_point(alpha=.2) +
+  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = FALSE) + # geom_smooth(show.legend =
+  ylab('Proportion Detections') +
+  xlab('Age (Months)') +
+  ylim(0,.5) +
+  facet_grid(.~child_id) +
+  theme_few(base_size=18) +
+  ggthemes::scale_color_solarized(name = "") +
+  scale_size_continuous(name = "Detections (Log 10)") +
+  theme(legend.text=element_text(size=8)) +
+  theme(legend.position="bottom")
+```
+
+### Quick lmers
+```{r}
+faces_model_out= summary(lmer(prop_faces_summary ~ scale(age_day_bin) + (1 | child_id), data = summary_by_age))
+
+hands_model_out= summary(lmer(prop_hands_summary ~ scale(age_day_bin) + (1 | child_id), data = summary_by_age))
+```
+
+# Basic analysis #2: Location variability
+
+## Preprocessing
+### Load metadata 
+```{r}
+# meta
+load(here::here('data/preprocessed_data/saycam_metadata.RData'))
+```
+
+### Join face/hand detections with metadata and restrict to videos with a single location.
+```{r}
+vid_by_location <- all_vid_data %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  mutate(vid_name = vid_name_cleaned) %>%
+  left_join(meta) %>%
+  filter(!is.na(Location)) %>%
+  filter(count_locations==1) 
+```
+
+### Restrict to videos with age data for now
+```{r}
+# until we get all metadata
+vid_by_location <- vid_by_location %>%
+  filter(!is.na(age_days)) 
+```
+
+## Summarize by location / child / age_bin 
+```{r}
+face_hand_by_location<- vid_by_location %>%
+  group_by(Location,child_id,age_day_bin) %>%
+  summarize(num_frames_total = sum(num_detect), num_faces = sum(prop_faces*num_detect), num_hands = sum(prop_hands*num_detect), prop_faces_summary = num_faces / num_frames_total, prop_hands_summary = num_hands / num_frames_total) 
+
+# get CIs for hands; join with summary data points 
+hands_to_plot <- vid_by_location %>%
+  filter(!is.na(age_day_bin)) %>%
+  group_by(Location, child_id, age_day_bin) %>%
+  summarize(num_frames_total = sum(num_detect), num_faces = sum(prop_faces*num_detect), num_hands = sum(prop_hands*num_detect), prop_faces_summary = num_faces / num_frames_total, prop_hands_summary = num_hands / num_frames_total) %>%
+  multi_boot_standard(col="prop_hands_summary") %>%
+  mutate(region = "Hands") %>%
+  ungroup %>%
+  left_join(face_hand_by_location) %>%
+  mutate(prop = prop_hands_summary) %>%
+  filter(!is.na(ci_lower))  # filter if only one point per location/child
+
+# get CIs for faces; join with summary data points 
+faces_to_plot <- vid_by_location %>%
+  filter(!is.na(age_day_bin)) %>%
+  group_by(Location, child_id, age_day_bin) %>%
+  summarize(num_frames_total = sum(num_detect), num_faces = sum(prop_faces*num_detect), num_hands = sum(prop_hands*num_detect), prop_faces_summary = num_faces / num_frames_total, prop_hands_summary = num_hands / num_frames_total) %>%
+  multi_boot_standard(col="prop_faces_summary") %>%
+  mutate(region = "Faces") %>%
+  ungroup %>%
+  left_join(face_hand_by_location) %>%
+  mutate(prop = prop_faces_summary) %>%
+  filter(!is.na(ci_lower))  # filter if only one point per location/child
+```
+
+### compile and reorder by num detections in a location for plotting
+```{r}
+all_to_plot <- hands_to_plot %>%
+  full_join(faces_to_plot) %>%
+  group_by(Location) %>%
+  mutate(num_detect_location = sum(num_frames_total)) %>%
+  ungroup() %>%
+  mutate(Location = fct_reorder(Location, num_detect_location))
+```
+
+## Plot location variability for each child separately
+```{r}
+ggplot(all_to_plot, aes(x = Location, y = mean, col=region)) + 
+  geom_point(aes(x=Location, y=prop, size=log10(num_frames_total)), alpha=.1, position = position_dodge(width=.6)) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper, linetype=region),position = position_dodge(width=.6)) +
+  coord_flip() + 
+  ylab('Proportion Detected')+
+  xlab('')+
+  theme_few(base_size=9) +
+  theme(legend.position = "bottom") +
+  facet_grid(.~child_id)  +
+  scale_size_continuous(name = "Detections (Log 10)") +
+  scale_linetype_manual(values=c("solid", "solid","dashed"), name = "") +
+  scale_color_manual(values = c("#268bd2", "#dc322f","#DC7977"), name = "") +
+  theme(legend.text=element_text(size=8))
+```
