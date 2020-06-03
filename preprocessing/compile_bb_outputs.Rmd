@@ -1,0 +1,92 @@
+---
+title: "SAYCAM Main analyses from bounding box outputs"
+author: "Bria Long"
+date: "6/2020"
+output: html_document
+---
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(stringr)
+library(here)
+theme_set(theme_few())
+```
+## OP bounding box outputs
+```{r}
+op_file_dir = here("/data/op_outputs_per_vid/")
+op_files = dir(op_file_dir)
+```
+
+## Read in bounding box outputs from each vid, summarize and compile.
+```{r}
+vid_index = 0
+for (vid_file in op_files) {
+  vid_index = vid_index + 1
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+   summary_vid_data <- this_vid_data %>%
+     group_by(frame, child_id, vid_name, right_side_up, age_days) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     group_by(child_id, vid_name, right_side_up, age_days) %>%
+     summarize(prop_hands = mean(hand_detected), prop_faces = mean(face_detected), num_detect = length(hand_detected))
+   
+   if (vid_index == 1 ){
+     all_vid_data <- summary_vid_data
+   }
+   else if (vid_index > 1) {
+   all_vid_data <- all_vid_data %>%
+     full_join(summary_vid_data)
+   }
+}
+```
+
+## Data cleaning
+### Choose bins across which to analyze data
+```{r}
+bin_size = 7 # days
+min_age = min(all_vid_data$age_days, na.rm=TRUE)
+max_age = max(all_vid_data$age_days, na.rm=TRUE)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+```
+
+### Regualrize vid names
+```{r}
+all_vid_data <- all_vid_data %>%
+  rowwise() %>%
+  mutate(vid_name_cleaned = str_split(vid_name,"[.]")[[1]][1])
+```
+
+### Load list of videos we should exclude -- allocentric videos
+```{r}
+allocentric_file = here("data/raw_data/SAYCAM_allocentric_videos.csv")
+to_exclude =read.csv(allocentric_file)
+
+# get INCORRECT videos where allocentric videopoint 
+to_exclude <- to_exclude %>%
+  filter(allocentric==1) %>%
+  rename(vid_name = video)
+```
+
+### Get rid of vids to exclude from allocentric file
+```{r}
+all_vid_data <- all_vid_data %>%
+  mutate(vid_name_old = vid_name) %>%
+  select(-vid_name) %>%
+  filter(!vid_name_cleaned %in% to_exclude$vid_name)
+```
+
+### Some videos still need metadata (!)
+```{r}
+missing_age <-all_vid_data %>%
+  filter(is.na(age_days))
+```
