@@ -58,7 +58,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
         save_path = os.path.join(condensed_output_dir, vid_name + '.json')
         cmd += f' && python condense_openpose_output.py {vid_output_dir} -o {save_path}'
 
-    msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu', t=5.0, mem='8G', gres='gpu:1')
+    msg = submit_job(cmd, job_name=f'{vid_name}', p='gpu,hns', t=5.0, mem='8G', gres='gpu:1')
     print(msg)
 
 
