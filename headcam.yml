@@ -6,3 +6,4 @@ dependencies:
     - pandas
     - jupyter
     - ipykernel
+    - pytest
