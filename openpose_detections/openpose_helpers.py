@@ -48,7 +48,6 @@ def jsons_to_npy(json_files_dir):
     in other words, for each person in each frame,
     we have their keypoints stored in 3 slices (x, y, and confidence), each of length 130.
     """
-    # breakpoint()
     json_filepaths = sorted(os.path.abspath(os.path.join(json_files_dir, f))
                             for f in os.listdir(json_files_dir))
     json_list = load_json_list(json_filepaths)
