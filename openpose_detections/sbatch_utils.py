@@ -2,7 +2,7 @@ import subprocess
 
 
 def submit_job(wrap_cmd, job_name='sbatch', mail_type=None,
-                  mail_user=None, p='normal,hns', c=1, t=2, **kwargs):
+               mail_user=None, p='normal,hns', c=1, t=2, **kwargs):
     """submit_job: Wrapper to submit sbatch jobs to Slurm.
 
     :param wrap_cmd: command to execute in the job.
@@ -19,9 +19,9 @@ def submit_job(wrap_cmd, job_name='sbatch', mail_type=None,
 
         :param t: a float representing # of hours for the job.
         """
-        hrs = int(t//1)
-        mins = int(t*60%60)
-        secs = int(t*3600%60)
+        hrs = int(t // 1)
+        mins = int(t * 60 % 60)
+        secs = int(t * 3600 % 60)
 
         return f'{str(hrs).zfill(2)}:{str(mins).zfill(2)}:{str(secs).zfill(2)}'
 
@@ -41,4 +41,3 @@ def submit_job(wrap_cmd, job_name='sbatch', mail_type=None,
 
     p = subprocess.Popen(['sbatch'] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return p.communicate()
-
