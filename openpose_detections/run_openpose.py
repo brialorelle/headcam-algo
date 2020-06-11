@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 
-import time
 import argparse
 import os
-import subprocess
 import ntpath
 
 from utils import submit_job
 from config import *
-
-from openpose_helpers import create_video_dataframe
 
 
 def run_openpose(vid_path, op_output_dir, face=True, hand=True,
