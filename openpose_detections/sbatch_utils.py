@@ -12,7 +12,8 @@ def submit_job(wrap_cmd, job_name='sbatch', mail_type=None,
     :param p: partitions to select from.
     :param c: Number of cores to use.
     :param t: Time to run the job for.
-    :param **kwargs: Additional command-line arguments to sbatch. See Slurm/sherlock docs.
+    :param **kwargs: Additional command-line arguments to sbatch.
+    See https://www.sherlock.stanford.edu/docs/getting-started/submitting/
     """
     def _job_time(t):
         """_job_time: Converts time t to slurm time ('hh:mm:ss').
