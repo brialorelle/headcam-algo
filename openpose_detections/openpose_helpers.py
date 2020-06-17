@@ -91,7 +91,7 @@ def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
         print(f'{i}/{num_frames}')
         fps_cut = json_filepaths[i:i+part_size]
         p = mp.Pool()
-        chunk_size = len(fps_cut) // num_chunks
+        chunk_size = max(len(fps_cut) // num_chunks, 1)
         chunk_list = chunks(fps_cut, chunk_size)
         json_list += p.map(load_json_chunk, chunk_list)
     json_list = [frame for chunk in json_list for frame in chunk]
