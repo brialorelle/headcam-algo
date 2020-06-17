@@ -1,9 +1,3 @@
-# import swifter
-# import msgpack
-import ujson
-# import imutils
-# import matplotlib.pyplot as plt
-# import matplotlib.patches as patches
 from itertools import chain
 import glob
 import time
@@ -15,8 +9,15 @@ import sys
 import subprocess
 from functools import reduce
 from collections import defaultdict
+
+import ujson
 import pandas as pd
 import numpy as np
+# import swifter
+# import msgpack
+# import imutils
+# import matplotlib.pyplot as plt
+# import matplotlib.patches as patches
 # import cv2
 
 from config import *

@@ -1,15 +1,8 @@
 name: headcam
 dependencies:
-    - python=3.6
-    - ipykernel
-    - pytables
-    - conda-forge::swifter
-    - msgpack-python
+    - python=3.7
     - ujson
-    - mlgill::imutils
     - numpy
     - pandas
-    - py-opencv
     - jupyter
-    - tensorflow
-    - matplotlib
+    - ipykernel
