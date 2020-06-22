@@ -8,3 +8,5 @@ dependencies:
     - ipykernel
     - requests
     - pytest
+    - matplotlib
+    - cv2
