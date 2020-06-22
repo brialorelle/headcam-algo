@@ -28,6 +28,7 @@ def create_video_dataframe(vid_json_files_dir, save_path=None):
     vid_df['openpose_npy'] = list(jsons_to_npy(vid_json_files_dir))
     vid_df['frame_num'] = [i for i in range(len(vid_df))]
     if save_path:
+        os.path.makedirs(save_path, exist_ok=True)
         vid_df.to_json(save_path)
     return vid_df
 
@@ -53,19 +54,6 @@ def jsons_to_npy(json_files_dir):
     json_list = load_json_list(json_filepaths)
     npy = json_list_to_npy(json_list)
     return npy
-
-
-def load_json_chunk(chunk):
-    """
-    load_json_chunk: loads a list of a json files into Python
-
-    Keyword Arguments:
-    chunk -- list of filepaths to Openpose JSON outputs
-
-    Returns:
-    A list of JSON files from the chunk, loaded as dictionaries
-    """
-    return [ujson.load(open(f, 'r')) for f in chunk]
 
 
 def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
@@ -97,6 +85,19 @@ def load_json_list(json_filepaths, part_size=10000, num_chunks=16):
     json_list = [frame for chunk in json_list for frame in chunk]
     print('done loading json files.')
     return json_list
+
+
+def load_json_chunk(chunk):
+    """
+    load_json_chunk: loads a list of a json files into Python
+
+    Keyword Arguments:
+    chunk -- list of filepaths to Openpose JSON outputs
+
+    Returns:
+    A list of JSON files from the chunk, loaded as dictionaries
+    """
+    return [ujson.load(open(f, 'r')) for f in chunk]
 
 
 def json_list_to_npy(json_list):
