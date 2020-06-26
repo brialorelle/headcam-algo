@@ -4,7 +4,7 @@ import argparse
 import os
 import ntpath
 
-from utils import submit_job
+from sbatch_utils import submit_job
 from config import *
 
 
@@ -32,7 +32,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
 
     if os.path.exists(vid_output_dir):
         if not overwrite:
-            print(f'Outputs already exist for video {vid_path} -- continuing...')
+            print(f'Outputs already exist for video {vid_path} -- aborting...')
             return
         else:
             print(f'NOTE: overwriting data in {vid_output_dir}')
