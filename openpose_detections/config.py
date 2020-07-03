@@ -9,7 +9,8 @@ from default_config import *
 #               '/scratch/groups/mcfrank/Home_Headcam_new/Asacam']
 
 # Overall output directory.
-# OUTPUT = os.path.join(os.path.expandvars('$GROUP_SCRATCH'), 'Home_Headcam_new', 'outputs')
+# OUTPUT = '/scratch/groups/mcfrank/Home_Headcam_new/outputs'
+
 
 # Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 # OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose_raw_json')
