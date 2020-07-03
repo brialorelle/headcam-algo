@@ -137,6 +137,8 @@ def json_list_to_npy(json_list):
         return frame_keypts
 
     max_num_people = max(len(frame['people']) for frame in json_list)
+    if max_num_people == 0:
+        max_num_people = 1
     flattened = np.array([frame_to_npy(frame_json, max_num_people)
                           for frame_json in json_list])
     return flattened
