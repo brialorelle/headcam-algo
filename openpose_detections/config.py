@@ -11,6 +11,9 @@ from default_config import *
 # Overall output directory.
 # OUTPUT = '/scratch/groups/mcfrank/Home_Headcam_new/outputs'
 
+# Openpose binary location (see setup.sh)
+# SINGULARITY_CACHEDIR = '/scratch/groups/mcfrank/Home_Headcam_new/.singularity'
+
 
 # Directory for raw Openpose output (warning: need inode space for millions of small JSON files)
 # OPENPOSE_OUTPUT = os.path.join(OUTPUT, 'openpose_raw_json')
