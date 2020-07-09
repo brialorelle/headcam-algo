@@ -3,7 +3,9 @@ from default_config import *
 
 # TODO: Change these from defaults (commented out)!
 
-# List of directories containing videos in the dataset.
+# List of directories containing videos in the dataset
+# (i.e. the ones you downloaded with download_databrary_volume.py --
+#  note that this may just be one directory in the list).
 # VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/Alicecam',
 #               '/scratch/groups/mcfrank/Home_Headcam_new/Samcam',
 #               '/scratch/groups/mcfrank/Home_Headcam_new/Asacam']
