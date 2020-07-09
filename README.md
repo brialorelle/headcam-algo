@@ -34,7 +34,7 @@ git clone https://github.com/brialorelle/headcam-algo.git
 cd headcam-algo/
 ```
 
-Next, run `setup.sh` to setup the conda environment and pull the openpose docker into a location with at least 2GB of space:
+Next, make `setup.sh` executable and run it to setup the conda environment and pull the openpose docker into a location with at least 2GB of space:
 ```
 chmod +x setup.sh
 ./setup.sh /path/to/desired/openpose_install_dir
@@ -42,7 +42,7 @@ chmod +x setup.sh
 
 ### Download Dataset
 
-With the `headcam` conda environment active, use the [download_databrary_volume.py](misc/download_databrary_volume.py) script to download volume 564 on databrary, "Head cameras on children aged 6 months through 31 months", and [clean_video_repo.sh](misc/clean_video_repo.sh) to format the filenames properly and remove extraneous, non-video files:
+With the `headcam` conda environment active, run the [download_databrary_volume.py](misc/download_databrary_volume.py) script to download volume 564 on databrary, "Head cameras on children aged 6 months through 31 months", and then run [clean_video_repo.sh](misc/clean_video_repo.sh) to format the filenames properly and remove extraneous, non-video files: 
 
 You will need roughly 500GB of space to download this volume.
 
@@ -58,7 +58,7 @@ chmod +x ./misc/clean_video_repo.sh
 
 Follow the instructions in the [README](openpose_detections/README.md) in the `openpose_detections` folder in order to run Openpose on all the videos in the dataset and save outputs in CSV format.
 
-TODO: describing bounding box code, gold sample annotation, etc.
+[TODO: add README in the analysis/ folder, and link to it here in the above manner?]
 
 ## Contributors
 
