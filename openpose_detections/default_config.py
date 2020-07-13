@@ -1,12 +1,16 @@
 import os
 
 #List of directories containing videos in the dataset.
-VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/']
+VIDEO_DIRS = ['/scratch/groups/mcfrank/Home_Headcam_new/Alicecam',
+              '/scratch/groups/mcfrank/Home_Headcam_new/Samcam',
+              '/scratch/groups/mcfrank/Home_Headcam_new/Asacam']
 
 #Overall output directory.
-OUTPUT = os.path.join(os.path.expandvars('$GROUP_SCRATCH'), 'Home_Headcam_new', 'outputs')
-# OUTPUT = '/scratch/users/agrawalk/headcam-algo-output/'
+OUTPUT = '/scratch/groups/mcfrank/Home_Headcam_new/outputs'
 
+
+# Directory to download openpose binary into
+SINGULARITY_CACHEDIR = '/scratch/groups/mcfrank/Home_Headcam_new/.singularity'
 # see https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md
 OPENPOSE_NUM_POSE_KEYPTS = 18
 OPENPOSE_NUM_FACE_KEYPTS = 70
