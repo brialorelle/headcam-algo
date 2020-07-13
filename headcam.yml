@@ -4,5 +4,9 @@ dependencies:
     - ujson
     - numpy
     - pandas
-    - jupyter
+    - jupyterlab
     - ipykernel
+    - requests
+    - pytest
+    - matplotlib
+    - opencv
