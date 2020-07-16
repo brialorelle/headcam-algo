@@ -12,12 +12,8 @@ OUTDIR = "/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes_Rds/"
 files <- list.files(INDIR) 
 # A_20140630_2117_04_bounding_boxes.csv had no detections
 print(length(files))
-load(here("src/data/vid_info.RData")) # vid_info
-downup = fread(here("src/data/video_right-side-up.csv"), stringsAsFactors = F)
 
 df <- data.frame()
-
-Yb <- as.Date("20180214", "%Y%m%d")
 
 #had to specify columns to get rid of the total column
 for (i in 1:length(files)) {
@@ -27,13 +23,6 @@ for (i in 1:length(files)) {
     this_vid = str_remove(files[i], "_bounding_boxes.csv")
     tmp$child_id = strsplit(files[i], '_')[[1]][1]
     tmp$vid_name = this_vid
-    tmp$age_days = vid_info[which(vid_info$vid_name == this_vid)[1],]$age_days
-    if(is.na(tmp$age_days) & tmp$child_id=="Y") {
-      cur_age = as.Date(strsplit(files[i], '_')[[1]][2], "%Y%m%d")
-      tmp$age_days = as.numeric(cur_age - Yb)
-    }
-    tmp$right_side_up = downup[which(downup$video == this_vid),]$right_side_up
-    # remove any rows with all 0 bounding box + confidences (~50%)
     tmp = subset(tmp, mean_confidence!=0)
     #df <- rbindlist(list(df, tmp)) # , use.names = T
     #df = rbind(df, tmp)
