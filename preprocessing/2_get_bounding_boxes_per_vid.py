@@ -5,7 +5,7 @@ import pandas as pd
 # load flattened numpy arrays per video, extracts bounding boxes for hands and faces
 # per frame, and saves as long format CSV (one row per bounding box, maximum 9 per frame)
 
-VID_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/outputs/openpose_flattened_whole_2" 
+VID_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/openpose_saycam_flattened" 
 OUT_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/"
 #VID_PATH = "openpose_flattened"
 #f = "A_20130531_0818_01.npy" # for testing
@@ -66,7 +66,7 @@ for f in files:
 			v = np.load(os.path.join(VID_PATH, f)) # frames x people (3) x keypoint (X, Y, confidence) x 130
 			for i in range(v.shape[0]): # frame i
 				detection = False # save a blank row if there are no detections for this frame
-				for p in range(3): # person p
+				for p in range(v.shape[1]): # person p
 					if np.sum(v[i][p][2])>0: # 0 confidence = no detection
 						detection = True
 						bbs = get_face_hand_bounding_boxes(v[i][p]) # [face, Lhand, Rhand]
