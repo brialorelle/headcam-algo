@@ -1,0 +1,100 @@
+---
+title: "bounding_box_analyses_2021"
+author: "Bria Long"
+date: "4/15/2021"
+output: html_document
+---
+
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(stringr)
+library(here)
+theme_set(theme_few())
+```
+
+
+```{r}
+load(file=here::here('data/preprocessed_data_2021/bounding_box_summaries.RData'))
+```
+
+## construct age bins for plotting
+```{r}
+bin_size=90
+min_age = min(all_vid_bbs$age_days, na.rm=TRUE)
+max_age = max(all_vid_bbs$age_days, na.rm=TRUE)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age) 
+
+all_vid_bbs <- all_vid_bbs %>%
+  mutate(age_months = age_days/30.4) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) 
+```
+
+
+## restrict to face/hands for now
+```{r}
+face_hands <- all_vid_bbs %>%
+  filter(!label=='pose') %>%
+  mutate(avg_center_y = avg_top + avg_height/2, avg_center_x = avg_left + avg_width/2)
+```
+
+```{r}
+ggplot(face_hands, aes(x=age_days/30.4, y=log(avg_area), col=label, size=num_detect)) +
+  geom_point(alpha=.1) +
+  facet_grid(~child_id) +
+  geom_smooth(span=10000000) + # lol what
+  ylab('Log (average area)') +
+  xlab('Age in days')
+```
+
+```{r}
+ggplot(face_hands, aes(x=age_days, y=log(avg_height), col=label, size=num_detect)) +
+  geom_point(alpha=.1) +
+  facet_grid(~child_id) +
+  geom_smooth(span=10000000) + # lol what
+  ylab('Log (average height)') +
+  xlab('Age in days')
+```
+
+```{R}
+ggplot(faces, aes(x=log(avg_area))) +
+  geom_histogram(bin=100) +
+  facet_grid(~child_id) +
+  ggtitle('Log (average area) of faces') 
+```
+
+```{r}
+ggplot(face_hands %>% filter(log(avg_area)>-10), aes(x=log(avg_area), col=label, fill=label)) +
+  geom_histogram(alpha=.1, bins=100) +
+  facet_wrap(~age_day_bin) +
+  ggtitle('Average sizes of faces/hands') 
+```
+
+
+
+## Face hand density by age
+```{r}
+ggplot(face_hands, aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
+  geom_point(alpha=.3) + 
+  stat_density2d(aes(fill = label, color=label), geom="polygon", alpha=.6) +
+  coord_fixed(ratio=.76) +
+  ggtitle('Face/hand density') +
+  ylab('') +
+  xlab('') +
+  theme_few(base_size=14) +
+  theme(legend.position="right", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  scale_y_reverse() +
+  facet_wrap(~age_day_bin)
+
+```
+
+
