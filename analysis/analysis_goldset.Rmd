@@ -26,31 +26,33 @@ theme_set(theme_few())
 ### Load ketan's gold set annotations from preprocessed Rdata files
 ```{r}
 
-### Get video/frame info from full cleaned dataset (saved)
-# load('../data/openpose_detections_filtered.RData')
+## Get video/frame info from full cleaned dataset (saved)
+# load('../data/preprocessed_data/openpose_detections_filtered_2020-01-29.RData')
 # vid_info <- d_all %>%
-#   select(vid_name, frame, age_days, child_id)
-# save(vid_info, file = '../data/vid_info.RData')
+  # select(vid_name, frame, age_days, child_id)
+# save(vid_info, file = '../data/preprocessed_data/vid_info.RData')
+load('../data/preprocessed_data/vid_info.RData')
 
-load('../data/vid_info.RData')
-load('../data/ketan_gold_sample.RData')
+
+# load('../data/raw_data/vid_info.RData')
+load('../data/raw_data/ketan_gold_sample.RData')
 ```
 
 ### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
 ```{r}
-right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up_file = "../data/raw_data/SAYCAM_allocentric_videos.csv"
 right_side_up =read.csv(right_side_up_file)
 
 # get videos that are flipped, i.e., 
 flipped_videos <- right_side_up %>%
-  filter(right_side_up==1) %>%
+  filter(allocentric==1) %>%
   rename(vid_name = video)
 ```
 
 
 ### Load SAYCAM metadata from csv file; get metadata from detections .csv
 ```{r}
-metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+metadata_file = "../data/raw_data/Metadata_SAYcam-2019-12-0922_54_28.csv"
 meta=read.csv(metadata_file) %>%
   rowwise() %>%
   mutate(vid_name = str_split(File.Name,"[.]")[[1]][1]) %>%
@@ -62,7 +64,7 @@ meta$Location[meta$Location=='Bedroom Alice/Sam'] = 'Bedroom'
 
 ### Import bounding boxes for goldset & preprocess: filter videos, gather metadata, convert to pixel coordinates
 ```{r}
-bounding_boxes = "../data/gold_sample_bounding_boxes.csv" 
+bounding_boxes = "../data/raw_data/gold_sample_bounding_boxes.csv" 
 height_px = 480; width_px = 640
 
 bb = read.csv(bounding_boxes) %>%
@@ -74,7 +76,7 @@ bb = read.csv(bounding_boxes) %>%
 ```
 ### Read in turk segmentations to get child vs. adult hands
 ```{r}
-turk_annotations_seg = "../data/turk_segmentations_hands_only_processed.csv" 
+turk_annotations_seg = "../data/turk_data/turk_segmentations_hands_only_processed.csv" 
 g_seg = read.csv(turk_annotations_seg) %>%
   select(-HITID, -HITTypeId, -WorkerID)
 
@@ -355,11 +357,11 @@ bb <- bb %>%
   mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
   mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
   mutate(x_pos = left*width_px, y_pos = top*height_px) %>%
-  mutate(center_x = x_pos + width_x/2, center_y = y_pos - height_y/2) %>%
+  mutate(center_x = x_pos + width_x/2, center_y = y_pos - height_y/2) 
   filter(!is.na(child_id))
 
-bb_forheatmap <- bb %>%
-  filter(height>0)
+# bb_forheatmap <- bb %>%
+  # filter(height>0)
 ```
 
 ### Number of people, face/hand area, position descriptives
@@ -428,34 +430,30 @@ ggplot(top_pos_goldset, aes(x=age_day_bin, y=y_center, col=label)) +
 g_seg_info <- g_seg %>%
   distinct(full_image_path, vid_name_short, frame_ind)
 
-bb_check <- bb_all %>%
+bb_check <- bb %>%
   mutate(frame_ind = frame, vid_name_short = vid_name) %>%
   left_join(g_seg_info, by=c("vid_name_short","frame_ind")) %>%
   filter(!is.na(full_image_path)) %>%
-  filter(mean_confidence > 0)
+  filter(mean_conf > 0)
 
-# dir.create(paste0('bbcheck/'))
-unique_images <- bb_check$full_image_path[300:350]
+dir.create(paste0('bbcheck_height/'))
+# unique_images <- bb_check$full_image_path[300:350]
 
-bb_check_face_tall <- bb_check_face %>%
-  filter(top>.7) %>%
-  filter(label=='face')
+bb_check_subset <- bb_check %>%
+  filter(height>.8) %>%
+  filter(label=='hand')
 
-bb_check_weird_vids <- bb_check %>%
-  filter(vid_name %in% weird_vids)
-
-unique_images = unique(bb_check_weird_vids$full_image_path)
+unique_images = unique(bb_check_subset$full_image_path)
 for (image in unique_images){
   this_image_rgb <- image_read(image)
   img <- image_draw(this_image_rgb)
   a <- bb_check %>%
     filter(full_image_path %in% image)
 
-  # rect(a$x_pos, a$y_pos-a$height_y, a$x_pos+a$width_x, a$y_pos)
-
-  text(a$left*680, a$top*480, a$top)
-
-  annotated_file = paste0('bbcheck_sanity/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-center.jpg')
+  rect(a$x_pos, a$y_pos, a$x_pos+a$width_x, a$y_pos - a$height)
+  # text(a$x_pos*680, a$y_pos*480, a$top)
+  # text(a$x_pos*680, a$y_pos*480, a$y_pos)
+  annotated_file = paste0('bbcheck_height/',unique(a$vid_name_short), unique(a$frame_ind), 'OP-big-hands.jpg')
   image_write(img, annotated_file)
   dev.off()
 }
@@ -465,6 +463,22 @@ face_check <- bb_check_weird_vids %>%
 
 ```
 
+```{r}
+bb_hand_only <- bb_SA %>%
+  filter(label=='hand') 
+  # filter(height<.6)
+
+bb_face_only <- bb_SA %>%
+  filter(label=='face')
+
+
+# ggplot(bb_hand_only, aes(x=left, y=top)) +
+#   geom_point() + 
+#   stat_density_2d(aes(fill = ..level..), geom="polygon") +
+#   coord_fixed(ratio=1) +
+#   ggtitle('Hands') 
+
+```
 
 ### Heatmaps of face detection positions across age groups
 ```{r}
