@@ -1,0 +1,87 @@
+---
+title: "BB_CHeck"
+author: "Bria Long"
+date: "5/2/2020"
+output: html_document
+---
+
+
+# Load temp files if we are skipping steps above run if we are skipping steps above
+```{r eval=FALSE}
+## For cropped detections, need..
+# 1. full set of detections (d_all from above)
+# load(file='../data/preprocessed_data/openpose_detections_filtered_2020-01-29.RData')
+
+# 2. bounding boxes from S and A (bb_SA)
+load(file='../data/temp_data/SA_bounding_boxes_cleaned_2020-01-29.RData')
+
+# 3. bounding boxes from Y (d_y) -- has different format than bb_SA, so diff name..
+# load(file='../data/temp_data/Y_bounding_boxes_cleaned_2020-01-29.RData')
+```
+
+```{r}
+load(file='../data/preprocessed_data/openpose_detections_filtered_2020-01-29.RData')
+d_SA <- d_all %>%
+  filter(child_id %in% c('S','A'))
+```
+
+
+```{r}
+detections_cropped_SA <- bb_SA %>%
+  filter(height<(.6)) %>%  ## 
+  group_by(vid_name, frame, child_id) %>%
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"), mean_height = mean(height), mean_top = mean(top))  
+
+
+detections_SA <- bb_SA %>%
+  group_by(vid_name, frame, child_id) %>%
+  summarize(hand_detected = (sum(label=="hand")>0), face_detected = (sum(label=="face")>0), num_hands = sum(label=="hand"), num_faces = sum(label=="face"), num_people = sum(label=="pose"), mean_height = mean(height), mean_top = mean(top))  
+
+```
+
+
+```{r}
+hands_bb <- detections_SA %>%
+  filter(hand_detected==TRUE)
+
+hands_dets <- d_SA %>%
+  filter(hand_openpose==TRUE)
+
+hands_compare <- hands_dets %>%
+  left_join(hands_bb)
+
+lacking_bb <- hands_compare %>%
+  filter(is.na(hand_detected))
+
+compare_one_vid_BB <- detections_SA %>%
+  filter(vid_name=="A_20130531_0818_01")
+
+compare_one_vid_dets <- d_SA %>%
+  filter(vid_name=="A_20130531_0818_01")
+
+
+joined_SA <- d_SA %>%
+  left_join(detections_SA) %>%
+
+no_bb <-  joined_SA %>%
+  filter(hand_openpose==TRUE & hand_detected==FALSE)
+
+```
+
+## Look at height (i.e., vertical size) of hands
+```{r}
+bb_hands_y <- d_y %>%
+   filter(label=='hand') 
+
+bb_hands <- bb_SA %>%
+  filter(label=='hand') 
+
+bb_faces<- bb_SA %>%
+  filter(label=='face') 
+
+```
+
+```{r}
+what <- bb_hands %>%
+  filter(height>.6)
+```

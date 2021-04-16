@@ -1,0 +1,182 @@
+---
+title: "Untitled"
+author: "Bria Long"
+date: "7/18/2020"
+output: html_document
+---
+
+
+```{r}
+library(tidyverse)
+library(here)
+load(paste0(here::here(), '/data/raw_data/SA_bounding_boxes.RData'))
+```
+
+
+
+## calculate problems
+```{r}
+reload_data=TRUE
+
+if (reload_data){
+vid_index = 0
+
+for (vid_file in op_files[1700:1710]) {
+  vid_index = vid_index + 1
+  
+  vid_file_path_new= paste0(here::here(), '/data/op_outputs_per_vid_full_set/', vid_file)
+  this_vid_data_new <- readRDS(vid_file_path_new)
+
+   vid_file_path_old = paste0(here::here(), '/data/_old_op_outputs_per_vid/', vid_file)
+   this_vid_data_old <- readRDS(vid_file_path_old)
+
+   # check vid name to see if excluded vid
+   this_vid_name_temp <- this_vid_data_new$vid_name[1]
+   this_vid_name <- str_split(this_vid_name_temp,"[.]")[[1]][1]
+   
+   # only run if not excluded
+   if (!this_vid_name %in% to_exclude$vid_name){
+  
+     
+    assert_that(this_vid_data_new$vid_name[1] == this_vid_data_old$vid_name[1])
+    # summarize hands/faces in each video
+   summary_vid_data_new <- this_vid_data_new %>%
+     group_by(frame, child_id, vid_name) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     group_by(child_id, vid_name) %>%
+     summarize(num_hands = sum(hand_detected), num_faces = sum(face_detected), num_frames = length(hand_detected))
+   
+      summary_vid_data_old <- this_vid_data_old %>%
+     group_by(frame, child_id, vid_name) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     group_by(child_id, vid_name) %>%
+     summarize(num_hands = sum(hand_detected), num_faces = sum(face_detected), num_frames = length(hand_detected))
+      
+      video_diff <- summary_vid_data_new %>%
+        mutate(diff_hands = num_hands - summary_vid_data_old$num_hands,
+               diff_faces = num_faces - summary_vid_data_old$num_faces) %>%
+        mutate(vid_name = vid_file)
+   
+  print(video_diff)
+
+  # join it: 1 row = 1 video
+   if (vid_index == 1 ){
+     all_vid_diffs <- video_diff 
+   }
+   else if (vid_index > 1) {
+   all_vid_diffs <- all_vid_diffs %>%
+     full_join(video_diff)
+   }
+}
+}
+}
+```
+
+
+```{r}
+old_no_na <- this_vid_data_old %>%
+  filter(person<3) %>%
+  filter(!is.na(mean_confidence))
+
+new_no_na <- this_vid_data_new %>%
+  filter(person<3) %>%
+  filter(!is.na(mean_confidence))
+```
+
+```{r}
+files_to_check = op_files[1:100]
+
+all_vid_diffs <- all_vid_diffs %>%
+  mutate(vid_name = str_split_fixed(vid_name, '_BBs.Rds',2)[,1]) 
+
+orig_dectections_check <- d_all %>%
+  filter(vid_name %in% all_vid_diffs$vid_name)
+
+orig_dectections_check_by_vid <- orig_dectections_check %>%
+  group_by(vid_name) %>%
+  summarize(num_faces_orig_det = sum(face_openpose))
+
+all_vid_diffs <- all_vid_diffs %>%
+  left_join(orig_dectections_check_by_vid)
+```
+
+
+```{r}
+first_vid_faces <- orig_dectections_check %>%
+  filter(face_openpose==TRUE) %>%
+  filter(vid_name == 'A_20130531_0818_01')
+
+first_vid_faces_new_bb <- this_vid_data_new %>%
+  filter(label=='face')
+
+first_vid_faces_old_bb <- this_vid_data_old %>%
+  filter(label=='face') %>%
+  filter(!is.na(mean_confidence))
+
+first_vid_faces_old_bb_all_NAs <- this_vid_data_old %>%
+  filter(label=='face')
+
+
+
+```
+
+```{r}
+
+face_frames <- summary_vid_data %>%
+  filter(face_detected==TRUE)
+
+frame_level_faces <- this_vid_data %>%
+  right_join(face_frames) %>%
+  filter(label=='face') %>%
+  filter(!is.na(mean_confidence))
+  
+
+```
+
+```{r}
+
+old_faces <- this_vid_data_old %>%
+  filter(label=='face') %>%
+  filter(!is.na(mean_confidence)) %>%
+  filter(person==0) 
+
+new_faces <- this_vid_data_new %>%
+  filter(label=='face') %>%
+  filter(!is.na(mean_confidence)) %>%
+  filter(person==0)
+
+```
+
+
+```{r}
+this_vid_name = 'A_20130531_0818_01'
+
+test_vid <- df %>%
+  filter(vid_name == this_vid_name) 
+
+summary_old_bbs_data <- test_vid %>%
+  group_by(frame) %>%
+    summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     summarize(num_hands = sum(hand_detected), num_faces = sum(face_detected))
+
+
+new_file_path = paste0(here::here(), '/data/op_outputs_per_vid_full_set/', this_vid_name, '_BBs.Rds')
+this_vid_data_new <- readRDS(new_file_path)
+
+
+summary_new_bbs_data <- this_vid_data_new %>%
+  group_by(frame) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     summarize(num_hands = sum(hand_detected), num_faces = sum(face_detected))
+
+
+summary_new_bbs_data - summary_old_bbs_data
+```
+
+```{r}
+
+> s = read_csv('sherlock.csv', col_names=FALSE)
+
+s <- s %>%
+  
+```

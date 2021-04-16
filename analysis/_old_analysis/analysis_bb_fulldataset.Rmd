@@ -24,10 +24,32 @@ theme_set(theme_few())
 
 ### Load preprocessed bb's for all kids
 ```{r}
-load(file = '../data/all_bounding_boxes_three_kids_preprocessed.RData')
-
+load(file = '../data/preprocessed_data/all_bounding_boxes_three_kids_preprocessed.RData')
 ```
 
+
+### Randomly sample some subset of the data
+```{r}
+num_to_sample = .1*length(bb_all_three$frame)
+bb_all_three_sample <- bb_all_three %>%
+  sample_frac(.1)
+```
+
+```{r}
+save(file = '../data/preprocessed_data/all_bounding_boxes_three_kids_preprocessed_small_sample.RData', bb_all_three_sample)
+```
+
+```{r}
+
+bb_all <- bb_all_three_sample
+```
+
+```{R}
+ggplot(bb_all_three_sample) +
+  geom_histogram(aes(x=height)) +
+  facet_wrap(~child_id)
+
+```
 
 ### Make bins across which to analyze data
 ```{r}
@@ -52,12 +74,16 @@ bins = c(bin_starts)
 
 ```
 
+```{r}
+hands <- bb_all %>%
+  filter(label=='hand')
+
+```
 
 ```{r}
-hands_by_size_by_frame <- bb_all %>%
-  filter(label=="hand") %>%
+hands_by_size_by_frame <- hands %>%
   group_by(vid_name, frame, age_days, child_id) %>%
-  summarize(num_hands = sum(label=="hand"), avg_area = mean(area), avg_x = mean(center_x), avg_y = mean(center_y))
+  summarize(num_hands = n(), avg_area = mean(height*width), avg_x = mean(center_x), avg_y = mean(center_y))
 
 faces_by_size_by_frame <- bb_all %>%
   filter(label=="face") %>%

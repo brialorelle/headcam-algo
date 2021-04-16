@@ -1,0 +1,126 @@
+---
+title: "analyze_bb_fullset"
+author: "Bria Long"
+date: "1/23/2020"
+output: html_document
+---
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(egg)
+library(here)
+theme_set(theme_few())
+```
+
+### Load preprocessed bb's for all kids
+```{r}
+
+```
+
+
+### Make bins across which to analyze data
+```{r}
+bin_size = 7
+min_age = min(bb_all$age_days)
+max_age = max(bb_all$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+
+bb_all <- bb_all %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(d$age_day_bin)))
+# 
+# bin_size = 6
+# min_age = 6
+# max_age = 30
+# bin_starts = seq(min_age, max_age+1,bin_size)
+# bins = c(bin_starts)
+```
+
+```{r}
+hands_by_size_by_frame <- bb_all %>%
+  filter(label=="hand") %>%
+  group_by(vid_name, frame, age_days, child_id) %>%
+  summarize(num_hands = sum(label=="hand"), avg_area = mean(area), avg_x = mean(center_x), avg_y = mean(center_y))
+
+faces_by_size_by_frame <- bb_all %>%
+  filter(label=="face") %>%
+  group_by(vid_name, frame, age_days, child_id) %>%
+  summarize(num_faces = sum(label=="face"), avg_area = mean(area), avg_x = mean(center_x), avg_y = mean(center_y))
+
+poses_by_size_by_frame <- bb_all %>%
+  filter(label=="pose") %>%
+  group_by(vid_name, frame, age_days, child_id) %>%
+  summarize(num_poses = sum(label=="pose"), avg_area = mean(area), avg_x = mean(center_x), avg_y = mean(center_y))
+```
+
+
+```{r}
+
+to_plot_poses <- poses_by_size_by_frame %>%
+  mutate(age_months = age_days/30) %>%
+  mutate(months_binned = cut(age_months, bins, labels=c("6m-12m","12m-18m","18m-24m","24m-32m")))
+
+save(hands_by_size_by_frame, file="../data/hands_by_size_by_frame.RData")
+save(faces_by_size_by_frame, file="../data/faces_by_size_by_frame.RData")
+save(poses_by_size_by_frame, file="../data/poses_by_size_by_frame.RData")
+
+```
+
+
+```{r}
+bin_size = 7
+min_age = min(bb_all$age_days)
+max_age = max(bb_all$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+
+bb_all <- bb_all %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(d$age_day_bin)))
+
+poses_by_size_by_frame <- poses_by_size_by_frame %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(d$age_day_bin)))
+
+```
+
+```{r}
+ggplot(to_plot_poses, aes(x=num_poses, y=log(avg_area), col=child_id)) +
+  geom_jitter(alpha=.2) +
+  ggtitle('Pose size by #') +
+  geom_grid(~months_binned)
+
+ggplot(to_plot_hands, aes(x=num_hands, y=log(avg_area), col=child_id)) +
+  geom_jitter(alpha=.2) +
+  ggtitle('Hand size by #') +
+  geom_grid(~months_binned)
+
+ggplot(to_plot_faces, aes(x=num_faces, y=log(avg_area), col=child_id)) +
+  geom_jitter(alpha=.2) +
+  ggtitle('Face size by #') +
+  geom_grid(~months_binned)
+
+
+
+```
+
+
+
+```{r}
+summary_by_age <- bb_all %>%
+  group_by(age_day_bin, child_id) %>%
+  summarize(num_detect = length(face_openpose), prop_faces = sum(face_openpose) / num_detect,  prop_hands = sum(hand_openpose) / num_detect, face_or_hand = sum(person_openpose)/ num_detect, face_and_hand = sum(both_openpose)/ num_detect) 
+
+```

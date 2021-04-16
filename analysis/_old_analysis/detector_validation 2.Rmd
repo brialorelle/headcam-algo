@@ -1,0 +1,339 @@
+---
+title: "Detector_Validation"
+author: "Bria Long"
+date: "1/8/2020"
+output: html_document
+---
+
+
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(egg)
+theme_set(theme_few())
+```
+
+### Instead load in detections and ketan's gold set annotations from preprocessed Rdata files
+```{r}
+# load('../data/openpose_detections.RData')
+load('../data/ketan_gold_sample.RData')
+```
+
+### Load file to filter flipped videos (when sam's mom was wearing camera; not egocentric)
+```{r}
+right_side_up_file = "../data/video_right-side-up.csv"
+right_side_up =read.csv(right_side_up_file)
+
+# get INCORRECT videos
+flipped_videos <- right_side_up %>%
+  filter(right_side_up==1)
+```
+
+### Get metadata from file
+```{r}
+metadata_file = "../data/SAYcam-2019-12-0922_54_28.csv"
+
+meta=read.csv(metadata_file) %>%
+  mutate(vid_name_short = str_split_fixed(File.Name,'.AVI',2)[,1]) %>%
+  rowwise() %>%
+  mutate(count_locations = length(str_split(Location,',')[[1]]))
+```
+
+### Read in turk anotation data  and merge
+#### First read in hand/face present only here, ~4K images
+```{r}
+turk_annotations = "../data/turk_annotations_dec5.csv" # 20 turkers who did ~250 frames each
+gold_set = read.csv(turk_annotations)
+
+## cleanup these goldset annotations so we can merge
+g <- gold_set %>%
+  filter(is.na(sanity_check_category)) %>% # don't consider sanity check images here
+  filter(!is.na(hands)) %>%
+  filter(!is.na(faces)) %>%
+  mutate(sample_ind = str_split_fixed(short_image_path,"-",3)[,1], frame_ind_temp = str_split_fixed(short_image_path,"-",3)[,3], vid_name_temp = str_split_fixed(short_image_path,"-",3)[,2]) %>%
+  mutate(sample_ind = as.numeric(sample_ind), frame_ind = as.numeric(str_split_fixed(frame_ind_temp,".jpg",3)[,1])) %>%
+  filter(!is.na(sample_ind))  %>% 
+  rowwise() %>%
+  mutate(vid_name_short = str_split(vid_name_temp,"[.]")[[1]][1]) %>%
+  mutate(vid_name = str_split_fixed(vid_name_temp,".mp4",2)[,1]) %>% ## includes .avi as does detections structure
+  filter(!vid_name_short %in% flipped_videos$video) 
+  
+# length(unique(g$vid_name))  (checking this is >1)
+
+## standardize for merging with detectinos
+g$frame = g$frame_ind
+
+```
+
+### Now merge gold set turk annotations and openpose detections
+```{r}
+# no_openpose <- merged %>%
+#   filter(is.na(face_openpose))
+# 
+# ## never run on openpose?
+# unique(no_openpose$vid_name)
+# "A_20150507_3124_01"
+
+merged <- g %>%
+  left_join(detections)  %>%
+  filter(!is.na(face_openpose)) 
+```
+
+### Import hand segmentations
+```{r eval=FALSE}
+turk_annotations_seg = "../data/turk_segmentations_hands_only_processed.csv" 
+g_seg = read.csv(turk_annotations_seg)
+
+## And merge with detections
+merged_g_seg <- g_seg %>%
+  mutate(frame = frame_ind) %>%
+  left_join(detections)
+```
+
+
+# Evaluate overall detector performance
+
+## Set-up necessary for p/r/f calculations 
+### Write functions to compute TP/FN/TN/FP
+```{r}
+# Function to evaluate detectors
+evaluate_detector <- function(truth, detection) {
+  if (truth == TRUE) {
+    if (truth == detection) return ("TP") # was face/wrist, detected face/wrist
+    else return("FN") # was face/wrist, missed face/wrist
+  }
+  else {
+    if (truth == detection) return("TN") # was not face/wrist, did not detect face/wrist
+    else return("FP") # was not face/wrist, detected face/wrist
+  }
+}
+
+```
+
+### Compute TP/FN/TN/FP on dataset for both faces and hands
+```{r}
+m <- merged %>%
+  select(vid_name, frame, response, hands, faces, sample_ind, face_openpose, hand_openpose, short_image_path, full_image_path, age_days, child_id) %>%
+  mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+  rowwise() %>%
+  mutate(face_eval = evaluate_detector(faces, face_openpose), hand_eval = evaluate_detector(hands, hand_openpose))
+```
+
+### Compute TP/FN/TN/FP on dataset for both kinds of hands from segmentation hits 
+```{r eval=FALSE}
+m_seg <- merged_g_seg %>%
+  select(vid_name, frame, label, hands_seg, face_seg, sample_ind, face_openpose, hand_openpose, short_image_path, full_image_path, age_days, child_id) %>%
+  mutate(child_hand_seg = (label=="Child hand"), adult_hand_seg = (label=="Adult hand")) %>%
+  mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+  mutate(possible_allocentric=(label=='Child face')) %>%
+  rowwise() %>%
+  mutate(face_eval = evaluate_detector(face_seg, face_openpose), hand_eval = evaluate_detector(hands_seg, hand_openpose), child_hand_eval = evaluate_detector(child_hand_seg, hand_openpose), adult_hand_eval = evaluate_detector(adult_hand_seg, hand_openpose))
+
+## Hand-dense 
+return_prf_short(m_seg$hand_eval)
+return_prf_short(m_seg$child_hand_eval)
+return_prf_short(m_seg$adult_hand_eval)
+
+```
+
+### Write functions for returning prfs/f-scores
+```{r}
+ return_prf_short = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  return(c(p,r,f))
+ }
+
+ return_fscore = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  return(f)
+}
+```
+
+### Preprocess ketan's annotation, evaluate, and get prfs
+```{r}
+ ketan_gold_out <- ketan_gold %>%
+   rowwise() %>%
+   mutate(vid_name = str_split_fixed(vid_name,".mp4",2)[,1])%>%
+   mutate(vid_name_short = str_split(vid_name,"[.]")[[1]][1]) %>%
+   mutate(face_openpose = as.logical(face_openpose), hand_openpose = as.logical(hand_openpose)) %>%
+   rename(face_present_ketan = face_present, hand_present_ketan = hand_present)
+
+ out <- ketan_gold_out %>%
+   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_openpose), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_openpose))
+```
+
+## Detector evaluation results
+### Faces (full 24K)
+```{r}
+return_prf_short(out$face_eval_ketan)
+```
+### Faces (full 24K)
+```{r}
+return_prf_short(out$hand_eval_ketan)
+```
+
+### How do f-scores from ketan's gold set hange when we get rid of the flipped videos?
+```{r}
+out_no_flipped <- ketan_gold_out %>%
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_openpose), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_openpose))  %>%
+  filter(!vid_name_short %in% flipped_videos$video)
+```
+
+### Faces (filtered)
+```{r}
+return_prf_short(out_no_flipped$face_eval_ketan)
+```
+### Hands (filtered)
+```{r}
+return_prf_short(out_no_flipped$hand_eval_ketan)
+```
+
+### How well do ketan and turkers agree? 
+```{r}
+ketan_vs_turk <- ketan_gold_out %>%
+  left_join(m) %>%
+  mutate(turk_vs_ketan_face = (face_present_ketan == faces))
+
+##
+agreement = mean(ketan_vs_turk$turk_vs_ketan_face, na.rm=TRUE)
+num_examples = sum(!is.na(ketan_vs_turk$turk_vs_ketan_face))
+
+```
+Ketan & turkers agreed `r agreement` percent of the time for the `r num_examples` we tested.
+
+## Analyze how detector performance might vary by child/age
+### First merge age/child information from other dataframe back into ketan's gold set by frame/vid_name
+```{r}
+vid_info <- detections %>%
+  select(vid_name, frame, age_days, child_id) 
+
+d <- ketan_gold_out %>%
+  filter(!vid_name_short %in% flipped_videos$video) %>%
+  left_join(vid_info, by=c("vid_name","frame")) %>%
+  left_join(meta, by="vid_name_short")
+```
+
+### Bin gold set performance every so often (e.g., 10 days)
+```{r}
+bin_size = 30
+min_age = min(d$age_days)
+max_age = max(d$age_days)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+d <- d %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1)))
+
+```
+
+### Short prf function def.
+```{r}
+ return_prf = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  num_detect = length(eval)
+  out <- data.frame(p,r,f,num_detect)
+  return(out)
+ }
+```
+### Look at prf changes by age/child
+```{r}
+prf_by_age_faces <- d %>%
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_openpose)) %>%
+  group_by(age_day_bin, child_id) %>%
+  do(return_prf(.$face_eval_ketan))
+
+prf_by_age_hands <- d %>%
+  mutate(hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_openpose)) %>%
+  group_by(age_day_bin, child_id) %>%
+  do(return_prf(.$hand_eval_ketan))
+```
+
+### Plot p/r/f/ by age/child for goldset annotations for FACES
+```{r}
+prf_by_age_faces$age_day_bin = as.numeric(prf_by_age_faces$age_day_bin)
+
+
+p1  = ggplot(prf_by_age_faces, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth()  +
+  ylab('F-score - Face detection')
+
+
+p2 = ggplot(prf_by_age_faces, aes(x=age_day_bin, y=r, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab('Precision - Face detection')
+
+p3 =ggplot(prf_by_age_faces, aes(x=age_day_bin, y=p, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth()  +
+  ylab('Recall - Face detection')
+#
+ggarrange(p1,p2,p3)
+```
+
+### Plot p/r/f/ by age/child for goldset annotations for HANDS
+```{r}
+prf_by_age_hands$age_day_bin = as.numeric(prf_by_age_hands$age_day_bin)
+
+p4  = ggplot(prf_by_age_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth()  +
+  ylab('F-score - Hand detection')
+
+p5 = ggplot(prf_by_age_hands, aes(x=age_day_bin, y=r, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab('Recall - Hand detection')
+
+p6 =ggplot(prf_by_age_hands, aes(x=age_day_bin, y=p, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth() +
+  ylab('Precision - Hand detection')
+#
+ggarrange(p4,p5,p6)
+```
+
+### Plot p/r/f/ by age/child for goldset annotations for locations for faces
+
+```{r}
+
+prf_by_location_faces <- d %>%
+  filter(!is.na(Location)) %>%
+  filter(!Location=='N/A') %>%
+  filter(count_locations==1) %>%
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_openpose)) %>%
+  group_by(age_day_bin, Location) %>%
+  do(return_prf(.$face_eval_ketan))
+
+prf_by_location_faces$age_day_bin  = as.numeric(as.character(prf_by_location_faces$age_day_bin))
+ggplot(prf_by_location_faces, aes(x=Location, y=f, col=Location, size=age_day_bin)) +
+  geom_point(alpha=.5) +
+  ylab('F-score - Face detection') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
