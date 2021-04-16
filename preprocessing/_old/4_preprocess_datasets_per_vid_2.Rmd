@@ -1,0 +1,56 @@
+---
+title: "saycam bb outputs compile"
+author: "Bria Long"
+date: "1/9/2020"
+output: html_document
+---
+
+# Basic data loading and setup
+## Packages
+```{r setup, include=FALSE}
+ knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(magick)
+library(stringr)
+library(lubridate)
+library(egg)
+library(here)
+theme_set(theme_few())
+## are we saving outputs
+saveFiles = TRUE
+```
+
+
+```{r}
+op_file_dir = "../data/op_outputs_per_vid/"
+op_files = dir(op_file_dir)
+
+```
+
+```{r}
+vid_index = 0
+for (vid_file in op_files) {
+  vid_index = vid_index + 1
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+   summary_vid_data <- this_vid_data %>%
+     group_by(frame, child_id, vid_name, right_side_up, age_days) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     group_by(child_id, vid_name, right_side_up, age_days) %>%
+     summarize(prop_hands = mean(hand_detected), prop_faces = mean(face_detected), num_detect = length(hand_detected))
+   
+   if (vid_index == 1 ){
+     all_vid_data <- summary_vid_data
+   }
+   else if (vid_index > 1) {
+   all_vid_data <- all_vid_data %>%
+     full_join(summary_vid_data)
+   }
+}
+```
