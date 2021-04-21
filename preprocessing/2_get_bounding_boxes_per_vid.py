@@ -16,21 +16,8 @@ frame_size = {'x':640, 'y':480} # pixels; keypoint x,y coords are normalized 0-1
 files = os.listdir(VID_PATH)
 
 # 130 for pose (18), face (70), L hand (21), and R hand (21) keypoints, in that order
+# https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/02_output.md
 
-
-
-def get_face_info(detection, conf_thres):
-	X = detection[0]
-	Y = detection[1]
-	conf = detection[2]
-	face_x = X[18:88]
-	face_y = Y[18:88]
-	face_conf = conf[18:88]
-	face_bb = get_bounding_box(face_x, face_y, np.mean(face_conf))
-	full_face = is_full_face(face_x, face_y, face_conf, conf_thres)
-	eye_distance = get_eye_distance(face_x, face_y, face_conf)
-	face_info = [face_bb, full_face, eye_distance]
-	return face_info
 
 def get_eye_distance(face_x, face_y, face_conf):
 	pupil_left_X = face_x[68]
@@ -51,7 +38,6 @@ def is_full_face(face_x, face_y, face_conf, conf_thres):
 	nose_conf = np.mean(face_conf[nose])
 	full_face = (mouth_conf>conf_thres) & (left_eye_conf>conf_thres) & (right_eye_conf>conf_thres) & (nose_conf>conf_thres)
 	return full_face
-
 
 def get_all_bounding_boxes(vid_name,detection,i,p,conf_thres=0):
 	# (X, Y, confidence) x 130 keypoints
@@ -133,7 +119,7 @@ for f in files:
 						detection = True
 						pose, face, rhand, lhand = get_all_bounding_boxes(vid_name,this_detection,i,p,0)  # all detections
 						pose_h, face_h, rhand_h, lhand_h = get_all_bounding_boxes(vid_name,this_detection,i,p,.5)  # high confidence detections
-						# append all detections
+						# append all bbs
 						df.append(pose)
 						if ~np.isnan(face[8]): # 8th column = mean confidence (as outputted by get_all_bounding_boxes)
 							df.append(face)
@@ -141,7 +127,7 @@ for f in files:
 							df.append(rhand)
 						if ~np.isnan(lhand[8]):
 							df.append(lhand)
-						# append high confidence detections
+						# append high confidence bbs
 						df_hc.append(pose_h)
 						if ~np.isnan(face_h[8]):
 							df_hc.append(face_h)
