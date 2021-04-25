@@ -5,7 +5,7 @@ import pandas as pd
 # load flattened numpy arrays per video, extracts bounding boxes for hands and faces
 # per frame, and saves as long format CSV (one row per bounding box, maximum 9 per frame)
 
-VID_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/openpose_saycam_flattened" 
+VID_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/outputs/openpose_flattened/" 
 OUT_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/"
 #VID_PATH = "openpose_flattened"
 #f = "A_20130531_0818_01.npy" # for testing
@@ -73,7 +73,7 @@ def get_all_bounding_boxes(vid_name,detection,i,p,conf_thres=0):
 	Rhand_y = Rhand_y[Rhand_conf>conf_thres]
 	# extra face information
 	full_face = is_full_face(face_x_all, face_y_all, face_conf, conf_thres)
-	eye_distance = get_eye_distance(face_x_all, face_y_all, face_conf_mean)
+	eye_distance = get_eye_distance(face_x_all, face_y_all, face_conf)
 	# get average conf of included points
 	pose_conf_mean = np.mean(pose_conf[pose_conf>conf_thres])
 	face_conf_mean = np.mean(face_conf[face_conf>conf_thres])
@@ -105,6 +105,7 @@ high_conf_thres=.5
 #  Problem processing A_20140609_2027_02
 #  Problem processing A_20130607_0825_01
 
+# f = "S_20140717_2100_05.npy"
 for f in files:
 	df = [] # list of bounding boxes
 	df_hc = [] # list of high confidence bounding boxes
@@ -117,8 +118,9 @@ for f in files:
 				for p in range(v.shape[1]): # person p
 					if np.sum(v[i][p][2])>0: # 0 confidence = no detection
 						detection = True
-						pose, face, rhand, lhand = get_all_bounding_boxes(vid_name,this_detection,i,p,0)  # all detections
-						pose_h, face_h, rhand_h, lhand_h = get_all_bounding_boxes(vid_name,this_detection,i,p,.5)  # high confidence detections
+						# Error: this_detection not defined, GK substituted v[i][p]
+						pose, face, rhand, lhand = get_all_bounding_boxes(vid_name,v[i][p],i,p,0)  # all detections
+						pose_h, face_h, rhand_h, lhand_h = get_all_bounding_boxes(vid_name,v[i][p],i,p,.5)  # high confidence detections
 						# append all bbs
 						df.append(pose)
 						if ~np.isnan(face[8]): # 8th column = mean confidence (as outputted by get_all_bounding_boxes)
@@ -143,12 +145,12 @@ for f in files:
 			df = pd.DataFrame(df)
 			df.columns = col_names
 			df.fillna('') # replace NaNs with emptiness
-			df.to_csv(OUT_PATH + vid_name+"_bounding_boxes.csv", index=False)
+			df.to_csv(os.path.join(OUT_PATH, vid_name+"_bounding_boxes.csv"), index=False)
 			# and for high confidence
 			df_hc = pd.DataFrame(df_hc)
 			df_hc.columns = col_names
 			df_hc.fillna('') # replace NaNs with emptiness
-			df_hc.to_csv(OUT_PATH + vid_name+"_bounding_boxes_high_conf.csv", index=False)
+			df_hc.to_csv(os.path.join(OUT_PATH, vid_name+"_bounding_boxes_high_conf.csv"), index=False)
 		except:
 			print("Problem processing "+vid_name)
 
