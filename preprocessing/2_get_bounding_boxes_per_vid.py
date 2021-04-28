@@ -106,6 +106,15 @@ high_conf_thres=.5
 #  Problem processing A_20130607_0825_01
 
 # f = "S_20140717_2100_05.npy"
+
+# A_20130721_1008_02.npy - array.shape = shape
+# ValueError: cannot reshape array of size 105207808 into shape (53953,5,3,130)
+
+# A_20130721_1008_02.npy
+# ValueError: cannot reshape array of size 105207808 into shape (53953,5,3,130)
+
+# Problem processing A_20130721_1008_02
+
 for f in files:
 	df = [] # list of bounding boxes
 	df_hc = [] # list of high confidence bounding boxes
@@ -139,8 +148,8 @@ for f in files:
 							df_hc.append(lhand)
 				# add a row indicating no detection for that frame (makes the file much larger)
 				if not detection:
-					df.append([vid_name, i, p, 'none', np.nan,np.nan, np.nan,np.nan,np.nan,np.nan,np.nan, np.nan])
-					df_hc.append([vid_name, i, p, 'none', np.nan,np.nan, np.nan,np.nan,np.nan,np.nan,np.nan, np.nan])
+					df.append([vid_name, i, np.nan, 'none', np.nan,np.nan, np.nan,np.nan,np.nan,np.nan,np.nan, np.nan])
+					df_hc.append([vid_name, i, np.nan, 'none', np.nan,np.nan, np.nan,np.nan,np.nan,np.nan,np.nan, np.nan])
 			# write out dataframes
 			df = pd.DataFrame(df)
 			df.columns = col_names
