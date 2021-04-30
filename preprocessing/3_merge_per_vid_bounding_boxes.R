@@ -16,20 +16,29 @@ print(length(files))
 df <- data.frame()
 
 #had to specify columns to get rid of the total column
+
+# file[i] = "A_20130531_0818_03_bounding_boxes_high_conf.csv" 
+#  -or-     "A_20130531_0818_03_bounding_boxes.csv"
 for (i in 1:length(files)) {
-  tmp <- fread(paste("/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes", files[i], sep='/'), stringsAsFactors = F) 
-  if(ncol(tmp)==9) {
-    tmp$V1 = NULL
+  tmp <- fread(paste(INDIR, files[i], sep='/'), stringsAsFactors = F) 
+  if(ncol(tmp)==12) {
     this_vid = str_remove(files[i], "_bounding_boxes.csv")
     tmp$child_id = strsplit(files[i], '_')[[1]][1]
+    if(strsplit(files[i], '_bounding_boxes')[[1]][2] == ".csv") {
+      file_postfix = "_BBs.Rds"
+    } else {
+      this_vid = str_remove(files[i], "_bounding_boxes_high_conf.csv")
+      file_postfix = "_high_conf_BBs.Rds"
+    }
     tmp$vid_name = this_vid
-    tmp = subset(tmp, mean_confidence!=0)
+    #tmp = subset(tmp, mean_confidence!=0) 
     #df <- rbindlist(list(df, tmp)) # , use.names = T
     #df = rbind(df, tmp)
-    saveRDS(tmp, file=paste0(OUTDIR,this_vid,"_BBs.Rds"))
+    saveRDS(tmp, file=paste0(OUTDIR,this_vid, file_postfix))
   } else {
     print(paste("check file: ",files[i])) # improper number of columns
   }
+  if(i %% 100 == 0) print(paste(i, "of", length(files)))
 }
 
 #df <- df %>% mutate(height = ifelse(child_id=="Y", height/480, height),
@@ -38,3 +47,9 @@ for (i in 1:length(files)) {
 #df$area = df$height * df$width
 #save(df, file="all_bounding_boxes.RData")
 
+# two empty files:
+#Warning messages:
+#1: In fread(paste(INDIR, files[i], sep = "/"), stringsAsFactors = F) :
+#  File '/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/S_20130622_0805_06_bounding_boxes.csv' has size 0. Returning a NULL data.table.
+#2: In fread(paste(INDIR, files[i], sep = "/"), stringsAsFactors = F) :
+#  File '/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/S_20130818_1001_02_bounding_boxes.csv' has size 0. Returning a NULL data.table.
