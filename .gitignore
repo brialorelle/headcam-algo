@@ -33,3 +33,26 @@ paper/cogsci/paper.tex
 analysis/.Rprofile
 data_cogsci.zip
 paper/cogsci/copy_for_extra_analysis.Rmd
+openpose_detections/extra_bounding_box_dev.py
+openpose_detections/test_json_to_numpy.py
+paper/cogsci/copy_for_extra_analysis 2.Rmd
+paper/figures/with_extra_icons.key
+
+paper/preprint/figs/*
+paper/preprint/figs/handLocation-1.png
+paper/preprint/figs/handLocation-1.pdf
+paper/preprint/figs/FacesAndHands-1.png
+paper/preprint/figs/FacesAndHands-1.pdf
+paper/preprint/figs/examples-1.pdf
+paper/preprint/figs/DetByLocation-1.png
+paper/preprint/figs/DetByLocation-1.pdf
+paper/preprint/figs/avgSizes-1.pdf
+paper/preprint/figs/handLocation-1.png
+paper/preprint/figs/handLocation-1.pdf
+paper/preprint/figs/FacesAndHands-1.png
+paper/preprint/figs/FacesAndHands-1.pdf
+paper/preprint/figs/examples-1.png
+paper/preprint/figs/examples-1.pdf
+paper/preprint/figs/DetByLocation-1.png
+paper/preprint/figs/DetByLocation-1.pdf
+paper/preprint/figs/avgSizes-1.pdf
