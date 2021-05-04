@@ -10,7 +10,7 @@ OUT_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/"
 #VID_PATH = "openpose_flattened"
 #f = "A_20130531_0818_01.npy" # for testing
 
-frame_size = {'x':640, 'y':480} # pixels; keypoint x,y coords are normalized 0-1, but go out of frame occasionall
+frame_size = {'x':640, 'y':480} # pixels; keypoint x,y coords are normalized 0-1, but go out of frame occasionally
 # min=-.22, max=1.16
 
 files = os.listdir(VID_PATH)
@@ -129,7 +129,7 @@ for f in files:
 						detection = True
 						# Error: this_detection not defined, GK substituted v[i][p]
 						pose, face, rhand, lhand = get_all_bounding_boxes(vid_name,v[i][p],i,p,0)  # all detections
-						pose_h, face_h, rhand_h, lhand_h = get_all_bounding_boxes(vid_name,v[i][p],i,p,.5)  # high confidence detections
+						pose_h, face_h, rhand_h, lhand_h = get_all_bounding_boxes(vid_name,v[i][p],i,p, high_conf_thres)  # high confidence detections
 						# append all bbs
 						df.append(pose)
 						if ~np.isnan(face[8]): # 8th column = mean confidence (as outputted by get_all_bounding_boxes)
@@ -145,7 +145,7 @@ for f in files:
 						if ~np.isnan(rhand_h[8]):
 							df_hc.append(rhand_h)
 						if ~np.isnan(lhand_h[8]):
-							df_hc.append(lhand)
+							df_hc.append(lhand_h)
 				# add a row indicating no detection for that frame (makes the file much larger)
 				if not detection:
 					df.append([vid_name, i, np.nan, 'none', np.nan,np.nan, np.nan,np.nan,np.nan,np.nan,np.nan, np.nan])
@@ -160,6 +160,7 @@ for f in files:
 			df_hc.columns = col_names
 			df_hc.fillna('') # replace NaNs with emptiness
 			df_hc.to_csv(os.path.join(OUT_PATH, vid_name+"_bounding_boxes_high_conf.csv"), index=False)
-		except:
+		except Exception as e:
 			print("Problem processing "+vid_name)
+			print(e)
 
