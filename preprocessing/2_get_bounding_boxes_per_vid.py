@@ -10,7 +10,7 @@ OUT_PATH = "/scratch/groups/mcfrank/Home_Headcam_new/bounding_boxes/"
 #VID_PATH = "openpose_flattened"
 #f = "A_20130531_0818_01.npy" # for testing
 
-frame_size = {'x':640, 'y':480} # pixels; keypoint x,y coords are normalized 0-1, but go out of frame occasionall
+frame_size = {'x':640, 'y':480} # pixels; keypoint x,y coords are normalized 0-1, but go out of frame occasionally
 # min=-.22, max=1.16
 
 files = os.listdir(VID_PATH)
@@ -145,7 +145,7 @@ for f in files:
 						if ~np.isnan(rhand_h[8]):
 							df_hc.append(rhand_h)
 						if ~np.isnan(lhand_h[8]):
-							df_hc.append(lhand)
+							df_hc.append(lhand_h)
 				# add a row indicating no detection for that frame (makes the file much larger)
 				if not detection:
 					df.append([vid_name, i, np.nan, 'none', np.nan,np.nan, np.nan,np.nan,np.nan,np.nan,np.nan, np.nan])
