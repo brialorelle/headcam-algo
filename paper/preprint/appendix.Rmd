@@ -197,6 +197,8 @@ all_vid_bbs <- all_vid_bbs %>%
 ```
 
 
+<!-- We also evaluated OpenPose's performance while restricting detections to high-confidence detections (>.5 confidence, default threshold for visualization). For faces, we found that the F-score was `r round(face_performance_hc[3],2)`, with a precision of `r round(face_performance_hc[1],2)` and recall of `r round(face_performance_hc[2],2)`. For hands, the F-score for high confidence detections `r round(hand_performance_hc[3],2)`, with a precision of `r round(hand_performance_hc[1],2)` and recall of `r round(hand_performance_hc[2],2)`. Thus, as in prior work [@long2020automated], while precision was much highe for both faces and hands, the lower recall for high-confidence detection indicates that these lower-confidence detections still index the presence of social information in the infant view.  -->
+
 ```{r}
 
 
