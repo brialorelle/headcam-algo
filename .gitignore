@@ -56,3 +56,9 @@ paper/preprint/figs/examples-1.pdf
 paper/preprint/figs/DetByLocation-1.png
 paper/preprint/figs/DetByLocation-1.pdf
 paper/preprint/figs/avgSizes-1.pdf
+paper/preprint/appendix.html
+paper/preprint/paper_revised_submission_april2021_apa.fff
+paper/preprint/paper_revised_submission_april2021_apa.log
+preprocessing/_dev/extra_bounding_box_dev.py
+preprocessing/_dev/json_to_npy_test.py
+preprocessing/_dev/testing_bbs.py
