@@ -181,7 +181,7 @@ ggplot(all_detections %>% filter(child_id %in% c('S','A')),
 We explored where in the visual field children tended to see faces and hands, suspecting, perhaps, that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank, 2012.  As expected, faces tended to appear in the upper visual field vs. hands, which tended to be more centrally located.  However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ -- and likely adults’ -- visual environment from 6 months of age.
 
 ```{r}
-bin_size=30
+bin_size=7
 min_age = min(all_vid_bbs$age_days, na.rm=TRUE)
 max_age = max(all_vid_bbs$age_days, na.rm=TRUE)
 bin_starts = seq(min_age-1, max_age+1,bin_size)
@@ -189,7 +189,7 @@ bins = c(bin_starts, max_age)
 
 all_vid_bbs <- all_vid_bbs %>%
   mutate(age_months = age_days/30.4) %>%
-  mutate(age_day_bin = cut(age_days, bins, labels=paste0(as.character(round(bin_starts/30,1)), ' m.o.'))) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=floor(bin_starts/30.4))) %>%
   mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
   mutate(avg_center_y = avg_top + avg_height/2, avg_center_x = avg_left + avg_width/2) %>%
   filter(num_detect > 100)
@@ -198,6 +198,33 @@ all_vid_bbs <- all_vid_bbs %>%
 
 
 <!-- We also evaluated OpenPose's performance while restricting detections to high-confidence detections (>.5 confidence, default threshold for visualization). For faces, we found that the F-score was `r round(face_performance_hc[3],2)`, with a precision of `r round(face_performance_hc[1],2)` and recall of `r round(face_performance_hc[2],2)`. For hands, the F-score for high confidence detections `r round(hand_performance_hc[3],2)`, with a precision of `r round(hand_performance_hc[1],2)` and recall of `r round(hand_performance_hc[2],2)`. Thus, as in prior work [@long2020automated], while precision was much highe for both faces and hands, the lower recall for high-confidence detection indicates that these lower-confidence detections still index the presence of social information in the infant view.  -->
+
+
+
+```{r}
+CV_faces <- all_vid_bbs %>%
+  filter(label=='face') %>%
+  group_by(age_day_bin,child_id) %>%
+  summarize(cv_x_pos = sd(avg_center_x)/mean(avg_center_x)*100, cv_y_pos = sd(avg_center_y)/mean(avg_center_y)*100, num_detect = sum(num_detect), num_vids = n()) %>%
+  pivot_longer(cols = c(cv_y_pos, cv_x_pos), values_to = "CV", names_to = "position") %>%
+  mutate(position = factor(position, levels = c("cv_x_pos","cv_y_pos"), labels = c("X Position", "Y Position")))
+
+```
+
+```{r}
+ggplot(CV_faces, aes(x=age_day_bin , y = CV, size=num_detect, color=child_id)) +
+  geom_point(alpha=.3) + 
+  facet_wrap(~position)  +
+  geom_smooth(method='lm') +
+  scale_color_brewer(palette='Dark2') + 
+  ylab('Coefficient of variation for face position') +
+  xlab('Age (in months)') +
+  guides(size = FALSE)
+```
+
+
+
+
 
 ```{r}
 
