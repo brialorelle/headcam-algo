@@ -22,12 +22,12 @@ theme_set(theme_few())
 
 
 ```{r}
-load(file=here::here('data/preprocessed_data_2021/bounding_box_summaries.RData'))
+load(file=here::here('data/preprocessed_data_2021/bounding_box_summaries_all.RData'))
 ```
 
 ## construct age bins for plotting
 ```{r}
-bin_size=90
+bin_size=7
 min_age = min(all_vid_bbs$age_days, na.rm=TRUE)
 max_age = max(all_vid_bbs$age_days, na.rm=TRUE)
 bin_starts = seq(min_age-1, max_age+1,bin_size)
@@ -36,33 +36,53 @@ bins = c(bin_starts, max_age)
 all_vid_bbs <- all_vid_bbs %>%
   mutate(age_months = age_days/30.4) %>%
   mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
-  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) 
-```
-
-
-## restrict to face/hands for now
-```{r}
-face_hands <- all_vid_bbs %>%
-  filter(!label=='pose') %>%
-  mutate(avg_center_y = avg_top + avg_height/2, avg_center_x = avg_left + avg_width/2)
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin)))  %>%
+ mutate(avg_center_y = avg_top + avg_height/2, avg_center_x = avg_left + avg_width/2) %>%
+  filter(!avg_area==0) # a very few bounding boxes with zero areas (all keypoints on one plane as faces)
+  
 ```
 
 ```{r}
-ggplot(face_hands, aes(x=age_days/30.4, y=log(avg_area), col=label, size=num_detect)) +
+avg_area_by_age <- all_vid_bbs %>%
+  group_by(age_day_bin, child_id, label) %>%
+  summarize(avg_area = mean(avg_area), num_detect = sum(num_detect)) %>%
+  mutate(label = factor(label, levels = c('pose','face','hand'), labels = c('Full pose','Faces','Hands'))) %>%
+  mutate(child_id = as.factor(child_id))
+  
+ggplot(avg_area_by_age, aes(x=age_day_bin, y=log(avg_area), col=child_id, size=num_detect)) +
   geom_point(alpha=.1) +
-  facet_grid(~child_id) +
-  geom_smooth(span=10000000) + # lol what
+  facet_grid(~label) +
+  geom_smooth(method='lm') + 
   ylab('Log (average area)') +
-  xlab('Age in days')
+  xlab('Age in days') +
+  scale_color_brewer(palette="Dark2", name = "Child") +
+  guides(size = FALSE)
+
 ```
 
 ```{r}
-ggplot(face_hands, aes(x=age_days, y=log(avg_height), col=label, size=num_detect)) +
+summary(lmer(log(avg_area) ~ age_days + (1|child_id), data=all_vid_bbs %>% filter(label=='hand')))
+
+summary(lmer(log(avg_area) ~ age_days + (1|child_id), data=all_vid_bbs %>% filter(label=='face')))
+
+summary(lmer(log(avg_area) ~ age_days + (1|child_id), data=all_vid_bbs %>% filter(label=='pose')))
+
+```
+
+
+
+
+
+```{r}
+ggplot(face_hands , aes(x=age_days, y=log(avg_area), col=label, size=num_detect)) +
   geom_point(alpha=.1) +
   facet_grid(~child_id) +
-  geom_smooth(span=10000000) + # lol what
+  geom_smooth(method='lm') + 
   ylab('Log (average height)') +
   xlab('Age in days')
+
+
+summary(lmer(log(avg_area) ~ age_days + label + (1|child_id), data  = face_hands %>% filter(!avg_area==0) %>% filter(label=='hand'))
 ```
 
 ```{R}
