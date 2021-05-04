@@ -1,0 +1,112 @@
+---
+title: "bounding_box_preprocesing"
+author: "Bria Long"
+date: "7/16/2020"
+output: html_document
+---
+
+
+# Basic data loading and setup
+## Packages
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(lubridate)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(stringr)
+library(here)
+theme_set(theme_few())
+```
+
+## Info to compute ages
+```{r}
+bday_s_approx = lubridate::ymd(20121017)
+bday_a_approx = lubridate::ymd(20120913)
+bday_y_approx = lubridate::ymd(20180214)
+
+
+bday = c(bday_s_approx,bday_a_approx, bday_y_approx)
+child_id  = c('S','A','Y')
+age_info = tibble(bday,child_id)
+```
+
+## Paths to raw outputs & datafiles
+```{r}
+op_file_dir = here::here("data/op_outputs_per_vid_rds/")
+op_files = dir(op_file_dir)
+# op_files = op_files [1] # for testing
+
+allocentric_file = here::here("data/raw_data/SAYCAM_allocentric_videos.csv")
+to_exclude =read.csv(allocentric_file)
+
+# get INCORRECT videos where allocentric videopoint 
+to_exclude <- to_exclude %>%
+  filter(allocentric==1) %>%
+  rename(vid_name = video)
+```
+
+## Main detections: read in bounding box outputs from each vid, summarize and compile.
+```{r}
+reload_data=TRUE
+# instead of loading each vid, load summary...
+
+# vid params
+y_max = 480
+x_max = 640
+
+if (reload_data){
+vid_index = 0
+for (vid_file in op_files) {
+  vid_index = vid_index + 1
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid_rds/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+
+   # if data wasn't normalized -- some (but not all!) Y videos
+   if (this_vid_data$child_id[1]=='Y' &  max(this_vid_data$height, na.rm=TRUE)>1) {
+     this_vid_data <- this_vid_data %>% 
+        mutate(top = top/y_max, height = height/y_max, left = left/x_max, width = width/x_max)
+   }
+      
+   this_vid <- this_vid_data %>%
+      filter(!is.na(height)) %>%
+      filter(mean_confidence > 0) %>% # sanity
+      mutate(area = height * width) %>%
+      group_by(label, child_id, vid_name) %>%
+      summarize(num_detect = length(height), avg_area = median(area), avg_height = median(height), avg_width = median(width), avg_left = median(left), avg_top = median(top))
+
+   
+   empty_vid = (length(this_vid$num_detect)==0)
+   if (empty_vid) {
+     print(vid_file)
+    }
+
+   if (vid_index == 1 ){
+     all_vid_bbs <- this_vid
+   }
+   else if (vid_index > 1 && empty_vid==FALSE) {
+   all_vid_bbs <- all_vid_bbs %>%
+     full_join(this_vid)
+   }
+}
+}
+```
+
+
+```{r}
+all_vid_bbs <- all_vid_bbs %>%
+  left_join(age_info) %>%
+  rowwise() %>%
+  mutate(date_filmed = lubridate::ymd(str_split_fixed(vid_name,"_",4)[[2]])) %>%
+  mutate(age_days = as.numeric(difftime(date_filmed,bday)) )
+
+save(all_vid_bbs,file=here::here('data/preprocessed_data_2021/bounding_box_summaries_all.RData'))
+
+```
+
+
+
