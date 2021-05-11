@@ -293,7 +293,6 @@ Finally, we examined whether the precision, recall, and F-score for hands and fa
 # Results and Discussion
 
 ## Access to social information across age
-
 ```{r}
 ## summary for all detections
 face_hand_by_age <- all_vid_data %>%
@@ -487,11 +486,11 @@ face_hand_contingency <- face_hand_by_age %>%
 ```
 
 ```{r faceHandContingency, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of joint face/hands detection within frames where frames/ were detected." }
-face_hand_contingency_plot <- ggplot(face_hand_contingency, 
+ggplot(face_hand_contingency, 
        aes(x=age_day_bin, y=prop, 
            col=child_id)) +
   geom_point(alpha=.1, aes(size=log10(num_frames_total)), show.legend= FALSE) +
-  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = TRUE) + 
+  geom_smooth(method='lm', aes(weight = num_frames_total), show.legend = TRUE) + 
   ylab('Proportion joint hand/face detection') + 
   xlab('Age (Months)') +
   theme_few(base_size=12) +
@@ -505,7 +504,7 @@ face_hand_contingency_plot <- ggplot(face_hand_contingency,
 
 ## Variability in social information across learning contexts 
 ```{r}
-load(here::here('data/data_preprint/saycam_metadata.RData')) # meta
+load(here::here('data/preprocessed_data_2021/saycam_metadata.RData')) # meta
 
 num_videos_annotated = sum(!is.na(meta$Location))
 videos_included = sum(!is.na(meta$Location) & meta$count_locations==1)
@@ -599,7 +598,7 @@ ggplot(all_to_plot, aes(x = Location, y = mean, col=region)) +
   coord_flip() + 
   ylab('Proportion Detected')+
   xlab('')+
-  theme_few(base_size=18) +
+  theme_few(base_size=12) +
   theme(legend.position = "bottom") +
   facet_grid(.~child_id)  +
   scale_size_continuous(name = "Detections (Log 10)") +
@@ -659,6 +658,7 @@ This difference is likely explained by differences in arrangement of the kitchen
 This example illustrates how specifics of the geometry of a particular context can play an outsize role in the child's access to social information during that context. 
 
 ## Fine-grained changes in the social information in view
+
 ```{r}
 ## construct age bins for plotting
 bin_size=7
