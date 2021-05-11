@@ -1,8 +1,9 @@
 ---
-title: "Appendix"
-author: "Bria Long"
-date: "5/3/2021"
-output: html_document
+title: Appendix to 'Detecting social information in a dense database of infants’ natural
+  visual experience'
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
 ---
 
 
@@ -178,7 +179,10 @@ ggplot(all_detections %>% filter(child_id %in% c('S','A')),
 
 
 # Distribution of faces and hands in the visual field
-We explored where in the visual field children tended to see faces and hands, suspecting, perhaps, that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank, 2012.  As expected, faces tended to appear in the upper visual field vs. hands, which tended to be more centrally located.  However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ -- and likely adults’ -- visual environment from 6 months of age.
+
+We explored where in the visual field children tended to see faces and hands, suspecting that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank (2012).  
+As expected, faces tended to appear in the upper visual field in contrast to hands, which tended to be more centrally located.  
+However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ -- and perhaps adults’ -- visual environment from 6 months of age.
 
 ```{r}
 bin_size=7
@@ -197,8 +201,13 @@ all_vid_bbs <- all_vid_bbs %>%
 ```
 
 
-<!-- We also evaluated OpenPose's performance while restricting detections to high-confidence detections (>.5 confidence, default threshold for visualization). For faces, we found that the F-score was `r round(face_performance_hc[3],2)`, with a precision of `r round(face_performance_hc[1],2)` and recall of `r round(face_performance_hc[2],2)`. For hands, the F-score for high confidence detections `r round(hand_performance_hc[3],2)`, with a precision of `r round(hand_performance_hc[1],2)` and recall of `r round(hand_performance_hc[2],2)`. Thus, as in prior work [@long2020automated], while precision was much highe for both faces and hands, the lower recall for high-confidence detection indicates that these lower-confidence detections still index the presence of social information in the infant view.  -->
-
+```{r, eval=F, include=F}
+# add back to text when high-conf BBs are processed:
+# We also evaluated OpenPose's performance while restricting detections to high-confidence detections (>.5 confidence, default threshold for visualization). 
+#For faces, we found that the F-score was `r round(face_performance_hc[3],2)`, with a precision of `r round(face_performance_hc[1],2)` and recall of `r round(face_performance_hc[2],2)`. 
+#For hands, the F-score for high-confidence detections was `r round(hand_performance_hc[3],2)`, with a precision of `r round(hand_performance_hc[1],2)` and recall of `r round(hand_performance_hc[2],2)`. 
+#Thus, as in prior work [@long2020automated], while precision was much higher for both faces and hands, the lower recall for high-confidence detections indicates that these lower-confidence detections still index the presence of social information in the infant view.  
+```
 
 
 ```{r}
@@ -211,10 +220,11 @@ CV_faces <- all_vid_bbs %>%
 
 ```
 
-```{r}
+```{r, fig.width=6.5, fig.height=4, fig.cap="ToDo"}
 ggplot(CV_faces, aes(x=age_day_bin , y = CV, size=num_detect, color=child_id)) +
   geom_point(alpha=.3) + 
-  facet_wrap(~position)  +
+  facet_wrap(~position) +
+  theme_few(base_size=14) +
   geom_smooth(method='lm') +
   scale_color_brewer(palette='Dark2') + 
   ylab('Coefficient of variation for face position') +
@@ -226,10 +236,7 @@ ggplot(CV_faces, aes(x=age_day_bin , y = CV, size=num_detect, color=child_id)) +
 
 
 
-```{r}
-
-
-Caption="Each panel shows the average position of faces and hands in the visual field; each dot represents the average position from one video within a given age range."
+```{r, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field; each dot represents the average position from one video within a given age range."}
 
 ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
   geom_point(alpha=.3) + 
@@ -239,7 +246,7 @@ ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x ,
   ylab('') +
   xlab('') +
   theme_few(base_size=14) +
-  theme(legend.position="right", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  theme(legend.position="top", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
   scale_y_reverse() +
   facet_wrap(~age_day_bin) +
   guides(size = FALSE) +

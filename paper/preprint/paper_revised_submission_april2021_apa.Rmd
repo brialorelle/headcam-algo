@@ -43,7 +43,10 @@ draft             : no
 
 documentclass     : "apa6"
 classoption       : "man"
-output            : papaja::apa6_pdf
+output            : 
+  papaja::apa6_pdf:
+    includes:
+      after_body: "appendix.tex"
 ---
 
 ```{r setup, include = FALSE}
@@ -290,7 +293,8 @@ We suspected that this was in part because children’s own hands were often in 
 Finally, we examined whether the precision, recall, and F-score for hands and faces varied with age or child, and did not find substantial variation. Thus, while OpenPose was trained on photographs from the adult perspective, this model still generalized relatively well to the egocentric infant viewpoint with no fine-tuning or post-processing of the detections.  As these detections were imperfect compared to human annotators, fine-tuning these models to better optimize for the infant viewpoint remains an open avenue for future work. Standard computer vision models are rarely trained on the egocentric viewpoint, and we suspect that training these models on more naturalistic data may lead to more robust, generalizable detectors. 
 
 
-# Results
+# Results and Discussion
+
 ## Access to social information across age
 ```{r}
 ## summary for all detections
@@ -364,6 +368,7 @@ However, the most striking result from these analyses is a much overall greater 
 
 One reason this could be the case is the much larger field of view that was captured by the cameras used in this study: These cameras were outfitted with a fish-eye lens in an attempt to capture as much of the children’s field of view as possible, leading to a larger field of view (109 degrees horizontal x 70 degrees vertical) than in many previous studies; for example, in @Fausey2016 the FOV was 69 x 41 degrees. This larger FOV may have allowed the SAYCam cameras to capture not only the presence of a social partner’s hands interacting with objects or gestures, but also the children’s own hands, leading to more frequent hand detections.
 
+<!-- FIXME - references not rendering for -->
 As we found that children's hands tended to occur in the lower visual field (see Figure \ref{fig:handLocation}), we thus re-analyzed the entire dataset while restricting our analysis to the center field of view, decreasing the proportion of hand detections from `r round(sum(all_vid_data$num_hands)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_hands_center,na.rm=TRUE)/sum(all_vid_data$num_frames),2)*100`%, but only decreased face detections from `r round(sum(all_vid_data$num_faces)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_faces_center,na.rm=TRUE)/sum(all_vid_data$num_frames),3)*100`%. This cropping likely removed both the majority of detections of children's own hands but also some detections of adult hands (see Figure \ref{fig:handLocation}), especially as OpenPose was biased to miss children's hands when they were in view. Nonetheless, within this modified field of view, we still observed more hand detections than face detections (see dashed lines in Figure \ref{fig:FacesAndHands}). We also still found a higher proportion of hands in view relative to faces when excluding any frames containing child hand's from the human annotated gold sample (see Appendix Figure\ref{fig:goldSetSanity}). 
 
 Finally, we analyzed how these two sources of social information co-occurred, finding  that faces/hands were jointly present in `r sum(all_vid_data$faces_and_hands,na.rm=TRUE)/sum(all_vid_data$num_frames)*100` percent of frames (see face hand-occurrences across age in Figure \ref{fig:faceHandDetailed}). To do so, we  calculated the number of frames in which infants saw faces and hands together relative to overall proportions of faces/hands that were detected for each child and age range. We found that all three infants than were more likely see hands independently -- without the presence of a face -- that they were likely to see faces independently. That is, generally speaking when a face was present, a hand also tended to be present. 
@@ -453,7 +458,7 @@ face_hand_detailed_plot <- face_hand_by_age %>%
 
 ```
 
-```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of face, hand, 'full' face (i.e. nose, mouth, and nose visilbe), and joint face/hand detections as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range." }
+```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of face, hand, full face (i.e., nose, mouth, and nose visible), and joint face/hand detections as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range." }
 ggplot(face_hand_detailed_plot, 
        aes(x=age_day_bin, y=prop, 
            col=region)) +
@@ -634,10 +639,29 @@ chisq.test(Hands_S)
 ```
 
 
-How does variability across different learning contexts influence the social information in the infant view? Intuitively, some activities in different contexts may be characterized by a much higher proportion of faces (e.g., diaper changes in bedrooms) than others (e.g., playtime in the living room). We thus next examined variation in presence of hands and faces across different locations. Of the `r num_videos` videos, `r num_videos_annotated` were annotated [@SAYcam] for the location they were filmed in. Of these, `r videos_included` videos were filmed in single location, representing 17 percent of the dataset and over 5 million frames. Activities varied somewhat predictably by these contexts: for example, eating tended to occur in the kitchen, whereas playtime was the dominant activity in the living room. Overall, we found that the proportion of faces vs. hands varied across filming locations, and, to some extent, across children; separate chi-squared tests for each child and detection type revealed significant variability in detections by location in each case ^[all *p*<.001, see accompanying codebase]. For example, while both A and S saw a relatively similar proportion of faces vs. hands in the bedroom, they saw quite different amounts of faces vs. hands in kitchens (see Figure \ref{fig:DetByLocation}). 
+How does the child's context influence the social information in view? 
+@bruner1985role discussed the role of children's activities in shaping the information present for learning. Following this idea, we investigated whether there were differences in access to faces by the activity that the child was engaged in. 
+This hypothesis seems intuitively appealing.  
+Some activities seem likely to be characterized by a much higher proportion of faces (e.g., diaper changes) than others (e.g., a car trip). 
+Following this same idea, perhaps other activities involve the presence of more hands in the field of view (e.g., playtime). 
 
+We did not have access to annotations of activity. 
+Thus, following @roy2015predicting, we used spatial location as a proxy for activity context, taking advantage of the presence of these annotations for a subset of the SAYCam videos. 
+Of the `r num_videos` videos in the dataset, `r num_videos_annotated` were annotated for the location or locations they were filmed in. 
+These location annotations were only available for two children, S and A.
+Annotated locations mostly consisted of rooms of the house (e.g., "living room") but also included some other locations (e.g., "car," "outside").
+Of this set, `r videos_included` videos were filmed in only a single location (e.g., the location label did not change within the video), representing 17 percent of the dataset and over 5 million frames. 
+In our viewing of the SAYCam videos and in other annotations available with the dataset, activities varied somewhat predictably by location: for example, eating tended to occur in the kitchen, whereas playtime was the dominant activity in the living room. 
+
+Figure \ref{fig:DetByLocation} shows the proportion of faces vs. hands across locations. 
+We found substantial variation across locations and, to some extent, across children. 
+Separate chi-squared tests for each child and detection type revealed significant variability in detections by location in each case, with all $p$s $<.001$. 
+For example, while both A and S saw a relatively similar proportion of faces and hands in the bedroom, the two children saw quite different amounts of faces and hands from one another in the kitchen. 
+This difference is likely explained by differences in arrangement of the kitchen in the two children's households (Sullivan, personal communication), such that mealtimes in one kitchen resulted in a face-to-face orientation while it did not in the other). 
+This example illustrates how specifics of the geometry of a particular context can play an outsize role in the child's access to social information during that context. 
 
 ## Fine-grained changes in the social information in view
+
 ```{r}
 ## construct age bins for plotting
 bin_size=7
@@ -654,18 +678,6 @@ all_vid_bbs <- all_vid_bbs %>%
   filter(!avg_area==0) # a very few bounding boxes with zero areas (all keypoints on one plane as faces
 ```
 
-
-```{r}
-# Changes in full vs. all faces? --- not significant, inconsistent results across kids
-# diff_full_vs_all <- face_hand_by_age %>%
-#   mutate(diff = prop_faces - prop_full_faces)
-#
-# ggplot(diff_full_vs_all, aes(x=age_day_bin, y=diff, color=child_id, size=num_frames_total)) +
-#   geom_point(alpha=.2) +
-#   geom_smooth(method='lm')
-#
-# summary(lmer(data=diff_full_vs_all, diff ~ scale(age_day_bin) + scale(num_frames_total) + (1|child_id)))
-```
 
 ```{r}
 # for plotting average area / age for each type 
@@ -777,19 +789,53 @@ y_pos_summary = summary(lmer(data=CV_faces %>% filter(position == 'Face Y Positi
 ```
 
 
-```{r faceDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "(A).Average distance between eyes and (B) average coefficient of variation for the x and y position of faces detected by OpenPose as a function of each child's age at the time of filming. Data in (A) are restricted to faces where both eyes were detected. Data are binned by each week that the videos were filmed and scaled by the number of face detections in that age range."}
+```{r faceDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "(A) Average distance between eyes and (B) average coefficient of variation for the x and y position of faces detected by OpenPose as a function of each child's age at the time of filming. Data in (A) are restricted to faces where both eyes were detected. Data are binned by each week that the videos were filmed and scaled by the number of face detections in that age range."}
 
 cowplot::plot_grid(eye_dist_plot, CV_faces_plot, rel_widths=c(1,2))
 ```
-In a second set of analysis, we explored fine-grained changes in how these infants  experienced social information across development, capitalizing on the fact that OpenPose provides not only face and hand detections but also positional keypoints. In particular, we explored this dataset with the idea that younger, less mobile children may tend to see larger faces towards the center of their visual field while older, more mobile children may experience more smaller, more variable views of faces.
+In a third set of analyses, we explored fine-grained changes in the SAYCam infants' access to social information across development.
+In these analyses, we capitalize on the fact that OpenPose provides not only face and hand detections but also positional keypoints. 
+In particular, we explored this keypoint dataset with the idea that greater mobility allows older children to be further from their caregivers on average. 
+Thus, younger, less mobile children may tend to see larger faces towards the center of their visual field while older, more mobile children may experience more smaller, more variable views of faces.
+The same dynamic would be predicted hold for hands as well, as it would be driven by overall differences in distance. 
 
 <!-- Next, we examined detailed changes in how infants viewed faces across development. -->
-Supporting this idea, we found that the averages sizes of the people, faces, and hands in the infant view became smaller over development (Figure \ref{fig:avgSizes}). This effect was relatively consistent across the three children in the dataset, despite the fact that the three children showed sometimes disparate overall proportions of faces/hands in view. Thus, children may see closer, larger views of people, hands, and faces earlier in development. In keeping with this hypothesis, we also found evidence that faces tended to be become farther away from children across development (restricting our analysis to faces where both eyes were detected): Figure \ref{fig:faceDetailed}A shows the average interpupillary distance on faces as a function of each child’s age at the time of recording, showing a trend from larger, closer faces (with a larger interpupillary distance) to smaller faces that were farther away (with a smaller interpupillary distance). However, we found relatively equal proportions of complete, full-view faces across development (see Figure \ref{fig:faceHandDetailed}: in other words, these very close views of eyes experienced by younger infants were sometimes partial views.
+Supporting this idea, we found that the averages sizes of the people, faces, and hands in the infant view became smaller over development (Figure \ref{fig:avgSizes}). 
+This effect was relatively consistent across the three children in the dataset, despite the fact that the three children showed sometimes disparate overall proportions of faces/hands in view. 
+Thus, children may see closer, larger views of people, hands, and faces earlier in development. 
 
-Finally, we also examined whether there were changes in where faces tended to appear in the infant view. As expected, faces tended to be located towards the upper field of view, while views of hands were more centrally distributed (see Appendix, Figure XX for average density distributions). However, we also found evidence that older children tended to see more faces in more variable positions than younger children. Specifically, we examined how variable the horizontal and vertical coordinates were of the faces in the infant view. To do so, we calculated the coefficient of variation of the x and vertical y positions of centers of the faces detected by OpenPose (see Figure \ref{fig:faceDetailed}B), and examined changes across age. First, we found that faces tended to be more variable in the vertical than their horizontal position (see Figure \ref{fig:faceDetailed}B); evidenced by a much higher coefficeints of variation in the y-direction. We also found that as children got older, they tended to see faces that varied more in their horizontal -- but not their vertical position -- suggesting that older children might be more likely to see more smaller faces in their periphery (see Figure \ref{fig:faceDetailed}B).
+In keeping with this hypothesis, we also found evidence that faces tended to be farther away from older children. 
+We restricted our analysis here to faces where both eyes were detected and computed interpupillary distance as a rough metric of distance, since eyes should be closer together on average when a face is further from the camera. 
+Figure \ref{fig:faceDetailed}A shows the average interpupillary distance on faces as a function of each child’s age at the time of recording. 
+There is a trend from larger, closer faces (with a larger interpupillary distance) to smaller faces that were farther away (with a smaller interpupillary distance). 
+<!-- However, in our previous analysis we found relatively equal proportions of complete, full-view faces across development (see e.g., Figure \ref{fig:faceHandDetailed}, where full view faces stayed relatively constant as a proportion of all detected faces).  -->
 
+
+```{r}
+# Changes in full vs. all faces? --- not significant, inconsistent results across kids
+# diff_full_vs_all <- face_hand_by_age %>%
+#   mutate(diff = prop_faces - prop_full_faces)
+#
+# ggplot(diff_full_vs_all, aes(x=age_day_bin, y=diff, color=child_id, size=num_frames_total)) +
+#   geom_point(alpha=.2) +
+#   geom_smooth(method='lm')
+#
+# summary(lmer(data=diff_full_vs_all, diff ~ scale(age_day_bin) + scale(num_frames_total) + (1|child_id)))
+```
+
+<!-- NEED TO LOOK AT PROPORTION OF FULL FACES IN ALL FACES -->
+<!-- : in other words, these very close views of eyes experienced by younger infants were sometimes partial views. -->
+
+Finally, we also examined whether there were changes in where faces tended to appear in the camera's (and hence, by proxy, the child's) field of view. 
+As expected, faces tended to be located towards the upper field of view, while views of hands were more centrally distributed (see Appendix, Figure XX for average density distributions). 
+However, we also found evidence that older children tended to see more faces in more variable positions than younger children. 
+Specifically, we examined how variable the horizontal and vertical coordinates were of the faces in the infant view. 
+To do so, we calculated the coefficient of variation of the horizontal (x) and vertical (y) positions of centers of the faces detected by OpenPose (see Figure \ref{fig:faceDetailed}B), and examined changes across age. 
+Faces tended to be more variable in the vertical than their horizontal position (see Figure \ref{fig:faceDetailed}B). 
+We also found that as children got older, they tended to see faces that varied more in their horizontal -- but not their vertical position -- suggesting that older children might be more likely to see more smaller faces in their periphery (see Figure \ref{fig:faceDetailed}B).
 
 # General Discussion
+
 Here, we analyzed the social information in view in a dense, longitudinal dataset, applying a modern computer-vision model to quantify the hands and faces seen from each of three children's egocentric perspective from 6 to 32 months of age. First, we found a moderate decrease across age in the proportion of faces in view in the videos, in keeping with previous work [@Fausey2016]. This finding is particularly notable given that, in previous cross-sectional data, this effect seems to be most strongly driven by infants younger than 4 months of age [e.g., @Fausey2016; @Jayaraman2015; @Sugden2014] who see both more frequent and more persistent faces [@Jayaraman2018].  We also found this to be true when restricting our analyses to full-field faces, suggesting this effect is not driven by a concurrent shift from more full-view to partial-views of faces.
 
 We also found an unexpectedly high proportion of hands in the view of infants, even when restricting the field-of-view to the center field of view the videos to make the viewpoints comparable to those of headcams used in previous work [@Fausey2016]. Why might this be the case? One idea is that these videos contain the viewpoints of children not only during structured interactions (e.g., play sessions at home or in the lab) but during everyday activities when children may be playing by themselves or simply observing the actions of caregivers and other people in their environment. During these less structured times, caregivers may move about in the vicinity of the child but not interact with them as directly---leading to views where a person and their hands are visible from a distance, but this person's face may be turned away from the infant or occluded (see examples in Figure 1). Indeed, using the same pose detector on videos from in-lab play sessions, @sanchez2018postural found the opposite trend: slightly fewer hand detections than face detections from 8-16 months of age. Work that directly examines the variability in the social information in view across more vs. less structured activity contexts could further test this idea.
@@ -807,6 +853,10 @@ Nonetheless, we believe that these advances in datasets and methodologies repres
 Thanks to the creators of the SAYCam dataset who made this work possible and to Alessandro Sanchez for his contributions to the codebase. This work was funded by a Jacobs Foundation Fellowship to MCF, a John Mereck Scholars award to MCF, and NSF #1714726 to BLL. 
 
 \newpage
+
+```{r appendix, include = FALSE}
+render_appendix("appendix.Rmd")
+```
 
 # References
 ```{r create_r-references}
