@@ -677,18 +677,6 @@ all_vid_bbs <- all_vid_bbs %>%
 
 
 ```{r}
-# Changes in full vs. all faces? --- not significant, inconsistent results across kids
-# diff_full_vs_all <- face_hand_by_age %>%
-#   mutate(diff = prop_faces - prop_full_faces)
-#
-# ggplot(diff_full_vs_all, aes(x=age_day_bin, y=diff, color=child_id, size=num_frames_total)) +
-#   geom_point(alpha=.2) +
-#   geom_smooth(method='lm')
-#
-# summary(lmer(data=diff_full_vs_all, diff ~ scale(age_day_bin) + scale(num_frames_total) + (1|child_id)))
-```
-
-```{r}
 # for plotting average area / age for each type 
 avg_area_by_age <- all_vid_bbs %>%
   group_by(age_day_bin, child_id, label) %>%
@@ -798,16 +786,50 @@ y_pos_summary = summary(lmer(data=CV_faces %>% filter(position == 'Face Y Positi
 ```
 
 
-```{r faceDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "(A).Average distance between eyes and (B) average coefficient of variation for the x and y position of faces detected by OpenPose as a function of each child's age at the time of filming. Data in (A) are restricted to faces where both eyes were detected. Data are binned by each week that the videos were filmed and scaled by the number of face detections in that age range."}
+```{r faceDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "(A) Average distance between eyes and (B) average coefficient of variation for the x and y position of faces detected by OpenPose as a function of each child's age at the time of filming. Data in (A) are restricted to faces where both eyes were detected. Data are binned by each week that the videos were filmed and scaled by the number of face detections in that age range."}
 
 cowplot::plot_grid(eye_dist_plot, CV_faces_plot, rel_widths=c(1,2))
 ```
-In a second set of analysis, we explored fine-grained changes in how these infants  experienced social information across development, capitalizing on the fact that OpenPose provides not only face and hand detections but also positional keypoints. In particular, we explored this dataset with the idea that younger, less mobile children may tend to see larger faces towards the center of their visual field while older, more mobile children may experience more smaller, more variable views of faces.
+In a third set of analyses, we explored fine-grained changes in the SAYCam infants' access to social information across development.
+In these analyses, we capitalize on the fact that OpenPose provides not only face and hand detections but also positional keypoints. 
+In particular, we explored this keypoint dataset with the idea that greater mobility allows older children to be further from their caregivers on average. 
+Thus, younger, less mobile children may tend to see larger faces towards the center of their visual field while older, more mobile children may experience more smaller, more variable views of faces.
+The same dynamic would be predicted hold for hands as well, as it would be driven by overall differences in distance. 
 
 <!-- Next, we examined detailed changes in how infants viewed faces across development. -->
-Supporting this idea, we found that the averages sizes of the people, faces, and hands in the infant view became smaller over development (Figure \ref{fig:avgSizes}). This effect was relatively consistent across the three children in the dataset, despite the fact that the three children showed sometimes disparate overall proportions of faces/hands in view. Thus, children may see closer, larger views of people, hands, and faces earlier in development. In keeping with this hypothesis, we also found evidence that faces tended to be become farther away from children across development (restricting our analysis to faces where both eyes were detected): Figure \ref{fig:faceDetailed}A shows the average interpupillary distance on faces as a function of each child’s age at the time of recording, showing a trend from larger, closer faces (with a larger interpupillary distance) to smaller faces that were farther away (with a smaller interpupillary distance). However, we found relatively equal proportions of complete, full-view faces across development (see Figure \ref{fig:faceHandDetailed}: in other words, these very close views of eyes experienced by younger infants were sometimes partial views.
+Supporting this idea, we found that the averages sizes of the people, faces, and hands in the infant view became smaller over development (Figure \ref{fig:avgSizes}). 
+This effect was relatively consistent across the three children in the dataset, despite the fact that the three children showed sometimes disparate overall proportions of faces/hands in view. 
+Thus, children may see closer, larger views of people, hands, and faces earlier in development. 
 
-Finally, we also examined whether there were changes in where faces tended to appear in the infant view. As expected, faces tended to be located towards the upper field of view, while views of hands were more centrally distributed (see Appendix, Figure XX for average density distributions). However, we also found evidence that older children tended to see more faces in more variable positions than younger children. Specifically, we examined how variable the horizontal and vertical coordinates were of the faces in the infant view. To do so, we calculated the coefficient of variation of the x and vertical y positions of centers of the faces detected by OpenPose (see Figure \ref{fig:faceDetailed}B), and examined changes across age. First, we found that faces tended to be more variable in the vertical than their horizontal position (see Figure \ref{fig:faceDetailed}B); evidenced by a much higher coefficeints of variation in the y-direction. We also found that as children got older, they tended to see faces that varied more in their horizontal -- but not their vertical position -- suggesting that older children might be more likely to see more smaller faces in their periphery (see Figure \ref{fig:faceDetailed}B).
+In keeping with this hypothesis, we also found evidence that faces tended to be farther away from older children. 
+We restricted our analysis here to faces where both eyes were detected and computed interpupillary distance as a rough metric of distance, since eyes should be closer together on average when a face is further from the camera. 
+Figure \ref{fig:faceDetailed}A shows the average interpupillary distance on faces as a function of each child’s age at the time of recording. 
+There is a trend from larger, closer faces (with a larger interpupillary distance) to smaller faces that were farther away (with a smaller interpupillary distance). 
+<!-- However, in our previous analysis we found relatively equal proportions of complete, full-view faces across development (see e.g., Figure \ref{fig:faceHandDetailed}, where full view faces stayed relatively constant as a proportion of all detected faces).  -->
+
+
+```{r}
+# Changes in full vs. all faces? --- not significant, inconsistent results across kids
+# diff_full_vs_all <- face_hand_by_age %>%
+#   mutate(diff = prop_faces - prop_full_faces)
+#
+# ggplot(diff_full_vs_all, aes(x=age_day_bin, y=diff, color=child_id, size=num_frames_total)) +
+#   geom_point(alpha=.2) +
+#   geom_smooth(method='lm')
+#
+# summary(lmer(data=diff_full_vs_all, diff ~ scale(age_day_bin) + scale(num_frames_total) + (1|child_id)))
+```
+
+<!-- NEED TO LOOK AT PROPORTION OF FULL FACES IN ALL FACES -->
+<!-- : in other words, these very close views of eyes experienced by younger infants were sometimes partial views. -->
+
+Finally, we also examined whether there were changes in where faces tended to appear in the camera's (and hence, by proxy, the child's) field of view. 
+As expected, faces tended to be located towards the upper field of view, while views of hands were more centrally distributed (see Appendix, Figure XX for average density distributions). 
+However, we also found evidence that older children tended to see more faces in more variable positions than younger children. 
+Specifically, we examined how variable the horizontal and vertical coordinates were of the faces in the infant view. 
+To do so, we calculated the coefficient of variation of the horizontal (x) and vertical (y) positions of centers of the faces detected by OpenPose (see Figure \ref{fig:faceDetailed}B), and examined changes across age. 
+Faces tended to be more variable in the vertical than their horizontal position (see Figure \ref{fig:faceDetailed}B). 
+We also found that as children got older, they tended to see faces that varied more in their horizontal -- but not their vertical position -- suggesting that older children might be more likely to see more smaller faces in their periphery (see Figure \ref{fig:faceDetailed}B).
 
 # General Discussion
 
