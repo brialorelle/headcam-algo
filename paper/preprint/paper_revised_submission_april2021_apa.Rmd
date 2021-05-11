@@ -43,7 +43,10 @@ draft             : no
 
 documentclass     : "apa6"
 classoption       : "man"
-output            : papaja::apa6_pdf
+output            : 
+  papaja::apa6_pdf:
+    includes:
+      after_body: "appendix.tex"
 ---
 
 ```{r setup, include = FALSE}
@@ -828,6 +831,10 @@ Nonetheless, we believe that these advances in datasets and methodologies repres
 Thanks to the creators of the SAYCam dataset who made this work possible and to Alessandro Sanchez for his contributions to the codebase. This work was funded by a Jacobs Foundation Fellowship to MCF, a John Mereck Scholars award to MCF, and NSF #1714726 to BLL. 
 
 \newpage
+
+```{r appendix, include = FALSE}
+render_appendix("appendix.Rmd")
+```
 
 # References
 ```{r create_r-references}
