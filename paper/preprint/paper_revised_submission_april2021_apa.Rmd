@@ -458,7 +458,7 @@ face_hand_detailed_plot <- face_hand_by_age %>%
 
 ```
 
-```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of face, hand, 'full' face (i.e. nose, mouth, and nose visilbe), and joint face/hand detections as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range." }
+```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of face, hand, full face (i.e., nose, mouth, and nose visible), and joint face/hand detections as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range." }
 ggplot(face_hand_detailed_plot, 
        aes(x=age_day_bin, y=prop, 
            col=region)) +
