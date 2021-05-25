@@ -177,12 +177,54 @@ ggplot(all_detections %>% filter(child_id %in% c('S','A')),
 
 ```
 
+# Density of child vs. adults hands in the visual field
+
+```{r} 
+### Load turk hand annotations with all bounding boxes (multiple dets per frame)
+load(here::here('data/preprocessed_data_2021/hand_annotations_2020-01-29.RData'))
+
+child_hands <- hand_annotations %>%
+  filter(label=="Child hand") 
+
+adult_hands <- hand_annotations %>%
+  filter(label=="Adult hand")
+```
+
+```{r}
+### plot centers of the bounding boxes made for child and adult hands
+child_hand_plot <- ggplot(child_hands, aes(x=center_x, y=center_y)) +
+  geom_point(alpha=.1) + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon", alpha=.8) +
+  coord_fixed(ratio=1) +
+  ggtitle('A. Child hand density') +
+  ylim(0,480) +
+  xlim(0,640) +
+  ylab('') +
+  xlab('') +
+  theme_few(base_size=6) +
+  theme(legend.position="none", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  scale_y_reverse()
+##
+adult_hand_plot <- ggplot(adult_hands, aes(x=center_x, y=center_y)) +
+  geom_point(alpha=.1) + 
+  stat_density_2d(aes(fill = ..level..), geom="polygon", alpha=.8) +
+  coord_fixed(ratio=1) +
+  ylim(0,480) +
+  xlim(0,640) +
+  scale_y_reverse() +
+  ylab('') +
+  xlab('') +
+  theme_few(base_size=6) +
+    theme(legend.position="none", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  ggtitle('B. Adult hand density')
+```
+
+```{r handLocation, fig.env="figure", fig.pos = "h", fig.align = "center", fig.width=5, fig.height=3, fig.cap = "Density estimates for the child (left) and adult (right) hands that were detected in the 24K frame random gold set; each dot represents the center of a bounding box made by an adult participant. Brighter values indicate more detections."}
+cowplot::plot_grid(child_hand_plot, adult_hand_plot, nrow=1)
+```
 
 # Distribution of faces and hands in the visual field
-
-We explored where in the visual field children tended to see faces and hands, suspecting that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank (2012).  
-As expected, faces tended to appear in the upper visual field in contrast to hands, which tended to be more centrally located.  
-However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ -- and perhaps adults’ -- visual environment from 6 months of age.
+We explored where in the visual field children tended to see faces and hands, suspecting that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank (2012). As expected, faces tended to appear in the upper visual field in contrast to hands, which tended to be more centrally located.However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ visual environment from 6 months of age.
 
 ```{r}
 bin_size=7
@@ -211,12 +253,7 @@ all_vid_bbs <- all_vid_bbs %>%
 
 
 
-
-
-
-
-
-```{r, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field; each dot represents the average position from one video within a given age range."}
+```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field; each dot represents the average position from one video within a given age range."}
 
 ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
   geom_point(alpha=.3) + 
