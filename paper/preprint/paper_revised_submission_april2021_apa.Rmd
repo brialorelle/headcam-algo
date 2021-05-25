@@ -82,11 +82,14 @@ theme_set(theme_few())
 # Introduction
 Infants are confronted by a blooming, buzzing onslaught of stimuli [@james1890principles] which they must learn to parse to make sense of the world around them. Yet they do not embark on this learning process alone: From as early as 3 months of age, young infants follow overt gaze shifts [@gredeback2008microstructure], and even newborns prefer to look at faces with direct vs. averted gaze [@Farroni2002], despite their limited acuity. As faces are likely to be an important conduit of social information that scaffolds cognitive development, psychologists have long hypothesized that faces are prevalent in the visual experience of young infants.  
 
-Yet until recently most hypotheses about infants' visual experience have gone untested. Though parents and scientists alike have strong intuitions about what infants see, even the viewpoint of a walking child is not easily predicted by these intuitions [@clerkin2017; @franchak2011]. By equipping infants and toddlers with head-mounted cameras, researchers have begun to document the infant's egocentric perspective on the world. Using these methods, a growing body of work now demonstrates that the viewpoints of very young infants (less than 4 months of age) are indeed dominated by frequent, persistent views of the faces of their caregivers [@Jayaraman2015; @Sugden2014; @Jayaraman2018]. 
+Yet until recently most hypotheses about infants' visual experience have gone untested. 
+Though parents and scientists alike have strong intuitions about what infants see, even the viewpoint of a walking child is hard to intuit [@clerkin2017; @franchak2011]. 
+By equipping infants and toddlers with head-mounted cameras, researchers have begun to document the infant's egocentric perspective on the world. 
+Using these methods, a growing body of work now demonstrates that the viewpoints of very young infants (less than 4 months of age) are indeed dominated by frequent, persistent views of the faces of their caregivers [@Jayaraman2015; @Sugden2014; @Jayaraman2018]. 
 
 Beyond these early months, infants' motor and cognitive abilities mature, leading to vastly different perspectives on the world. For example, crawlers see fewer faces and hands than do walking children [@sanchez2018postural; @franchak2017see; @kretch2014] as well as different views of objects [@smith2011not]. Further, as infants learn to use their own hands to act on the world, they seem to focus on manual actions taken by their social partners, and their perspective starts to capture views of hands manipulating objects [@Fausey2016]. In turn, caregivers may also start to use their hands with more communicative intent, directing infants' attention by pointing and gesturing to different events and objects during play [@yu2013joint]. 
 
-Here, we examine the social information present in the infant visual perspective---the presence of faces and hands---by analyzing a longitudinal collection of nearly 1700 headcam videos collected from three children along a span of 6 to 32 months of age—the SAYCam dataset [@SAYcam]. In addition to its size and longitudinal nature, this dataset is more naturalistic than those previously used in two key ways. First, recordings were taken under a large variety of activity contexts [@roy2015predicting; @bruner1985role] encompassing infants' viewpoints during both activities outside and inside the home. Even in other naturalistic datasets, the incredible variety in a typical infant's experience has been largely underrepresented (see examples in Figure 1; e.g., riding in the car, gardening, watching chickens during a walk, browsing magazines, nursing, brushing teeth). Second, the head-mounted cameras used in the SAYCam dataset captured a larger field of view than those typically used, allowing a more complete picture of the infant perspective. While head-mounted cameras with a more restricted field of view do represent where infants are foveating most of the time [@yoshida2008; @smith2015contributions], they may fail to capture short saccades to either faces or hands in the periphery, as the timescale of head movements is much longer. 
+Here, we examine the social information present in the infant visual perspective---the presence of faces and hands---by analyzing a longitudinal collection of more than 1700 headcam videos collected from three children along a span of 6 to 32 months of age—the SAYCam dataset [@SAYcam]. In addition to its size and longitudinal nature, this dataset is more naturalistic than those previously used in two key ways. First, recordings were taken under a large variety of activity contexts [@roy2015predicting; @bruner1985role] encompassing infants' viewpoints during both activities outside and inside the home. Even in other naturalistic datasets, the incredible variety in a typical infant's experience has been largely underrepresented (see examples in Figure 1; e.g., riding in the car, gardening, watching chickens during a walk, browsing magazines, nursing, brushing teeth). Second, the head-mounted cameras used in the SAYCam dataset captured a larger field of view than those typically used, allowing a more complete picture of the infant perspective. While head-mounted cameras with a more restricted field of view do represent where infants are foveating most of the time [@yoshida2008; @smith2015contributions], they may fail to capture short saccades to either faces or hands in the periphery, as the timescale of head movements is much longer. 
 
 With hundreds of hours of footage (>40M frames), however, this large dataset necessitates a shift to an automated annotation strategy.
 Indeed, annotation of the frames extracted from egocentric videos has been prohibitively time-consuming, meaning that most frames are typically not inspected, even in the most comprehensive studies. 
@@ -104,7 +107,7 @@ Finally, making use of automated annotation of pose bounding boxes, we analyze t
 ```{r}
 # Read in data 
 ## Face/hand detections by video
-load(here::here('data/preprocessed_data_2021/all_vid_data_from_bbs_all_detections.RData')) # all detections
+load(file=here::here('data/preprocessed_data_2021/all_vid_data_from_bbs_all_detections.RData')) # all detections
 ```
 
 ```{r}
@@ -113,11 +116,19 @@ load(file=here::here('data/preprocessed_data_2021/bounding_box_summaries_all.RDa
 ```
 
 ```{r}
-# gold sample annotatios and detedctinos for these specific frames
+# gold sample annotations for these specific frames
 load(here::here('data/preprocessed_data_2021/gold_sample_annotations2020-01-31.RData')) # human annotations
-load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_all_detections.RData')) 
+```
 
-# all_gold_sample_frames_op_hc = load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_high_conf_detections.RData')) 
+```{r}
+# load high confidence detections for gold sample frames
+load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_high_conf_detections.RData'))
+all_gold_sample_frames_op_hc = all_gold_sample_frames_op
+```
+
+```{r}
+# load all detections for gold sample frames
+load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_all_detections.RData')) 
 ```
 
 ```{r} 
@@ -196,15 +207,15 @@ gold_sample <- gold_sample %>%
 
 ```{r eval=FALSE,include=FALSE}
 ## for high confidence detections
-# gold_sample_hc <- gold_sample %>%
-#   select(vid_name, frame, face_present_ketan, hand_present_ketan) %>%
-#   mutate(face_present_ketan = as.logical(face_present_ketan), hand_present_ketan = as.logical(hand_present_ketan)) %>%
-#   right_join(all_gold_sample_frames_op_hc) %>% # HIGH CONF DF
-#   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected))
-# 
-#  
-# face_performance_hc = return_prf_short(gold_sample_hc$face_eval_ketan)
-# hand_performance_hc = return_prf_short(gold_sample_hc$hand_eval_ketan)
+gold_sample_hc <- gold_sample %>%
+  select(vid_name, frame, face_present_ketan, hand_present_ketan) %>%
+  mutate(face_present_ketan = as.logical(face_present_ketan), hand_present_ketan = as.logical(hand_present_ketan)) %>%
+  right_join(all_gold_sample_frames_op_hc) %>% # HIGH CONF DF
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected))
+
+
+face_performance_hc = return_prf_short(gold_sample_hc$face_eval_ketan)
+hand_performance_hc = return_prf_short(gold_sample_hc$hand_eval_ketan)
 ```
 
 
@@ -236,59 +247,13 @@ hand_performance_adults = return_prf_short(gold_sample_no_child_hands$hand_eval_
 
 ```
 
-```{r} 
-### Load turk hand annotations with all bounding boxes (multiple dets per frame)
-load(here::here('data/preprocessed_data_2021/hand_annotations_2020-01-29.RData'))
-
-child_hands <- hand_annotations %>%
-  filter(label=="Child hand") 
-
-adult_hands <- hand_annotations %>%
-  filter(label=="Adult hand")
-```
-
-```{r}
-### plot centers of the bounding boxes made for child and adult hands
-child_hand_plot <- ggplot(child_hands, aes(x=center_x, y=center_y)) +
-  geom_point(alpha=.1) + 
-  stat_density_2d(aes(fill = ..level..), geom="polygon", alpha=.8) +
-  coord_fixed(ratio=1) +
-  ggtitle('A. Child hand density') +
-  ylim(0,480) +
-  xlim(0,640) +
-  ylab('') +
-  xlab('') +
-  theme_few(base_size=6) +
-  theme(legend.position="none", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-  scale_y_reverse()
-##
-adult_hand_plot <- ggplot(adult_hands, aes(x=center_x, y=center_y)) +
-  geom_point(alpha=.1) + 
-  stat_density_2d(aes(fill = ..level..), geom="polygon", alpha=.8) +
-  coord_fixed(ratio=1) +
-  ylim(0,480) +
-  xlim(0,640) +
-  scale_y_reverse() +
-  ylab('') +
-  xlab('') +
-  theme_few(base_size=6) +
-    theme(legend.position="none", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
-  ggtitle('B. Adult hand density')
-```
-
-
-To test the validity of OpenPose's hand and face detections, we compared the accuracy of these detections relative to human annotations of 24,000 frames selected uniformly at random from videos of two children (S and A); `r  24000-length(gold_sample$face_openpose)` frames with allocentric videos were excluded, as were these videos from the rest of analyses. Frames were jointly annotated for the presence of faces and hands by one author. A second set of coders recruited via AMT (Amazon Mechanical Turk) additionally annotated 3150 frames; agreement with the primary coder was >95%. 
+To test the validity of OpenPose's hand and face detections, we compared the accuracy of these detections relative to human annotations of 24,000 frames selected uniformly at random from videos of two children (S and A); `r  24000-length(gold_sample$face_openpose)` frames sampled from allocentric videos were excluded, and these videos were also excluded from the other analyses. Frames were jointly annotated for the presence of faces and hands by one author. A second set of coders recruited via AMT (Amazon Mechanical Turk) additionally annotated 3150 frames; agreement with the primary coder was >95%. 
 
 As has been observed in other studies on automated annotation of headcam data [e.g. @frank2013; @sanchez2018postural; @bambach2015lending], detection tasks that are easy in third-person video can be quite challenging in egocentric videos, due to difficult angles and sizes as well as substantial occlusion. For example, the infant perspective often contains non-canonical viewpoints of faces (e.g., looking up at a caregiver's chin) as well as partially-occluded or oblique viewpoints of both faces and hands. Further, hand detection tends to be a harder computational problem than face detection [@Simon2017hand; @bambach2015lending]. We thus expected overall performance to be lower in these naturalistic videos than on either photos taken from the adult perspective or in egocentric videos in controlled, laboratory settings [e.g., @sanchez2018postural]. 
 
-To evaluate OpenPose's performance, we compared its detections to the manually-annotated gold set of frames, calculating precision (hits / hits + false alarms), recall (hits / hits + misses), and F-score (the harmonic mean of precision and recall).  In our data, for faces, the F-score was `r round(face_performance[3],2)`, with a precision of `r round(face_performance[1],2)` and recall of `r round(face_performance[2],2)`. For hands, the F-score was `r round(hand_performance[3],2)`, with a precision of `r round(hand_performance[1],2)` and recall of `r round(hand_performance[2],2)`. While face and hand detections showed moderately good precision, face detections were overall slightly more accurate than hand detections.  In general, hand detections suffered from fairly low recall, indicating that OpenPose likely underestimated the proportion of hands in the dataset. 
+To evaluate OpenPose's performance, we compared its detections to the manually-annotated gold set of frames, calculating precision (hits / (hits + false alarms)), recall (hits / (hits + misses)), and F-score (the harmonic mean of precision and recall).  In our data, for faces, the F-score was `r round(face_performance[3],2)`, with a precision of `r round(face_performance[1],2)` and recall of `r round(face_performance[2],2)`. For hands, the F-score was `r round(hand_performance[3],2)`, with a precision of `r round(hand_performance[1],2)` and recall of `r round(hand_performance[2],2)`. While face and hand detections showed moderately good precision, face detections were overall slightly more accurate than hand detections.  In general, hand detections suffered from fairly low recall, indicating that OpenPose likely underestimated the proportion of hands in the dataset. 
 
-
-```{r handLocation, fig.env="figure", fig.pos = "h", fig.align = "center", fig.width=3.5, fig.height=2, fig.cap = "Density estimates for the child (left) and adult (right) hands that were detected in the 24K frame random gold set; each dot represents the center of a bounding box made by an adult participant. Brighter values indicate more detections."}
-cowplot::plot_grid(child_hand_plot, adult_hand_plot, nrow=1)
-```
-
-We suspected that this was in part because children’s own hands were often in view of the camera and unconnected to a pose—-a notoriously challenging detection problem [@bambach2015lending]. To assess this possibility, we obtained human annotations for the entire subsample of 9051 frames in which a hand was detected; participants (recruited via AMT) were asked to draw bounding boxes around children’s and adult’s hands. Overall, we found that `r round(mean(hands_missed$child_hand_seg),2)*100`% of missed hand detections were of child hands. When frames with children's hands were removed from the gold set, recall did improve somewhat to `r round(hand_performance_adults[3],2)`. We also observed that children’s hands tended to appear in the lower half of the frames; heatmaps of the bounding boxes obtained from these annotations can be seen in Figure \ref{fig:handLocation}.
+We suspected that this was in part because children’s own hands were often in view of the camera and unconnected to a pose—-a notoriously challenging detection problem [@bambach2015lending]. To assess this possibility, we obtained human annotations for the entire subsample of 9051 frames in which a hand was detected; participants (recruited via AMT) were asked to draw bounding boxes around children’s and adult’s hands. Overall, we found that `r round(mean(hands_missed$child_hand_seg),2)*100`% of missed hand detections were of child hands. When frames with children's hands were removed from the gold set, recall did improve somewhat to `r round(hand_performance_adults[3],2)`. We also observed that children’s hands tended to appear in the lower half of the frames; heatmaps of the bounding boxes obtained from these annotations can be seen in Appendix Figure \ref{fig:handLocation}.
 
 Finally, we examined whether the precision, recall, and F-score for hands and faces varied with age or child, and did not find substantial variation. Thus, while OpenPose was trained on photographs from the adult perspective, this model still generalized relatively well to the egocentric infant viewpoint with no fine-tuning or post-processing of the detections.  As these detections were imperfect compared to human annotators, fine-tuning these models to better optimize for the infant viewpoint remains an open avenue for future work. Standard computer vision models are rarely trained on the egocentric viewpoint, and we suspect that training these models on more naturalistic data may lead to more robust, generalizable detectors. 
 
@@ -324,55 +289,118 @@ face_hand_by_age <- all_vid_data %>%
 
 ```
 
-```{R}
+```{r}
 #### Make longer format for plotting
 all_detections <- face_hand_by_age %>%
-  filter(num_frames_total > 2000) %>% # eliminate small data point that skews scaling
+  filter(num_frames_total > 5000) %>% # eliminate small data point that skews scaling
   select(prop_faces, prop_hands, num_frames_total, age_day_bin, child_id) %>%
   pivot_longer(cols = c(prop_faces, prop_hands), names_to = "region", values_to = "prop") %>%
   mutate(approach = "uncropped",
-         region = ifelse(region == "prop_faces","Faces","Hands"))  
+         region = ifelse(region == "prop_faces","All faces","All hands"),
+         child_name = case_when(child_id =='A' ~ "Child A",
+                      child_id == "S" ~ "Child S",
+                      child_id == "Y" ~ "Child Y"))  
   
 centered <- face_hand_by_age %>%
-  filter(num_frames_total > 2000) %>% # eliminate small data point that skews scaling
+  filter(num_frames_total > 5000) %>% # eliminate small data point that skews scaling
   select(prop_faces_center, prop_hands_center, num_frames_total, age_day_bin, child_id) %>%
   gather(region, prop, prop_faces_center, prop_hands_center) %>%
   mutate(approach = "centered",
-         region = ifelse(region == "prop_faces_center","Faces","Hands"))
+         region = ifelse(region == "prop_faces_center","Faces in center FOV","Hands in center FOV"),
+         child_name = case_when(child_id =='A' ~ "Child A",
+                      child_id == "S" ~ "Child S",
+                      child_id == "Y" ~ "Child Y"))
+
+detailed <- face_hand_by_age %>%
+  filter(num_frames_total > 5000) %>%
+  select(prop_full_faces, prop_faces_and_hands, num_frames_total, age_day_bin, child_id) %>%
+  gather(region, prop, prop_full_faces, prop_faces_and_hands) %>%
+  mutate(approach = "detailed",
+         region = case_when(region == "prop_full_faces" ~ "Full faces",
+                            region == "prop_faces_and_hands" ~ "Both hands & faces"),
+         child_name = case_when(child_id =='A' ~ "Child A",
+                      child_id == "S" ~ "Child S",
+                      child_id == "Y" ~ "Child Y")) 
 ```
 
 
-```{r FacesAndHands, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of faces and hands seen as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range. Dashed lines show estimated trend lines from proportion of faces/hands in view when detections are restricted to the center FOV, reducing the contribution of children's own hands."}
-ggplot(all_detections, 
+
+```{r}
+first_panel <- ggplot(all_detections, 
        aes(x=age_day_bin, y=prop, 
            size=log10(num_frames_total),
            col=region)) +
-  geom_point(alpha=.2) +
-  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = FALSE) + 
-  geom_smooth(data = centered, span=10, aes(weight = num_frames_total), show.legend = TRUE,
-              lty = 2, span=10, se = FALSE) +
+  geom_point(alpha=.1) +
+  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = TRUE) + 
   ylab('Proportion Detections') + 
   xlab('Age (Months)') +
   ylim(0,.5) +
-  facet_grid(.~child_id) + 
-  theme_few(base_size=9) +
+  facet_grid(cols = vars(child_name)) + 
+  theme_few(base_size=10) +
   ggthemes::scale_color_solarized(name = "") + 
-  theme(legend.text=element_text(size=8)) +
+  theme(legend.text=element_text(size=10)) +
   guides(size = FALSE) +
-  theme(legend.position="bottom") 
+  theme(legend.position="right") 
+
+second_panel <- ggplot(centered, 
+       aes(x=age_day_bin, y=prop, 
+           size=log10(num_frames_total),
+           col=region)) +
+  geom_point(alpha=.1) +
+  geom_smooth(span=10, aes(weight = num_frames_total),linetype = 'dashed', show.legend = TRUE) + 
+  ylab('Proportion Detections') + 
+  xlab('Age (Months)') +
+  ylim(0,.5) +
+  facet_grid(cols = vars(child_name)) + 
+  theme_few(base_size=10) +
+  ggthemes::scale_color_solarized(name = "") + 
+  theme(legend.text=element_text(size=10)) +
+  guides(size = FALSE) +
+  theme(legend.position="right") 
+
+
+third_panel <- ggplot(detailed, 
+       aes(x=age_day_bin, y=prop, 
+           size=log10(num_frames_total),
+           col=region)) +
+  geom_point(alpha=.1) +
+  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = TRUE) + 
+  ylab('Proportion Detections') + 
+  xlab('Age (Months)') +
+  ylim(0,.5) +
+  facet_grid(cols = vars(child_name)) + 
+  theme_few(base_size=10) +
+  scale_color_manual(values = c("#751098","#142c83"), name = "") +
+  theme(legend.text=element_text(size=10)) +
+  guides(size = FALSE) +
+  theme(legend.position="right") 
+
 ```
 
-We analyzed the social information in view across the entire dataset, looking specifically at the proportions of faces and hands detected for each child.^[All analyses and preprocessed data files for this paper are available at https://tinyurl.com/detecting-social-info] Data from videos were binned according to the age of the child (in weeks). First, we saw that the proportion of faces in view showed a moderate decrease across this age range (see Figure \ref{fig:FacesAndHands}), in keeping with prior findings [@Fausey2016]; in contrast, we did not observe an increase in the proportion of hands in view. These effects were quantified with two separate linear mixed-models (see Tables 1 & 2).^[Face/hand detections were binned across each week of filming. Participant's age was converted into months and centered for these analyses. Random slopes for the effect of age by child led to a singular fit and were removed from both analyses; see full model specification in accompanying codebase.]
+```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=7, fig.cap = "Proportion of frames with (A).All face and hand detections,  B.Face/hand detections that fell within the center field-of-view (reducing the contribution of children's own hands) and (C) Face detections that were full faces (e.g., eyes, nose, and mouth all visible) and that co-occurred with hands, plotted as a function of age for each child (A, S, and Y). Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range."}
 
-However, the most striking result from these analyses is a much overall greater proportion of hands in view than have previously been reported [@Fausey2016]. We found this to be true across all ages, in all three children, and regardless of whether we analyzed human annotations (on the 24K random subset, see dotted lines in Appendix Figure \ref{fig:goldSetSanity}) or OpenPose annotations on the entire dataset (see solid lines in Figure \ref{fig:FacesAndHands}). This is notable especially given that OpenPose showed relatively low recall for hands, indicating that this may be an underestimate of the proportion of hands in view. In fact, analysis the human annotations underscores revealed a much higher proportion of hands relative to faces than the automated annotations. 
+cowplot::plot_grid(first_panel, second_panel, third_panel, labels='AUTO', nrow=3, align = "v", axis = "b")
+```
+
+We analyzed the social information in view across the entire dataset, looking specifically at the proportions of faces and hands detected for each child.^[All analyses and preprocessed data files for this paper are available at https://tinyurl.com/detecting-social-info] Data from videos were binned according to the age of the child (in weeks). First, we saw that the proportion of faces in view showed a moderate decrease across this age range (see Figure \ref{fig:faceHandDetailed}), in keeping with prior findings [@Fausey2016]; in contrast, we did not observe an increase in the proportion of hands in view. These effects were quantified with two separate linear mixed-models (see Tables 1 & 2).^[Face/hand detections were binned across each week of filming. Participant's age was converted into months and centered for these analyses. Random slopes for the effect of age by child led to a singular fit and were removed from both analyses; see full model specification in accompanying codebase.]
+
+However, the most striking result from these analyses is a much overall greater proportion of hands in view than have previously been reported [@Fausey2016]. We found this to be true across all ages, in all three children, and regardless of whether we analyzed human annotations (on the 24K random subset, see dotted lines in Appendix Figure \ref{fig:goldSetSanity}) or OpenPose annotations on the entire dataset (see Figure \ref{fig:faceHandDetailed}A). This is notable especially given that OpenPose showed relatively low recall for hands, indicating that this may be an underestimate of the proportion of hands in view. In fact, analysis the human annotations underscores revealed a much higher proportion of hands relative to faces than the automated annotations. 
 
 One reason this could be the case is the much larger field of view that was captured by the cameras used in this study: These cameras were outfitted with a fish-eye lens in an attempt to capture as much of the children’s field of view as possible, leading to a larger field of view (109 degrees horizontal x 70 degrees vertical) than in many previous studies; for example, in @Fausey2016 the FOV was 69 x 41 degrees. This larger FOV may have allowed the SAYCam cameras to capture not only the presence of a social partner’s hands interacting with objects or gestures, but also the children’s own hands, leading to more frequent hand detections.
 
 <!-- FIXME - references not rendering for -->
-As we found that children's hands tended to occur in the lower visual field (see Figure \ref{fig:handLocation}), we thus re-analyzed the entire dataset while restricting our analysis to the center field of view, decreasing the proportion of hand detections from `r round(sum(all_vid_data$num_hands)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_hands_center,na.rm=TRUE)/sum(all_vid_data$num_frames),2)*100`%, but only decreased face detections from `r round(sum(all_vid_data$num_faces)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_faces_center,na.rm=TRUE)/sum(all_vid_data$num_frames),3)*100`%. This cropping likely removed both the majority of detections of children's own hands but also some detections of adult hands (see Figure \ref{fig:handLocation}), especially as OpenPose was biased to miss children's hands when they were in view. Nonetheless, within this modified field of view, we still observed more hand detections than face detections (see dashed lines in Figure \ref{fig:FacesAndHands}). We also still found a higher proportion of hands in view relative to faces when excluding any frames containing child hand's from the human annotated gold sample (see Appendix Figure\ref{fig:goldSetSanity}). 
+As we found that children's hands tended to occur in the lower visual field (see Figure \ref{fig:handLocation}), we thus re-analyzed the entire dataset while restricting our analysis to the center field of view, decreasing the proportion of hand detections from `r round(sum(all_vid_data$num_hands)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_hands_center,na.rm=TRUE)/sum(all_vid_data$num_frames),2)*100`%, but only decreased face detections from `r round(sum(all_vid_data$num_faces)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_faces_center,na.rm=TRUE)/sum(all_vid_data$num_frames),3)*100`%. This cropping likely removed both the majority of detections of children's own hands but also some detections of adult hands (see Figure \ref{fig:handLocation}), especially as OpenPose was biased to miss children's hands when they were in view. Nonetheless, within this modified field of view, we still observed more hand detections than face detections (see dashed lines in Figure \ref{fig:faceHandDetailed}). We also still found a higher proportion of hands in view relative to faces when excluding any frames containing child hand's from the human annotated gold sample (see Appendix Figure\ref{fig:goldSetSanity}). 
 
-Finally, we analyzed how these two sources of social information co-occurred, finding that faces/hands were jointly present in `r sum(all_vid_data$faces_and_hands,na.rm=TRUE)/sum(all_vid_data$num_frames)*100` percent of frames (see face hand-occurrences across age in Figure \ref{fig:faceHandDetailed}). To do so, we  calculated the number of frames in which infants saw faces and hands together relative to overall proportions of faces/hands that were detected for each child and age range. We found that all three infants than were more likely see hands independently -- without the presence of a face -- that they were likely to see faces independently. That is, generally speaking when a face was present, a hand also tended to be present. 
+Finally, we analyzed how these two sources of social information co-occurred, finding that faces/hands were jointly present in `r sum(all_vid_data$faces_and_hands,na.rm=TRUE)/sum(all_vid_data$num_frames)*100` percent of frames (see face hand-occurrences across age in Figure \ref{fig:faceHandDetailed}C). To do so, we  calculated the number of frames in which infants saw faces and hands together relative to overall proportions of faces/hands that were detected for each child and age range. We found that all three infants than were more likely see hands independently -- without the presence of a face -- that they were likely to see faces independently \ref{fig:faceHandContingnecy}. That is, generally speaking when a face was present, a hand also tended to be present. 
 
+As we found that children's hands tended to occur in the lower visual field (see Figure \ref{fig:handLocation}), we thus re-analyzed the entire dataset while restricting our analysis to the center field of view, decreasing the proportion of hand detections from `r round(sum(all_vid_data$num_hands)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_hands_center,na.rm=TRUE)/sum(all_vid_data$num_frames),2)*100`%, but only decreased face detections from `r round(sum(all_vid_data$num_faces)/sum(all_vid_data$num_frames),2)*100`% to `r round(sum(all_vid_data$num_faces_center,na.rm=TRUE)/sum(all_vid_data$num_frames),3)*100`%. 
+This cropping likely removed both the majority of detections of children's own hands but also some detections of adult hands (see Figure \ref{fig:handLocation}), especially as OpenPose was biased to miss children's hands when they were in view. 
+Nonetheless, within this modified field of view, we still observed more hand detections than face detections (see dashed lines in Figure \ref{fig:faceHandDetailed}B). 
+We also still found a higher proportion of hands in view relative to faces when excluding any frames containing child hand's from the human annotated gold sample (see Appendix Figure\ref{fig:goldSetSanity}). 
+
+Finally, we analyzed how these two sources of social information co-occurred, finding that faces/hands were jointly present in `r sum(all_vid_data$faces_and_hands,na.rm=TRUE)/sum(all_vid_data$num_frames)*100` percent of frames (see face hand-occurrences across age in Figure \ref{fig:faceHandDetailed}). 
+To do so, we  calculated the number of frames in which infants saw faces and hands together relative to overall proportions of faces/hands that were detected for each child and age range. 
+As shown in Figure \ref{fig:faceHandContingency}, we found that all three infants were more likely to see hands independently -- without the presence of a face -- than they were likely to see faces independently. That is, generally speaking when a face was present, a hand also tended to be present. 
 
 
 ```{r eval=FALSE}
@@ -423,7 +451,7 @@ xtable(hands_model_full_age_out$coefficients, digits=c(4,3,3,3,3,3),"Model coeff
  & Estimate & Std. Error & df & t value & Pr($>$$|$t$|$) \\ 
   \hline
 (Intercept) & 0.098 & 0.010 & 1.956 & 9.386 & 0.012 \\ 
-  age\_scale & -0.001 & 0.000 & 430.976 & -3.150 & 0.002 \\ 
+  Age & -0.001 & 0.000 & 430.976 & -3.150 & 0.002 \\ 
    \hline
 \end{tabular}
 \caption{Model coefficients from a linear mixed model predicting the proportion of faces seen by infants in the center FOV.} 
@@ -436,45 +464,13 @@ xtable(hands_model_full_age_out$coefficients, digits=c(4,3,3,3,3,3),"Model coeff
  & Estimate & Std. Error & df & t value & Pr($>$$|$t$|$) \\ 
   \hline
 (Intercept) & 0.161 & 0.009 & 1.881 & 18.046 & 0.004 \\ 
-  age\_scale & -0.001 & 0.001 & 428.651 & -1.680 & 0.094 \\ 
+  Age & -0.001 & 0.001 & 428.651 & -1.680 & 0.094 \\ 
    \hline
 \end{tabular}
 \caption{Model coefficients from a linear mixed model predicting the proportion of hands seen by infants n the center FOV.} 
 \end{table}
 
 
-```{r}
-face_hand_detailed_plot <- face_hand_by_age %>%
-  gather(region, prop, prop_full_faces, prop_faces, prop_hands, prop_faces_and_hands) %>%
-  mutate(approach = "uncropped",
-         region = case_when(region == "prop_faces" ~"All faces",
-                            region == "prop_full_faces" ~ "Full faces (eyes, nose, mouth visible)",
-                            region == "prop_hands" ~ "All hands",
-                            region == "prop_faces_and_hands" ~ "Both hands and faces visible"),
-         child_name = case_when(child_id =='A' ~ "Child A",
-                      child_id == "S" ~ "Child S",
-                      child_id == "Y" ~ "Child Y")) %>%
-  filter(num_frames_total > 5000) # skews scaling of detections to have this 1 sparse age bin
-
-```
-
-```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of face, hand, full face (i.e., nose, mouth, and nose visible), and joint face/hand detections as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range." }
-ggplot(face_hand_detailed_plot, 
-       aes(x=age_day_bin, y=prop, 
-           col=region)) +
-  geom_point(alpha=.1, aes(size=log10(num_frames_total)), show.legend= FALSE) +
-  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = TRUE) + 
-  ylab('Proportion Detections') + 
-  xlab('Age (Months)') +
-  ylim(0,.5) +
-  facet_grid(.~child_name) + 
-  theme_few(base_size=12) +
-  scale_color_manual(values = c( "#2048d6","#d62020","#751098","#142c83"), name = "") +
-  scale_size_continuous(name = "") +
-  guides(size = FALSE) +
-  theme(legend.text=element_text(size=8)) +
-  theme(legend.position="bottom") 
-```
 
 
 ```{r}
@@ -488,7 +484,7 @@ face_hand_contingency <- face_hand_by_age %>%
     # region == "prop_joint_given_hands_center" ~ "Prop. center faces (given center hand det)"))
 ```
 
-```{r faceHandContingency, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of joint face/hands detection within frames where frames/ were detected." }
+```{r faceHandContingency, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of joint face and hands detection within frames where hands (left) or faces (right) were detected." }
 ggplot(face_hand_contingency, 
        aes(x=age_day_bin, y=prop, 
            col=child_id)) +
@@ -501,7 +497,7 @@ ggplot(face_hand_contingency,
   # scale_color_manual(values = c( "#DAA0EE","#710D93"), name="") +
   scale_color_brewer(palette="Dark2") +
   guides(size = FALSE) +
-  theme(legend.text=element_text(size=12)) 
+  theme(legend.text=element_text(size=10)) 
 ```
 
 
@@ -601,10 +597,10 @@ ggplot(all_to_plot, aes(x = Location, y = mean, col=region)) +
   coord_flip() + 
   ylab('Proportion Detected')+
   xlab('')+
-  theme_few(base_size=12) +
+  theme_few(base_size=10) +
   theme(legend.position = "bottom") +
   facet_grid(.~child_id)  +
-  scale_size_continuous(name = "Detections (Log 10)") +
+  scale_size_continuous(name = "log(Detections)") +
   scale_linetype_manual(values=c("solid", "dashed","solid","dashed"), name = "") +
   scale_color_manual(values = c("#268bd2", "#51acec", "#dc322f","#ea5e5c"), name = "") +
   theme(legend.text=element_text(size=8))
@@ -827,7 +823,7 @@ There is a trend from larger, closer faces (with a larger interpupillary distanc
 <!-- : in other words, these very close views of eyes experienced by younger infants were sometimes partial views. -->
 
 Finally, we also examined whether there were changes in where faces tended to appear in the camera's (and hence, by proxy, the child's) field of view. 
-As expected, faces tended to be located towards the upper field of view, while views of hands were more centrally distributed (see Appendix, Figure XX for average density distributions). 
+As expected, faces tended to be located towards the upper field of view, while views of hands were more centrally distributed (see Appendix, Figure \ref{fig:faceHandDensity} for average density distributions). 
 However, we also found evidence that older children tended to see more faces in more variable positions than younger children. 
 Specifically, we examined how variable the horizontal and vertical coordinates were of the faces in the infant view. 
 To do so, we calculated the coefficient of variation of the horizontal (x) and vertical (y) positions of centers of the faces detected by OpenPose (see Figure \ref{fig:faceDetailed}B), and examined changes across age. 
