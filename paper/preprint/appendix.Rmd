@@ -210,27 +210,7 @@ all_vid_bbs <- all_vid_bbs %>%
 ```
 
 
-```{r}
-CV_faces <- all_vid_bbs %>%
-  filter(label=='face') %>%
-  group_by(age_day_bin,child_id) %>%
-  summarize(cv_x_pos = sd(avg_center_x)/mean(avg_center_x)*100, cv_y_pos = sd(avg_center_y)/mean(avg_center_y)*100, num_detect = sum(num_detect), num_vids = n()) %>%
-  pivot_longer(cols = c(cv_y_pos, cv_x_pos), values_to = "CV", names_to = "position") %>%
-  mutate(position = factor(position, levels = c("cv_x_pos","cv_y_pos"), labels = c("X Position", "Y Position")))
 
-```
-
-```{r, fig.width=6.5, fig.height=4, fig.cap="ToDo"}
-ggplot(CV_faces, aes(x=age_day_bin , y = CV, size=num_detect, color=child_id)) +
-  geom_point(alpha=.3) + 
-  facet_wrap(~position) +
-  theme_few(base_size=14) +
-  geom_smooth(method='lm') +
-  scale_color_brewer(palette='Dark2') + 
-  ylab('Coefficient of variation for face position') +
-  xlab('Age (in months)') +
-  guides(size = FALSE)
-```
 
 
 
