@@ -76,6 +76,7 @@ library(lsr)
 library(stringr)
 library(lmerTest)
 library(here)
+library(papaja)
 theme_set(theme_few())
 ```
 
@@ -379,11 +380,11 @@ We also still found a higher proportion of hands in view relative to faces when 
 
 Finally, we analyzed how these two sources of social information co-occurred, finding that faces/hands were jointly present in `r sum(all_vid_data$faces_and_hands,na.rm=TRUE)/sum(all_vid_data$num_frames)*100` percent of frames (see face hand-occurrences across age in Figure \ref{fig:faceHandDetailed}). 
 To do so, we  calculated the number of frames in which infants saw faces and hands together relative to overall proportions of faces/hands that were detected for each child and age range. 
-As shown in Figure \ref{fig:faceHandContingency}, we found that all three infants were more likely to see hands independently -- without the presence of a face -- than they were likely to see faces independently. 
-That is, generally speaking when a face was present, a hand also tended to be present. 
+We found that all three infants were more likely to see hands independently -- without the presence of a face -- than they were likely to see faces independently. 
+That is, generally speaking when a face was present, a hand also tended to be present (see also Figure \ref{fig:faceHandContingency}).
 
 
-```{r eval=FALSE}
+```{r eval=T}
 summary_by_age_days <- all_vid_data %>%
   group_by(age_days,child_id) %>%
   summarize(num_faces = sum(num_faces), 
@@ -405,25 +406,66 @@ long_summary_by_age_days$age_scale <- scale(long_summary_by_age_days$age_days, s
 
 ```
 
-```{r eval=FALSE}
+```{r eval=T, include=F, echo=F}
 # run lmer models -- faces over age
-faces_model_full_age_out = summary(lmer(prop_faces_center ~ age_scale + (1 | child_id), data = summary_by_age_days))
+faces_model1 <- lmer(prop_faces_center ~ age_scale + (1 | child_id), data = summary_by_age_days)
+faces_model_full_age_out = summary(faces_model1)
+# # singular:
+#faces_model2 = summary(lmer(prop_faces_center ~ poly(age_scale, 2) + (poly(age_scale, 2) | child_id), 
+#                            data = summary_by_age_days))
+faces_model2 <- lmer(prop_faces_center ~ poly(age_scale, 2) + (1 | child_id), 
+                            data = summary_by_age_days)
+faces_comparison <- anova(faces_model1, faces_model2) # chisq 7.17 p = 0.007407 ** - complex model preferred
+faces_out <- summary(faces_model2) # poly(age_scale, 2)1 -.20 **, poly(age_scale, 2)2 -.16**
+
 
 # hands over age
-hands_model_full_age_out = summary(lmer(prop_hands_center ~ age_scale + (1 | child_id), data = summary_by_age_days))
+hands_model1 <- lmer(prop_hands_center ~ age_scale + (1 | child_id), data = summary_by_age_days)
+hands_model_full_age_out = summary(hands_model1)
+hands_model2 <- lmer(prop_hands_center ~ poly(age_scale, 2) + (1 | child_id), 
+                            data = summary_by_age_days)
+hands_comparison <- anova(hands_model1, hands_model2) # chisq = 17.11, p<.001 - complex model preferred
+
+hands_out <- summary(hands_model2) # poly(age_scale, 2)1  -0.14, p=.06, poly(age_scale, 2)2  -0.32, p<.001
 
 # explicit modeling of faces vs. hands and interaction with age
 # main effect of ages and regions; no interaction.
-diff_model_full_age_out = summary(lmer(prop ~ region*age_scale + (1 | child_id), data = long_summary_by_age_days))
+diff_model1 <- lmer(prop ~ region*age_scale + (1 | child_id), data = long_summary_by_age_days)
+diff_model_full_age_out = summary(diff_model1)
+diff_model2 <- lmer(prop ~ region*poly(age_scale, 2) + (1 | child_id), data = long_summary_by_age_days)
+diff_comparison <- anova(diff_model1, diff_model2) # chisq = 23.66, p<.001 - complex model preferred
+
+diff_out <- summary(diff_model2) 
+# regionprop_hands .04***, poly(age_scale, 2)1 -.42**, poly(age_scale, 2)2 -.29*, marginal hand*poly(age_scale, 2)2
 ```
 
-```{r eval=FALSE}
+
+```{r faces-regression-table}
+faces_tab <- faces_out$coefficients
+rownames(faces_tab)[2] = "Age"
+rownames(faces_tab)[3] = "Age**2"
+apa_table(faces_tab, digits=3,
+           caption = "Coefficients from a mixed-effects regression predicting the proportion of faces seen by infants in the center FOV.")
+```
+
+```{r hands-regression-table}
+hands_tab <- round(hands_out$coefficients, 3)
+rownames(hands_tab)[2] = "Age"
+rownames(hands_tab)[3] = "Age**2"
+hands_tab[3,5] = "<.001"
+apa_table(hands_tab, 
+           caption = "Coefficients from a mixed-effects regression predicting the proportion of hands seen by infants in the center FOV.")
+```
+
+
+```{r linear-regression-tables, eval=FALSE, include=F}
+# old -- now want the above poly models
 xtable(faces_model_full_age_out$coefficients, digits=c(4,3,3,3,3,3),"Model coefficients from a linear mixed model predicting the proportion of faces seen by infants in the center FOV.")
 
-xtable(hands_model_full_age_out$coefficients, digits=c(4,3,3,3,3,3),"Model coefficients from a linear mixed model predicting the proportion of hands seen by infants n the center FOV.")
+xtable(hands_model_full_age_out$coefficients, digits=c(4,3,3,3,3,3),"Model coefficients from a linear mixed model predicting the proportion of hands seen by infants in the center FOV.")
 ```
 
-
+<!-- old linear regression tables
 \begin{table}[ht]
 \centering
 \begin{tabular}{rrrrrr}
@@ -449,7 +491,7 @@ xtable(hands_model_full_age_out$coefficients, digits=c(4,3,3,3,3,3),"Model coeff
 \end{tabular}
 \caption{Model coefficients from a linear mixed model predicting the proportion of hands seen by infants n the center FOV.} 
 \end{table}
-
+-->
 
 ```{r}
 face_hand_detailed_plot <- face_hand_by_age %>%
@@ -790,7 +832,7 @@ CV_faces_plot <- ggplot(CV_faces, aes(x=age_day_bin, y = CV, size=num_detect, co
 ```
 
 
-```{r}
+```{r, include=F}
 x_pos_summary = summary(lmer(data=CV_faces %>% filter(position == 'Face X Position'), CV ~ scale(age_day_bin) + scale(num_detect) + (1|child_id)))
 
 y_pos_summary = summary(lmer(data=CV_faces %>% filter(position == 'Face Y Position'), CV ~ scale(age_day_bin) + scale(num_detect) +  (1|child_id)))
@@ -844,9 +886,13 @@ We also found that as children got older, they tended to see faces that varied m
 
 # General Discussion
 
-Here, we analyzed the social information in view in a dense, longitudinal dataset, applying a modern computer-vision model to quantify the hands and faces seen from each of three children's egocentric perspective from 6 to 32 months of age. First, we found a moderate decrease across age in the proportion of faces in view in the videos, in keeping with previous work [@Fausey2016]. This finding is particularly notable given that, in previous cross-sectional data, this effect seems to be most strongly driven by infants younger than 4 months of age [e.g., @Fausey2016; @Jayaraman2015; @Sugden2014] who see both more frequent and more persistent faces [@Jayaraman2018].  We also found this to be true when restricting our analyses to full-field faces, suggesting this effect is not driven by a concurrent shift from more full-view to partial-views of faces.
+Here, we analyzed the social information in view in a dense, longitudinal dataset, applying a modern computer-vision model to quantify the hands and faces seen from each of three children's egocentric perspective from 6 to 32 months of age. 
+First, we found a moderate decrease across age in the proportion of faces in view in the videos, in keeping with previous work [@Fausey2016]. 
+This finding is particularly notable given that, in previous cross-sectional data, this effect seems to be most strongly driven by infants younger than 4 months of age [e.g., @Fausey2016; @Jayaraman2015; @Sugden2014] who see both more frequent and more persistent faces [@Jayaraman2018].  
+We also found this to be true when restricting our analyses to full-field faces, suggesting this effect is not driven by a concurrent shift from more full-view to partial-views of faces.
 
-We also found an unexpectedly high proportion of hands in the view of infants, even when restricting the field-of-view to the center field of view the videos to make the viewpoints comparable to those of headcams used in previous work [@Fausey2016]. Why might this be the case? One idea is that these videos contain the viewpoints of children not only during structured interactions (e.g., play sessions at home or in the lab) but during everyday activities when children may be playing by themselves or simply observing the actions of caregivers and other people in their environment. During these less structured times, caregivers may move about in the vicinity of the child but not interact with them as directly---leading to views where a person and their hands are visible from a distance, but this person's face may be turned away from the infant or occluded (see examples in Figure 1). Indeed, using the same pose detector on videos from in-lab play sessions, @sanchez2018postural found the opposite trend: slightly fewer hand detections than face detections from 8-16 months of age. Work that directly examines the variability in the social information in view across more vs. less structured activity contexts could further test this idea.
+We also found an unexpectedly high proportion of hands in the view of infants, even when restricting the field-of-view to the center field of view the videos to make the viewpoints comparable to those of headcams used in previous work [@Fausey2016]. 
+Why might this be the case? One idea is that these videos contain the viewpoints of children not only during structured interactions (e.g., play sessions at home or in the lab) but during everyday activities when children may be playing by themselves or simply observing the actions of caregivers and other people in their environment. During these less structured times, caregivers may move about in the vicinity of the child but not interact with them as directly---leading to views where a person and their hands are visible from a distance, but this person's face may be turned away from the infant or occluded (see examples in Figure 1). Indeed, using the same pose detector on videos from in-lab play sessions, @sanchez2018postural found the opposite trend: slightly fewer hand detections than face detections from 8-16 months of age. Work that directly examines the variability in the social information in view across more vs. less structured activity contexts could further test this idea.
 
 A coarse analysis based on the location the videos were filmed in further highlights the variability of the social information in view during different activities, showing differences across locations and between individual children. Within a given, well-defined context---e.g., mealtime in kitchens---S saw more faces than A, and S saw more faces in the kitchen than in other locations. This variability likely stems from the fact that there are at least three ways to feed a young child: 1) sitting in front of the child, facing them as they sit in a high chair; 2) sitting behind the child, holding them as they face outward, and 3) sitting side by side. Each of these positions offer the child differing degrees of visual access to faces and hands. While the social information in view may be variable across children in different activity contexts, these analyses suggest they could be stable within a given child's day-to-day experience.
 
