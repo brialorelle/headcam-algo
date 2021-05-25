@@ -66,31 +66,41 @@ for (vid_file in op_files) {
    vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid_rds/', vid_file)
    this_vid_data <- readRDS(vid_file_path)
 
-   # if data wasn't normalized -- some (but not all!) Y videos
-   if (this_vid_data$child_id[1]=='Y' &  max(this_vid_data$height, na.rm=TRUE)>1) {
-     this_vid_data <- this_vid_data %>% 
-        mutate(top = top/y_max, height = height/y_max, left = left/x_max, width = width/x_max)
-   }
+   # # if data wasn't normalized -- some (but not all!) Y videos
+   # if (this_vid_data$child_id[1]=='Y' &  max(this_vid_data$height, na.rm=TRUE)>1) {
+   #   this_vid_data <- this_vid_data %>% 
+   #      mutate(top = top/y_max, height = height/y_max, left = left/x_max, width = width/x_max)
+   # }
       
-   this_vid <- this_vid_data %>%
-      filter(!is.na(height)) %>%
-      filter(mean_confidence > 0) %>% # sanity
-      mutate(area = height * width) %>%
-      group_by(label, child_id, vid_name) %>%
-      summarize(num_detect = length(height), avg_area = median(area), avg_height = median(height), avg_width = median(width), avg_left = median(left), avg_top = median(top))
+   # this_vid <- this_vid_data %>%
+   #    filter(!is.na(height)) %>%
+   #    filter(mean_confidence > 0) %>% # sanity
+   #    mutate(area = height * width) %>%
+   #    group_by(label, child_id, vid_name) %>%
+   #    summarize(num_detect = length(height), avg_area = median(area), avg_height = median(height), avg_width = median(width), avg_left = median(left), avg_top = median(top))
 
    
-   empty_vid = (length(this_vid$num_detect)==0)
-   if (empty_vid) {
-     print(vid_file)
-    }
+   this_vid_faces <- this_vid_data %>%
+      filter(!is.na(height)) %>%
+      filter(label=='face') %>%
+      filter(mean_confidence > 0) 
+   
+   empty_vid=FALSE
+   # empty_vid = (length(this_vid_data$num_detect)==0)
+   # if (empty_vid) {
+   #   print(vid_file)
+   #  }
 
    if (vid_index == 1 ){
-     all_vid_bbs <- this_vid
+     # all_vid_bbs <- this_vid
+     all_faces <- this_vid_faces
    }
    else if (vid_index > 1 && empty_vid==FALSE) {
-   all_vid_bbs <- all_vid_bbs %>%
-     full_join(this_vid)
+   # all_vid_bbs <- all_vid_bbs %>%
+   #   full_join(this_vid)
+   
+   all_faces <- all_faces %>%
+      full_join(this_vid_faces)
    }
 }
 }
@@ -98,13 +108,21 @@ for (vid_file in op_files) {
 
 
 ```{r}
-all_vid_bbs <- all_vid_bbs %>%
+# all_vid_bbs <- all_vid_bbs %>%
+#   left_join(age_info) %>%
+#   rowwise() %>%
+#   mutate(date_filmed = lubridate::ymd(str_split_fixed(vid_name,"_",4)[[2]])) %>%
+#   mutate(age_days = as.numeric(difftime(date_filmed,bday)) )
+# 
+# save(all_vid_bbs,file=here::here('data/preprocessed_data_2021/bounding_box_summaries_all.RData'))
+
+all_faces <- all_faces %>%
   left_join(age_info) %>%
   rowwise() %>%
   mutate(date_filmed = lubridate::ymd(str_split_fixed(vid_name,"_",4)[[2]])) %>%
   mutate(age_days = as.numeric(difftime(date_filmed,bday)) )
 
-save(all_vid_bbs,file=here::here('data/preprocessed_data_2021/bounding_box_summaries_all.RData'))
+ save(all_vid_bbs,file=here::here('data/preprocessed_data_2021/all_faces_summary.RData'))
 
 ```
 
