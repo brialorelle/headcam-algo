@@ -37,8 +37,8 @@ age_info = tibble(bday,child_id)
 ## Paths to raw outputs & datafiles
 ```{r}
 # toggle between each of these folders / dataset types
-dataset_dir = "/data/op_outputs_per_vid_rds/"; dataset_type = "all_detections"
-# dataset_dir = "/data/op_outputs_per_vid_rds_high_conf/"; dataset_type = "high_conf_detections"
+# dataset_dir = "/data/bounding_boxes/"; dataset_type = "all_detections"
+dataset_dir = "/data/high_conf_bounding_boxes/"; dataset_type = "high_conf_detections"
 
 op_file_dir = here::here(dataset_dir)
 op_files = dir(op_file_dir)
@@ -90,9 +90,10 @@ for (vid_file in op_files) {
    if (dataset_type=='high_conf_detections'){
       this_vid_data <- this_vid_data %>%
          filter(conf_thres==.5)
-      assert_that(length(this_vid_data$frame)>0)
+      # assert_that(length(this_vid_data$frame)>0)
    }
    
+   if (length(this_vid_data$frame)>0){
     # summarize hands/faces in each video
    summary_vid_data <- this_vid_data %>%
      group_by(frame, child_id, vid_name, full_face, eye_distance) %>%
@@ -148,6 +149,7 @@ for (vid_file in op_files) {
     select(-bday, -date_filmed) %>%
     mutate(conf_thres = this_conf_thres) %>%
     mutate(num_frames = num_frames)
+   
   
   # join it: 1 row = 1 video
    if (vid_index == 1 ){
@@ -161,7 +163,8 @@ for (vid_file in op_files) {
     # assert that we have actual center face/hands data 
   # check that length of videos without face/hands in center is not equal to the num of videos in dataframe, 
   assert_that(!sum(is.na(all_vid_data$face_and_hands_center))==length(all_vid_data$vid_name))
-}
+   }
+   }
 }
 }
 ```
