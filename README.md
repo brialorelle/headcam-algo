@@ -1,15 +1,14 @@
+# A longitudinal analysis of the social information in infants' naturalistic visual experience using automated detections
 
-# Detecting social information in a dense dataset of infants’ natural visual experience
+## Reproducing analysis in the submission 
 
-## Reproducing CogSci2020 
-
-The main analyses and writeup for the paper are in the paper/cogsci folder. Data for the paper can be found at https://osf.io/cdhw4/ at 
-data_cogsci.zip; this folder should be unzipped and placed in the main directory.
+The main analyses and writeup for the paper are in the paper/preprint/manuscript_june2021_apa_blinded.Rmd. 
+Data for the paper can be found at https://osf.io/cdhw4/ in data_preprocessed_2021.zip; this folder should be unzipped and placed in the main directory/data. 
 
 1. OpenPose detections were obtained using the pipeline outlined below (openpose_detections/openpose_pipeline.ipynb). 
-2. Bounding boxes were extracted using preprocessing/get_bounding_boxes_per_vid.py and preprocessing/get_all_openpose_bounding_boxes.R
-3. Human annotations for faces/hands obtained using AMT; basic preprocessing is in human_annotatiions/face_hands/analysis and in preprocessing/preprocess_datasets.Rmd
-4. Detections were preprocessed and joined with metadata to create intermediate data files, using preprocessing/preprocess_datasets.Rmd
+2. Bounding boxes were extracted using preprocessing/2_get_bounding_boxes_per_vid.py and preprocessing/step3_merge_per_vid_bounding_boxes.R
+3. Human annotations for faces/hands obtained using AMT; basic preprocessing is in preprocessing/step0_get_human_annotations/face_hands/analysis a
+4. Detections were preprocessed and joined with metadata to create intermediate data files, using preprocessing/step4_create_bounding_box_summaries.Rmd and preprocessing/step5_preprocess_fullset_from_bb_outputs.Rmd
 
 
 # Running OpenPose Detections 
@@ -57,13 +56,4 @@ chmod +x ./misc/clean_video_repo.sh
 ## Analysis
 
 Follow the instructions in the [README](openpose_detections/README.md) in the `openpose_detections` folder in order to run Openpose on all the videos in the dataset and save outputs in CSV format.
-
-[TODO: add README in the analysis/ folder, and link to it here in the above manner?]
-
-## Contributors
-
-* **Bria Long**
-* **Ketan Agrawal**
-* **George Kachergis**
-* **Alessandro Sanchez** - *Initial work* - [xs-face](https://github.com/amsan7/xs-face)
 
