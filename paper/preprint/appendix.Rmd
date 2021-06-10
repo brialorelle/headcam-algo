@@ -153,7 +153,7 @@ goldset_adult_hands <- summary_by_age_adult_hands_gold %>%
 ```
 
 # Face/hand detections relative to human annotations
-```{r goldSetSanity, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=4, fig.cap = "Proportion of faces and hands seen as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range. Dashed lines show estimated trend lines from proportion of faces/hands in view when analyzing the gold set of frames made by human annotators. Dotted lines show trend lines from the goldset when frames when children's own hand were detected." }
+```{r goldSetSanity, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=4, fig.cap = "Proportion of faces and hands seen as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range. Dashed lines show estimated trend lines from proportion of faces/hands in view when analyzing the gold set of frames made by human annotators. Dotted lines show trend lines from the goldset when frames containing children's own hands were excluded." }
 
 ggplot(all_detections %>% filter(child_id %in% c('S','A')), 
        aes(x=age_day_bin, y=prop, 
@@ -255,7 +255,7 @@ all_vid_bbs <- all_vid_bbs %>%
 
 
 
-```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field; each dot represents the average position from one video within a given age range."}
+```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 6-31 month-old. Each dot represents the average position from one video within a given age range."}
 
 ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
   geom_point(alpha=.3) + 
