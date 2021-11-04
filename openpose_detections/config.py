@@ -1,5 +1,6 @@
 import os
 from default_config import *
+SINGULARITY_CACHEDIR = '/home/users/bria/.singularity'
 
 # TODO: Change these from defaults (commented out)!
 

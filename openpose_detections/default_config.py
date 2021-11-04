@@ -10,8 +10,8 @@ OUTPUT = '/scratch/groups/mcfrank/Home_Headcam_new/outputs'
 
 
 # Directory to download openpose binary into
-# SINGULARITY_CACHEDIR = '/scratch/groups/mcfrank/Home_Headcam_new/.singularity'
-SINGULARITY_CACHEDIR = ${1:-$HOME}/.singularity
+SINGULARITY_CACHEDIR = '/scratch/groups/mcfrank/Home_Headcam_new/.singularity'
+
 
 # see https://github.com/CMU-Perceptual-Computing-Lab/openpose/blob/master/doc/output.md
 OPENPOSE_NUM_POSE_KEYPTS = 18
