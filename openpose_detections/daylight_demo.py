@@ -6,7 +6,7 @@ import time
 # import cv2
 import numpy as np
 # import matplotlib.pyplot as plt
-from matplotlib import collections as mc
+# from matplotlib import collections as mc
 
 from config import *
 from openpose_helpers import *
