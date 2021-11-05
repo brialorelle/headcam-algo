@@ -43,7 +43,7 @@ def run_openpose(vid_path, op_output_dir, face=True, hand=True,
     cmd += 'cd /openpose-master && ./build/examples/openpose/openpose.bin '
     cmd += f'--no_display true '
     cmd += f'--write_video {vid_output_dir} '
-    cmd += f'--render_pose 0 '
+    cmd += f'--render_pose true '
     cmd += f'--video {vid_path} '
     for opt, optval in kwargs.items():
         cmd += f'--{opt} {optval} '
