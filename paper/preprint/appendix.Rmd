@@ -272,3 +272,32 @@ ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x ,
   ggthemes::scale_color_solarized(name = "")  +
   ggthemes::scale_fill_solarized(name = "") 
 ```
+
+# ROC Curve
+
+Not done!
+
+```{r}
+#load(here("data/preprocessed_data/saycam_metadata.RData"))
+load(here::here("data","preprocessed_data_2021","gold_sample_from_bbs_2021_all_detectionsall_thresholds.RData"))
+# where's ground truth? these columns just refer to detections, not gold sample human ratings..
+
+#roc <- all_gold_sample_frames_op %>% group_by(detection_threshold) %>%
+#  summarise(hand_pos = sum(hand_detected) / n(),
+#            face_pos = sum(face_detected) / n()) 
+# hmm shouldn't we have varying numbers of detection at different thresholds? 
+
+
+# can extract human ratings from hand_eval_ketan / face_eval_ketan:
+load(here::here('data/preprocessed_data_2021/gold_sample_annotations2020-01-31.RData')) # human annotations
+
+
+
+
+
+# x-axis = False positive rate
+# y-axis = True positive rate
+
+
+```
+
