@@ -275,25 +275,74 @@ ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x ,
 
 # ROC Curve
 
-Not done!
-
 ```{r}
-#load(here("data/preprocessed_data/saycam_metadata.RData"))
-load(here::here("data","preprocessed_data_2021","gold_sample_from_bbs_2021_all_detectionsall_thresholds.RData"))
-# where's ground truth? these columns just refer to detections, not gold sample human ratings..
+load(here::here("data","preprocessed_data_2021","gold_sample_from_bbs_2021_all_detections_all_thresholds.RData"))
 
-#roc <- all_gold_sample_frames_op %>% group_by(detection_threshold) %>%
-#  summarise(hand_pos = sum(hand_detected) / n(),
-#            face_pos = sum(face_detected) / n()) 
-# hmm shouldn't we have varying numbers of detection at different thresholds? 
-
-
-# can extract human ratings from hand_eval_ketan / face_eval_ketan:
 load(here::here('data/preprocessed_data_2021/gold_sample_annotations2020-01-31.RData')) # human annotations
 
+evaluate_detector <- function(truth, detection) {
+  if (truth == TRUE) {
+    if (truth == detection) return ("TP") # was face/wrist, detected face/wrist
+    else return("FN") # was face/wrist, missed face/wrist
+  }
+  else {
+    if (truth == detection) return("TN") # was not face/wrist, did not detect face/wrist
+    else return("FP") # was not face/wrist, detected face/wrist
+  }
+}
 
+ return_tpr = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  tn=sum(eval == "TN")
+  tpr = tp / (tp + fn)
+  return(tpr)
+ }
 
+return_fpr = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  tn=sum(eval == "TN")
+  fpr = fp / (fp + tn)
+  return(fpr)
+ }
+ 
+  
+```
 
+```{r}
+roc_data <- gold_sample %>%
+  select(vid_name, frame, face_present_ketan, hand_present_ketan) %>%
+  mutate(face_present_ketan = as.logical(face_present_ketan), hand_present_ketan = as.logical(hand_present_ketan)) %>%
+  right_join(all_gold_sample_frames_op) %>%
+   mutate(hand_detected = hand_detected>0, face_detected = face_detected > 0) %>%
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected)) %>%
+  group_by(detection_threshold) %>%
+  summarize(tpr_faces = return_tpr(face_eval_ketan), fpr_faces = return_fpr(face_eval_ketan), tpr_hands = return_tpr(hand_eval_ketan), fpr_hands = return_fpr(hand_eval_ketan))
+```
+
+```{r}
+ggplot(data=roc_data, aes(x=fpr_faces, y=tpr_faces, color=detection_threshold)) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  xlim(0,1) +
+  geom_abline(color = 'grey') +
+  xlab('False Positive Rate') +
+  ylab('True Positive Rate')
+
+ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_threshold)) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  xlim(0,1) +
+  geom_abline(color = 'grey') +
+  xlab('False Positive Rate') +
+  ylab('True Positive Rate')
+
+```
 
 # x-axis = False positive rate
 # y-axis = True positive rate
