@@ -1,0 +1,261 @@
+---
+title: "SAYCAM preprocessing analyses from bounding box outputs"
+author: "Bria Long"
+date: "6/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Basic data loading and setup
+## Packages
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(assertthat)
+library(ggthemes)
+library(lme4)
+library(langcog)
+library(viridis)
+library(stringr)
+library(here)
+theme_set(theme_few())
+```
+
+## Paths to raw outputs & datafiles
+```{r}
+op_file_dir = here::here("data/op_outputs_per_vid/")
+op_files = dir(op_file_dir)
+# op_files = op_files [1] # for testing
+
+allocentric_file = here::here("data/raw_data/SAYCAM_allocentric_videos.csv")
+to_exclude =read.csv(allocentric_file)
+
+# get INCORRECT videos where allocentric videopoint 
+to_exclude <- to_exclude %>%
+  filter(allocentric==1) %>%
+  rename(vid_name = video)
+```
+
+## Main detections: read in bounding box outputs from each vid, summarize and compile.
+```{r}
+reload_data=TRUE
+# instead of loading each vid, load summary...
+load(here::here('data/preprocessed_data/all_vid_data_from_bbs_may2020.RData'))
+
+if (reload_data){
+vid_index = 0
+for (vid_file in op_files) {
+  vid_index = vid_index + 1
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+   
+   summary_vid_data <- this_vid_data %>%
+     group_by(frame, child_id, vid_name, right_side_up, age_days) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0)  %>%
+     group_by(child_id, vid_name, right_side_up, age_days) %>%
+     summarize(num_hands = sum(hand_detected), num_faces = sum(face_detected), num_detect = length(hand_detected))
+   
+   
+   if (vid_index == 1 ){
+     all_vid_data <- summary_vid_data
+   }
+   else if (vid_index > 1) {
+   all_vid_data <- all_vid_data %>%
+     full_join(summary_vid_data)
+   }
+}
+}
+```
+
+## Cropped detections: crop out detections from outer edges of frames; do so at video level.
+```{r}
+# cropping paramts
+limit_lower =.2
+limit_upper =.8
+# vid params
+y_max = 480
+x_max = 640
+
+
+load(here::here('data/preprocessed_data/all_vid_data_from_bbs_may2020.RData'))
+
+reload_data=TRUE
+
+if (reload_data){
+vid_index = 0
+for (vid_file in op_files) {
+  
+   # to check progress
+   vid_index = vid_index + 1
+   if ((vid_index %% 100)==0) { print (vid_file) }
+   
+   # get vid level data
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+
+    # don't bother for these files
+   if (!this_vid_data$vid_name[1] %in% to_exclude$vid_name){
+   
+    # for renormalizing y's vids which were run differently this time
+   if (this_vid_data$child_id[1]=='Y'){
+     this_vid_data <- this_vid_data %>%
+      mutate(top = top/y_max, height = height/y_max, left = left/x_max, width = width/x_max)
+   }
+   
+   # now get vid level data
+   summary_vid_data_center <- this_vid_data %>%
+     mutate(num_frames = length(unique(frame))) %>% # count frames
+     mutate(center_y = top + height/2, center_x = left + width/2) %>% # get center_x and y
+     filter(center_y<(limit_upper) & center_x<(limit_upper) & center_y>(limit_lower) & center_x>(limit_lower)) %>%   # filter within parameters
+     group_by(frame, child_id, vid_name, num_frames, age_days) %>% # group at frame level first
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0) %>%
+     group_by(child_id, vid_name, age_days, num_frames) %>% # now at the video level
+     summarize(num_hands = sum(hand_detected), num_faces = sum(face_detected)) # count how many faces/hands 
+   
+   # compile vid-level summaries 
+   if (vid_index == 1){
+     all_vid_data_center <- summary_vid_data_center
+   }
+   else if (vid_index > 1) {
+   all_vid_data_center <- all_vid_data_center %>%
+     full_join(summary_vid_data_center)
+   }
+}
+}
+}
+
+```
+
+
+## Gold sample detections only
+### Load gold sample annotations
+```{R}
+## load gold sample annotations
+load(here('data/data_cogsci/gold_sample_annotations2020-01-31.RData')) # gold_sample
+ 
+gold_sample_frames <- gold_sample %>%
+  select(vid_name, frame) %>%
+  mutate(vid_name = str_split(vid_name,"[.]")[[1]][1])
+
+gold_sample_vids <- unique(gold_sample_frames$vid_name)
+```
+
+### Get detections from gold sample videos only
+```{r}
+reload_data=TRUE
+# redo gold sample 
+if (reload_data){
+vid_index = 0
+for (vid_file in op_files) {
+  
+   # to check progress
+   vid_index = vid_index + 1
+   if ((vid_index %% 100)==0) { print (vid_file) }
+   
+   # get vid level data
+   vid_file_path = paste0(here::here(), '/data/op_outputs_per_vid/', vid_file)
+   this_vid_data <- readRDS(vid_file_path)
+   this_vid_name_temp <- this_vid_data$vid_name[1]
+   
+   this_vid_name <- str_split(this_vid_name_temp,"[.]")[[1]][1]
+   
+   # if it's one of the vids from gold sample
+   if (this_vid_name %in% gold_sample_vids){
+   # and not excluded
+   if (!this_vid_name %in% to_exclude$vid_name){
+   
+   frames_to_get <- gold_sample_frames %>%
+     filter(vid_name == this_vid_name)
+  
+   # now get vid level data
+   gold_sample_op <- this_vid_data %>%
+     filter(frame %in% frames_to_get$frame) %>%
+     mutate(vid_name = str_split(vid_name,"[.]")[[1]][1]) %>%
+     group_by(frame, vid_name) %>%
+     summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0) 
+   
+   # compile vid-level summaries 
+   if (vid_index == 1){
+     all_gold_sample_frames_op <- gold_sample_op
+   }
+   else if (vid_index > 1) {
+   all_gold_sample_frames_op <- all_gold_sample_frames_op %>%
+     full_join(gold_sample_op)
+   }
+}
+}
+}
+}
+```
+
+## Data cleaning
+### Choose bins across which to aggregate data
+```{r}
+bin_size = 7 # days
+min_age = min(all_vid_data$age_days, na.rm=TRUE)
+max_age = max(all_vid_data$age_days, na.rm=TRUE)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+
+vid_info <- all_vid_data %>%
+  select(vid_name, age_days, child_id)
+```
+
+
+### Regualrize vid names & get rid of vids to exclude from allocentric file
+```{r}
+all_vid_data <- all_vid_data %>%
+  rowwise() %>%
+  mutate(vid_name_cleaned = str_split(vid_name,"[.]")[[1]][1])
+```
+
+```{r}
+all_vid_data <- all_vid_data %>%
+  mutate(vid_name_old = vid_name) %>%
+  filter(!vid_name_cleaned %in% to_exclude$vid_name) %>%
+  mutate(vid_name = vid_name_cleaned) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) 
+
+all_vid_data <- all_vid_data %>%
+  mutate(vid_name = vid_name_cleaned)
+
+save(all_vid_data, file = here::here('data/preprocessed_data/all_vid_data_from_bbs_june2020.RData'))
+```
+
+```{r}
+## repeat for center cropped data
+all_vid_data_center <- all_vid_data_center %>%
+  rowwise() %>%
+  mutate(vid_name_cleaned = str_split(vid_name,"[.]")[[1]][1])
+
+all_vid_data_center <- all_vid_data_center %>%
+  mutate(vid_name_old = vid_name) %>%
+  select(-vid_name) %>%
+  filter(!vid_name_cleaned %in% to_exclude$vid_name) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin)))
+
+all_vid_data_center <- all_vid_data_center %>%
+  mutate(vid_name = vid_name_cleaned)
+
+save(all_vid_data_center, file = here::here('data/preprocessed_data/all_centered_vid_data_from_bbs_june2020.RData'))
+
+```
+
+```{r}
+all_gold_sample_frames_op <- all_gold_sample_frames_op %>%
+  left_join(vid_info) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin)))
+save(all_gold_sample_frames_op, file = here::here('data/preprocessed_data/gold_sample_from_bbs_june2020.RData'))
+```
+
+
+### A few videos still need metadata...
+```{r}
+missing_age <-all_vid_data %>%
+  filter(is.na(age_days))
+```
