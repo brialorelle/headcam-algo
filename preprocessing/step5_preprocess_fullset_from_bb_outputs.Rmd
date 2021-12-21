@@ -304,7 +304,7 @@ for (vid_file in op_files) {
         filter(frame %in% frames_to_get$frame) %>%
         mutate(vid_name = str_split(vid_name,"[.]")[[1]][1]) %>%
         group_by(frame, vid_name, child_id) %>%
-        summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>detection_thres) %>%
+        summarize(hand_detected =sum(mean_confidence[label=='hand']>detection_thres),face_detected = sum(mean_confidence[label=='face']>detection_thres)) %>%
         mutate(detection_threshold = detection_thres)
       
       if (detection_thres==0){
@@ -329,15 +329,8 @@ for (vid_file in op_files) {
 }
 }
 
-## Add in age data
-all_gold_sample_frames_op <-all_gold_sample_frames_op %>%
-  mutate(date_filmed = lubridate::ymd(str_split_fixed(vid_name,"_",4)[[2]])) %>%
-  left_join(age_info) %>%
-  rowwise() %>%
-  mutate(age_days = as.numeric(difftime(date_filmed,bday)))
 
-
-save(all_gold_sample_frames_op, file = here::here('data/preprocessed_data_2021/',paste0('gold_sample_from_bbs_2021_',dataset_type,'all_thresholds.RData')))
+save(all_gold_sample_frames_op, file = here::here('data/preprocessed_data_2021/',paste0('gold_sample_from_bbs_2021_',dataset_type,'_all_thresholds.RData')))
 
 ```
 
