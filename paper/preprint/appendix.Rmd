@@ -11,6 +11,7 @@ output:
 library(tidyverse)
 library(ggplot2)
 library(ggthemes)
+library(egg)
 ```
 
 
@@ -273,13 +274,15 @@ ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x ,
   ggthemes::scale_fill_solarized(name = "") 
 ```
 
-# ROC Curve
+# Detection threshold estimations
 
 ```{r}
 load(here::here("data","preprocessed_data_2021","gold_sample_from_bbs_2021_all_detections_all_thresholds.RData"))
 
 load(here::here('data/preprocessed_data_2021/gold_sample_annotations2020-01-31.RData')) # human annotations
+```
 
+```{r}
 evaluate_detector <- function(truth, detection) {
   if (truth == TRUE) {
     if (truth == detection) return ("TP") # was face/wrist, detected face/wrist
@@ -317,7 +320,7 @@ roc_data <- gold_sample %>%
   select(vid_name, frame, face_present_ketan, hand_present_ketan) %>%
   mutate(face_present_ketan = as.logical(face_present_ketan), hand_present_ketan = as.logical(hand_present_ketan)) %>%
   right_join(all_gold_sample_frames_op) %>%
-   mutate(hand_detected = hand_detected>0, face_detected = face_detected > 0) %>%
+   mutate(hand_detected = hand_detected>0, face_detected = face_detected > 0) %>% # number = number of faces/hands detected
   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected)) %>%
   group_by(detection_threshold) %>%
   summarize(tpr_faces = return_tpr(face_eval_ketan), fpr_faces = return_fpr(face_eval_ketan), tpr_hands = return_tpr(hand_eval_ketan), fpr_hands = return_fpr(hand_eval_ketan))
@@ -343,10 +346,150 @@ ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_threshold)) 
   ylab('True Positive Rate')
 
 ```
+# OpenPose Error Analyses
+```{r}
+# join human and OP detections
+gold_sample <- gold_sample %>%
+  select(vid_name, frame, face_present_ketan, hand_present_ketan) %>%
+  mutate(face_present_ketan = as.logical(face_present_ketan), hand_present_ketan = as.logical(hand_present_ketan)) %>%
+  right_join(all_gold_sample_frames_op) %>%
+  mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected)) 
+```
 
-# x-axis = False positive rate
-# y-axis = True positive rate
+```{r}
+# add age day bins to gold_sample
+load(file=here::here('data/preprocessed_data_2021/all_vid_data_from_bbs_all_detections.RData')) # all detections
+bin_size = 7 # days
+min_age = min(all_vid_data$age_days, na.rm=TRUE) # 182
+max_age = max(all_vid_data$age_days, na.rm=TRUE) # 966
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+
+gold_sample <- gold_sample %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=round(bin_starts/30,1))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) 
+```
+
+```{r}
+ return_prf = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  num_detect = length(eval)
+  out <- data.frame(p,r,f,num_detect)
+  return(out)
+ }
+
+```
+
+```{r}
+prf_by_age_faces <-  gold_sample %>%
+  group_by(child_id, age_day_bin) %>%
+  do(return_prf(.$face_eval_ketan)) %>%
+  filter(num_detect > 50)
+
+prf_by_age_hands <-  gold_sample %>%
+  group_by(child_id, age_day_bin) %>%
+  do(return_prf(.$hand_eval_ketan)) %>%
+  filter(num_detect > 50)
+```
 
 
+```{r}
+
+prf_by_age_faces$age_day_bin = as.numeric(prf_by_age_faces$age_day_bin)
+
+prf_by_age_hands$age_day_bin = as.numeric(prf_by_age_hands$age_day_bin)
+
+ggplot(prf_by_age_faces, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=20, alpha=.1)  +
+  ylim(0,1) +
+  ylab('F-score - Face detection') +
+  xlab('Age (months)') +
+  theme(legend.position= 'none')
+
+
+ggplot(prf_by_age_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
+  geom_point(alpha=.5) +
+  geom_smooth(span=20, alpha=.1)  +
+  ylim(0,1) +
+  ylab('F-score - Hand detection') +
+  xlab('Age (months)') +
+  theme(legend.position= 'none')
+
+
+# p2 = ggplot(prf_by_age_faces, aes(x=age_day_bin, y=p, col=child_id, size=num_detect)) +
+#   geom_point(alpha=.5) +
+#   geom_smooth(span=10, alpha=.1)  +
+#   ylim(0,1) +
+#   ylab('Precision - Face detection')+
+#   xlab('Age (months)') +
+#   theme(legend.position= 'none')
+# 
+# p3 =ggplot(prf_by_age_faces, aes(x=age_day_bin, y=r, col=child_id, size=num_detect)) +
+#   geom_point(alpha=.5) +
+#   geom_smooth(span=10, alpha=.1)  +
+#   ylim(0,1) +
+#   ylab('Recall - Face detection')+
+#   xlab('Age (months)') +
+#   theme(legend.position= 'none')
+# #
+# ggarrange(p1,p2,p3)
+
+```
+
+```{r}
+
+```
+
+```{r}
+load(here::here('data/preprocessed_data_2021/saycam_metadata.RData')) # meta
+
+num_videos_annotated = sum(!is.na(meta$Location))
+videos_included = sum(!is.na(meta$Location) & meta$count_locations==1)
+```
+
+```{r}
+gold_sample_by_location <- gold_sample %>%
+  left_join(meta) %>%
+  filter(!is.na(Location)) %>%
+  filter(count_locations==1) 
+
+```
+
+```{r}
+prf_by_location_faces <-  gold_sample_by_location %>%
+  group_by(Location) %>%
+  do(return_prf(.$face_eval_ketan)) %>%
+  filter(num_detect > 50)
+
+prf_by_location_hands <-  gold_sample_by_location %>%
+  group_by(Location) %>%
+  do(return_prf(.$hand_eval_ketan)) %>%
+  filter(num_detect > 50)
+```
+
+```{r}
+
+
+ggplot(prf_by_location_faces, aes(x=Location, y=f, col=Location, size=num_detect)) +
+  geom_point(alpha=.5) +
+  ylab('F-score - Face detection') +
+  theme(legend.position = 'none') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylim(0,1)
+```
+
+```{r}
+ggplot(prf_by_location_hands, aes(x=Location, y=f, col=Location, size=num_detect)) +
+  geom_point(alpha=.5) +
+  ylab('F-score - Hand detection') +
+  theme(legend.position = 'none') +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ylim(0,1)
 ```
 
