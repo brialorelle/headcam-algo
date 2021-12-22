@@ -493,21 +493,28 @@ ggarrange(p1, p2, nrow=1)
 
 # Activity by Location
 
-```{r}
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos.}
 meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_28.csv"))
 
 meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
   select(Child, `File Name`, Activity, Location) %>%
-  separate(Activity, c("Act.1","Act.2","Act.3","Act.4","Act.5","Act.6","Act.7","Act.8","Act.9","Act.10","Act.11","Act.12"), sep=',') 
-
-# include videos with multiple locations
-meta_long <- meta_wide %>% 
-  separate(Location, c("Loc.1","Loc.2","Loc.3","Loc.4","Loc.5","Loc.6"), sep=',')
+  separate(Activity, c("Act.1","Act.2","Act.3","Act.4","Act.5","Act.6","Act.7","Act.8","Act.9","Act.10","Act.11","Act.12"), sep=',') %>%
   pivot_longer(cols = starts_with("Act."), 
                                         names_to = "activity_index",
                                         names_prefix = "Act.",
                                         values_to = "Activity",
                                         values_drop_na = T) %>%
+  mutate(Activity = case_when(Activity=="Waving" ~ "Gesturing",
+                              Activity=="Imitation" ~ "Imitating",
+                              Activity=="Talking Walk" ~ "Walking",
+                              Activity=="Tidying" ~ "Cleaning",
+                              Activity=="Preparing for Outing" ~ "Getting Changed/Dressed",
+                              Activity=="Play Pretend" ~ "Playing",
+                              TRUE ~ Activity)) 
+
+# include videos with multiple locations
+meta_long <- meta_wide %>% 
+  separate(Location, c("Loc.1","Loc.2","Loc.3","Loc.4","Loc.5","Loc.6"), sep=',') %>%
   pivot_longer(cols = starts_with("Loc."),
                names_to = "location_index",
                names_prefix = "Loc.",
@@ -519,25 +526,50 @@ single_locations = c("Bedroom","Car","Deck/Porch","Kitchen","Living Room","Off P
 # single-location videos
 meta_long_1loc <- meta_wide %>%
   filter(is.element(Location, single_locations)) %>%
-  pivot_longer(cols = starts_with("Act."), 
-               names_to = "activity_index",
-               names_prefix = "Act.",
-               values_to = "Activity",
-               values_drop_na = T) 
+  filter(Activity!="N/A", Activity!="Consequence", Activity!="Gesturing")
   
 # what is "California Room" ?
 meta_long <- meta_long %>% mutate(Location = ifelse(Location=="Bedroom Alice/Sam", "Bedroom", Location))
 
-# use meta_long for multi-location videos
-meta_long_1loc %>% filter(Activity!="N/A") %>%
+loc_freq = sort(table(meta_long_1loc$Location))
+
+# multi-location videos
+meta_long %>% filter(Activity!="N/A", Activity!="Consequence", Activity!="Kicking",
+                     Activity!="Gesturing", Activity!="Look and Listen", 
+                     Location!="N/A", Location!="California Room",
+                     Location!="Rapidly Moving Between Locations", Location!="Piano Room") %>%
+  mutate(Location = ifelse(Location=="Dog Park/Park/Field", "Off Property", Location)) %>%
   group_by(Activity, Location) %>%
   summarise(n = n()) %>% 
-  ggplot(aes(x=Location, y=Activity, fill=n)) +
+  ggplot(aes(x=Activity, y=Location, fill=n)) +
   geom_tile() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#ggsave("activity_by_location.pdf", width=6, height=10)
+```
 
-# Talking Walk -> Taking Walk ?
-# Taking Walk -> Walking?
+
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location in videos taking place in only a single location.}
+# single location videos
+meta_long_1loc %>% 
+  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
+  group_by(Activity, Location) %>%
+  summarise(n = n()) %>% 
+  ggplot(aes(x=Activity, y=Location, fill=n)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#ggsave("activity_by_location.pdf", width=6.5, height=3.5)
+```
+
+
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Probability of different activities, given location (in single-location videos).}
+# normalize by location
+meta_long_1loc %>% 
+  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
+  left_join(meta_long_1loc %>% group_by(Location) %>% summarise(loc_freq = n())) %>%
+  group_by(Activity, Location) %>%
+  summarise(n = n(),
+            prop_loc = n / loc_freq) %>% 
+  ggplot(aes(x=Activity, y=Location, fill=prop_loc)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
