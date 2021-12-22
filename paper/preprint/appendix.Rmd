@@ -498,10 +498,12 @@ meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_
 
 meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
   select(Child, `File Name`, Activity, Location) %>%
-  separate(Activity, c("Act.1","Act.2","Act.3","Act.4","Act.5","Act.6","Act.7","Act.8","Act.9","Act.10","Act.11","Act.12"), sep=',') %>%
-  separate(Location, c("Loc.1","Loc.2","Loc.3","Loc.4","Loc.5","Loc.6"), sep=',')
+  separate(Activity, c("Act.1","Act.2","Act.3","Act.4","Act.5","Act.6","Act.7","Act.8","Act.9","Act.10","Act.11","Act.12"), sep=',') 
 
-meta_long <- meta_wide %>% pivot_longer(cols = starts_with("Act."), 
+# include videos with multiple locations
+meta_long <- meta_wide %>% 
+  separate(Location, c("Loc.1","Loc.2","Loc.3","Loc.4","Loc.5","Loc.6"), sep=',')
+  pivot_longer(cols = starts_with("Act."), 
                                         names_to = "activity_index",
                                         names_prefix = "Act.",
                                         values_to = "Activity",
@@ -512,15 +514,30 @@ meta_long <- meta_wide %>% pivot_longer(cols = starts_with("Act."),
                values_to = "Location",
                values_drop_na = T)
 
+single_locations = c("Bedroom","Car","Deck/Porch","Kitchen","Living Room","Off Property","Office","Outside on Property")
+
+# single-location videos
+meta_long_1loc <- meta_wide %>%
+  filter(is.element(Location, single_locations)) %>%
+  pivot_longer(cols = starts_with("Act."), 
+               names_to = "activity_index",
+               names_prefix = "Act.",
+               values_to = "Activity",
+               values_drop_na = T) 
+  
 # what is "California Room" ?
 meta_long <- meta_long %>% mutate(Location = ifelse(Location=="Bedroom Alice/Sam", "Bedroom", Location))
 
-meta_long %>% filter(Activity!="N/A") %>%
+# use meta_long for multi-location videos
+meta_long_1loc %>% filter(Activity!="N/A") %>%
   group_by(Activity, Location) %>%
   summarise(n = n()) %>% 
   ggplot(aes(x=Location, y=Activity, fill=n)) +
   geom_tile() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 #ggsave("activity_by_location.pdf", width=6, height=10)
+
+# Talking Walk -> Taking Walk ?
+# Taking Walk -> Walking?
 ```
 
