@@ -389,17 +389,14 @@ gold_sample <- gold_sample %>%
 ```{r}
 prf_by_age_faces <-  gold_sample %>%
   group_by(child_id, age_day_bin) %>%
-  do(return_prf(.$face_eval_ketan)) %>%
-  filter(num_detect > 50)
+  do(return_prf(.$face_eval_ketan))
 
 prf_by_age_hands <-  gold_sample %>%
   group_by(child_id, age_day_bin) %>%
-  do(return_prf(.$hand_eval_ketan)) %>%
-  filter(num_detect > 50)
+  do(return_prf(.$hand_eval_ketan)) 
 ```
 
-
-```{r, fig.width=6.5, fig.height=3.2}
+```{r, fig.width=6.5, fig.height=3.2, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
 
 prf_by_age_faces$age_day_bin = as.numeric(prf_by_age_faces$age_day_bin)
 
@@ -421,9 +418,13 @@ p2 <- ggplot(prf_by_age_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_de
   ylab('F-score') + xlab('Age (months)') +
   ggtitle("Hand detections") + 
   theme(legend.position= 'none')
+```
 
+```{r}
 ggarrange(p1, p2, nrow=1)
+```
 
+```{r}
 # p2 = ggplot(prf_by_age_faces, aes(x=age_day_bin, y=p, col=child_id, size=num_detect)) +
 #   geom_point(alpha=.5) +
 #   geom_smooth(span=10, alpha=.1)  +
@@ -490,10 +491,84 @@ p2 <- ggplot(prf_by_location_hands, aes(x=Location, y=f, col=Location, size=num_
 ggarrange(p1, p2, nrow=1)
 ```
 
+# OpenPose Annotation Examples
+```{r include=FALSE}
+load(file = here::here('data/preprocessed_data_2021/goldset_category_annotations.RData'))
+
+fp_face_examples <- d %>%
+  left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+  filter(face_eval_ketan == 'FP')
+
+fp_hand_examples <- d %>%
+  left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+  filter(hand_eval_ketan == 'FP')
+
+fn_face_examples <- d %>%
+  left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+  filter(face_eval_ketan == 'FN')
+
+fn_hand_examples <- d %>%
+  left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+  filter(face_eval_ketan == 'FN')
+
+images_to_render =  fp_hand_examples
+which_images = 'fp_hand_examples'
+
+public_urls = unique(images_to_render$public_url)
+img_names_short = unique(images_to_render$img_name)
+
+dir.create(here::here("data/annotation_examples/", which_images),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/",which_images, img_names_short[i]))
+  }
+
+```
+
+```{r}
+det_types = c('FP','FN')
+
+render_examples = FALSE
+if (render_examples == TRUE) {
+for (det_type in det_types) {
+  to_render_hands <- d %>%
+    distinct(vid_name, frame, public_url) %>%
+    left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+    filter(hand_eval_ketan == det_type) %>%
+    ungroup() %>%
+    dplyr::sample_n(7)
+
+  image_read(to_render_hands$public_url) %>%
+    image_append(stack = FALSE) %>%
+    image_write(paste0(here::here("data/annotation_examples/"), 'example_hands_', det_type,".png"))
+  
+  
+  ###
+    to_render_faces <- d %>%
+    distinct(vid_name, frame, public_url) %>%
+    left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+    filter(face_eval_ketan == det_type) %>%
+    ungroup() %>%
+    dplyr::sample_n(7)
+
+  image_read(to_render_faces$public_url) %>%
+    image_append(stack = FALSE) %>%
+    image_write(paste0(here::here("data/annotation_examples/"), 'example_faces_', det_type,".png"))
+  
+}
+}
+
+```
+
+```{r error_examples, include = T, fig.env = "figure*", fig.pos = "h", fig.align='center', fig.width=8, fig.height=6, set.cap.width=T, num.cols.cap=2,  fig.fullwidth = TRUE, fig.align = "center", fig.cap = "Example false alarms/misses for faces/hands randomly sampled from the larger set of manual annotations."}
+error_examples <- png::readPNG("figs/OP_errors.png")
+grid::grid.raster(error_examples)
+```
 
 # Activity by Location
 
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos.}
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos."}
 meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_28.csv"))
 
 meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
@@ -547,7 +622,7 @@ meta_long %>% filter(Activity!="N/A", Activity!="Consequence", Activity!="Kickin
 ```
 
 
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location in videos taking place in only a single location.}
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location in videos taking place in only a single location."}
 # single location videos
 meta_long_1loc %>% 
   mutate(Location = factor(Location, levels=names(loc_freq))) %>%
@@ -560,7 +635,7 @@ meta_long_1loc %>%
 ```
 
 
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="Probability of different activities, given location (in single-location videos).}
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Probability of different activities, given location (in single-location videos)."}
 # normalize by location
 meta_long_1loc %>% 
   mutate(Location = factor(Location, levels=names(loc_freq))) %>%
