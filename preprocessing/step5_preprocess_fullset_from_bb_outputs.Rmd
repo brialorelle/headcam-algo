@@ -235,6 +235,18 @@ for (vid_file in op_files) {
      group_by(frame, vid_name, child_id) %>%
      summarize(hand_detected = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected = sum(!is.na(mean_confidence[label=='face']))>0) 
    
+   
+   gold_sample_op_center <- this_vid_data %>%
+     filter(frame %in% frames_to_get$frame) %>%
+     mutate(center_y = top + height/2, center_x = left + width/2) %>% # get center_x and y
+     filter(center_y<(limit_upper) & center_x<(limit_upper) & center_y>(limit_lower) & center_x>(limit_lower)) %>%   # filter within parameters
+     group_by(frame, child_id, vid_name) %>% # group at frame level first
+     summarize(hand_detected_center = sum(!is.na(mean_confidence[label=='hand']))>0,face_detected_center = sum(!is.na(mean_confidence[label=='face']))>0) 
+   
+   
+   gold_sample_op<- gold_sample_op %>%
+      right_join(gold_sample_op_center)[1:]
+   
    # compile vid-level summaries 
    if (vid_index == 1){
      all_gold_sample_frames_op <- gold_sample_op
@@ -254,7 +266,7 @@ all_gold_sample_frames_op <-all_gold_sample_frames_op %>%
   mutate(date_filmed = lubridate::ymd(str_split_fixed(vid_name,"_",4)[[2]])) %>%
   mutate(age_days = as.numeric(difftime(date_filmed,bday)) )
 
-save(all_gold_sample_frames_op, file = here::here('data/preprocessed_data_2021/',paste0('gold_sample_from_bbs_2021_',dataset_type,'.RData')))
+save(all_gold_sample_frames_op, file = here::here('data/preprocessed_data_2021/',paste0('gold_sample_from_bbs_2021_with_center',dataset_type,'.RData')))
 ```
 
 
