@@ -3,7 +3,7 @@ import os
 import ujson
 import multiprocessing as mp
 import time
-# import cv2
+import cv2
 import numpy as np
 # import matplotlib.pyplot as plt
 # from matplotlib import collections as mc
