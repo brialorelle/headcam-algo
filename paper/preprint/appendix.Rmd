@@ -27,7 +27,7 @@ load(file=here::here('data/preprocessed_data_2021/bounding_box_summaries.RData')
 ```{r}
 ## Load in gold sample detections
 load(here::here('data/preprocessed_data_2021/gold_sample_annotations2020-01-31.RData')) # human annotations
-load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_all_detections.RData')) 
+load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_with_centerall_detections.RData')) 
 
 # all_gold_sample_frames_op_hc = load(here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_high_conf_detections.RData')) 
 ```
@@ -355,6 +355,9 @@ gold_sample <- gold_sample %>%
   mutate(face_present_ketan = as.logical(face_present_ketan), hand_present_ketan = as.logical(hand_present_ketan)) %>%
   right_join(all_gold_sample_frames_op) %>%
   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected)) 
+
+
+    # mutate(face_eval_ketan_center = evaluate_detector(face_present_ketan, face_detected_center), hand_eval_ketan_center = evaluate_detector(hand_present_ketan, hand_detected_center)) 
 ```
 
 ```{r}
@@ -384,6 +387,18 @@ gold_sample <- gold_sample %>%
   return(out)
  }
 
+# function to return prfs
+ return_prf_short = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  return(c(p,r,f))
+ }
+
+
 ```
 
 ```{r}
@@ -394,6 +409,14 @@ prf_by_age_faces <-  gold_sample %>%
 prf_by_age_hands <-  gold_sample %>%
   group_by(child_id, age_day_bin) %>%
   do(return_prf(.$hand_eval_ketan)) 
+```
+
+
+```{r}
+# Evaluating prfs in center detections is challenging because we ONLY have ground truth on the full image -- so it's not that informative. 
+
+# return_prf_short(gold_sample$hand_eval_ketan_center)
+# return_prf_short(gold_sample$face_eval_ketan_center)
 ```
 
 ```{r, fig.width=6.5, fig.height=3.2, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
