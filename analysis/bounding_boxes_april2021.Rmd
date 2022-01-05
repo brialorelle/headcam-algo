@@ -82,7 +82,7 @@ ggplot(face_hands , aes(x=age_days, y=log(avg_area), col=label, size=num_detect)
   xlab('Age in days')
 
 
-summary(lmer(log(avg_area) ~ age_days + label + (1|child_id), data  = face_hands %>% filter(!avg_area==0) %>% filter(label=='hand'))
+summary(lmer(log(avg_area) ~ age_days + label + (1|child_id), data  = face_hands %>% filter(!avg_area==0) %>% filter(label=='hand')))
 ```
 
 ```{R}
