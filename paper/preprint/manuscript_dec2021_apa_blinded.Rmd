@@ -723,14 +723,14 @@ ggplot(avg_area_by_age, aes(x=age_day_bin, y=log(avg_area), col=child_id, size=n
   geom_point(alpha=.1) +
   facet_grid(~label) +
   geom_smooth(method='lm') + 
-  ylab('Log (average area)') +
-  xlab('Age in days') +
+  ylab('Log area (average proportion of frame)') +
+  xlab('Age (in months)') +
   scale_color_brewer(palette="Dark2", name = "Child") +
   guides(size = FALSE)
 ```
 
 ```{r}
-# eye distance dataframe
+# eye distance data frame
 eye_dist <- all_vid_data %>%
   group_by(child_id, age_day_bin) %>%
   summarize(eye_distance = mean(avg_eye_distance, na.rm=TRUE), num_faces = sum(num_faces)) %>%
@@ -879,7 +879,7 @@ During these less structured times, caregivers may move about in the vicinity of
 
 A coarse analysis based on the location the videos were filmed in further highlights the variability of the social information in view during different activities, showing differences across locations and between individual children. Within a given, well-defined context -- e.g., mealtime in kitchens -- S saw more faces than A, and S saw more faces in the kitchen than in other locations. This variability likely stems from the fact that there are at least three ways to feed a young child: 1) sitting in front of the child, facing them as they sit in a high chair; 2) sitting behind the child, holding them as they face outward, and 3) sitting side by side. Each of these positions offer the child differing degrees of visual access to faces and hands. While the social information in view may be variable across children in different activity contexts, these analyses suggest they could be stable within a given child's day-to-day experience.
 
-We also used these detailed pose annotations to explore finer-grained changes in how children experience the faces and hands of their caregivers over development. We found that the faces, hands, and people in the infant view tended to become smaller and that faces tended to be farther away and in more variable horizontal positions, in keeping with prior work examining the sizes of faces in the infant view during the first year of life [@Jayaraman2015]. 
+We also used these detailed pose annotations to explore finer-grained changes in how children experience the faces and hands of their caregivers over development. We found that the faces, hands, and people in the infant view tended to become smaller and that faces tended to be farther away and in more variable horizontal positions, in keeping with prior work examining the sizes of faces in the infant view during the first year of life [@Jayaraman2015; @sugden2017hey; @sugden2014spy; @sugden2019these]. 
 Overall, these data support the idea that the social information in view changes across development as infants become increasingly mobile and independent [@franchak2017see; @fausey2016]. 
 As children explore the world on their own [@xu2019towards], they may experience fewer close-up interactions with their caregivers and more bouts of play where they are exploring the objects in their environment.
 
