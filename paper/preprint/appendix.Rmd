@@ -7,11 +7,15 @@ output:
 ---
 
 
-```{r}
+```{r, echo=F, message=F}
 library(tidyverse)
 library(ggplot2)
 library(ggthemes)
 library(egg)
+library(stargazer)
+
+knitr::opts_chunk$set(echo=F, warning=F, cache=F, 
+                      message=F, sanitize = T)
 ```
 
 
@@ -255,7 +259,7 @@ all_vid_bbs <- all_vid_bbs %>%
 
 
 
-```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 6-31 month-old. Each dot represents the average position from one video within a given age range."}
+```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 6-31 month-old. Each dot represents the average position from one video within a given age range.", warning=F}
 
 ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
   geom_point(alpha=.3) + 
@@ -594,44 +598,66 @@ face_hand_by_age_milestones <- face_hand_by_age %>%
   mutate(age = age_day_bin)
 
 library(lmerTest)
-library(sjPlot)
-library(sjmisc)
 # https://rpsychologist.com/r-guide-longitudinal-lme-lmer
 # with random slopes and intercepts ((age_day_bin | child_id): is singular / not converging
 # so we drop random slopes
+
+face_sit <- lmer(prop_faces ~ age * sit + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+hand_sit <- lmer(prop_hands ~ age * sit + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+
+face_cruise <- lmer(prop_faces ~ age * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_cruise <- lmer(prop_hands ~ age * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+
+face_walk <- lmer(prop_faces ~ age * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_walk <- lmer(prop_hands ~ age * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+# make models compatible with stargazer
+class(face_sit) <- "lmerMod"
+class(hand_sit) <- "lmerMod"
+class(face_cruise) <- "lmerMod"
+class(hand_cruise) <- "lmerMod"
+class(face_walk) <- "lmerMod"
+class(hand_walk) <- "lmerMod"
 ```
 
 ## Sitting
 
 Children's age at which they began sitting did not significantly predict changes in either the amount of faces or hands that they saw.
 
-```{r}
-face_sit <- lmer(prop_faces ~ age * sit + (1 | child_id), 
-     data=face_hand_by_age_milestones) 
+```{r, include=F, results='asis'}
 #summary(face_sit) # ns
-tab_model(face_sit, show.re.var=F, dv.labels = "Proportion of Faces")
+stargazer(face_sit, title="Predicting Faces by Ability to Sit", 
+          header=F, dep.var.labels = "Proportion of Faces")
+
+stargazer(face_sit, hand_sit)
 ```
 
-
-```{r}
-hand_sit <- lmer(prop_hands ~ age * sit + (1 | child_id), 
-     data=face_hand_by_age_milestones) 
+```{r, include=F, results='asis'}
 #summary(hand_sit) # ns
-tab_model(hand_sit, show.re.var=F, dv.labels = "Proportion of Hands")
+stargazer(hand_sit, title="Predicting Hands by Ability to Sit", 
+          header=F, dep.var.labels = "Proportion of Hands")
 ```
 
+```{r, results='asis'}
+stargazer(face_sit, hand_sit, title="Change in Face and Hand Prevalence by Ability to Sit", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
 
 ## Cruising
 
 As children became able to cruise, they saw significantly more faces ($\beta = 0.27$) and hands ($\beta = 0.26$. 
 For faces, there was a significant negative interaction of age and cruising ($\beta = -0.03$, $p=0.025$), and a marginal positive effect of age ($\beta = 0.03$, $p=0.055$).
 
-```{r}
-face_cruise <- lmer(prop_faces ~ age * cruise + (1 | child_id), 
-     data=face_hand_by_age_milestones)
-summary(face_cruise) 
+```{r, include=F, results='asis'}
+#summary(face_cruise) 
 # age+., cruise+*, age*cruise-*
-tab_model(face_cruise, show.re.var=F, dv.labels = "Proportion of Faces")
+stargazer(face_cruise, title="Predicting Faces by Ability to Cruise", 
+          header=F, dep.var.labels = "Proportion of Faces")
 ```
 
 
@@ -646,33 +672,38 @@ fc_dat %>% ggplot(aes(x=age, y=fit, group=cruise, color=cruise)) +
 ```
 
 
-```{r}
-hand_cruise <- lmer(prop_hands ~ age * cruise + (1 | child_id), 
-     data=face_hand_by_age_milestones)
-summary(hand_cruise) 
+```{r, include=F, results='asis'}
+#summary(hand_cruise) 
 # cruise+*, age*cruise-.
-tab_model(hand_cruise, show.re.var=F, dv.labels = "Proportion of Hands") # show.obs=F
+stargazer(hand_cruise, title="Predicting Hands by Ability to Cruise", 
+          header=F, dep.var.labels = "Proportion of Hands") 
 ```
 
-
+```{r, results='asis'}
+stargazer(face_cruise, hand_cruise, title="Change in Face and Hand Prevalence by Ability to Cruise", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
 
 
 ## Walking
 
 As children became able to walk, they saw marginally more hands ($\beta = 0.09$, $p=0.052$). 
 
-```{r}
-face_walk <- lmer(prop_faces ~ age * walk + (1 | child_id), 
-     data=face_hand_by_age_milestones)
+```{r, include=F, results='asis'}
 #summary(face_walk) # ns
-tab_model(face_walk, show.re.var=F, dv.labels = "Proportion of Faces")
+stargazer(face_walk, title="Predicting Faces by Ability to Walk", 
+          header=F, dep.var.labels = "Proportion of Faces")
 ```
 
 
-```{r}
-hand_walk <- lmer(prop_hands ~ age * walk + (1 | child_id), 
-     data=face_hand_by_age_milestones)
+```{r, include=F, results='asis'}
 #summary(hand_walk) # walk+.
-tab_model(hand_walk, show.re.var=F, dv.labels = "Proportion of Hands")
+stargazer(hand_walk, title="Predicting Hands by Ability to Walk", 
+          header=F, dep.var.labels = "Proportion of Hands")
+```
+
+```{r, results='asis'}
+stargazer(face_walk, hand_walk, title="Change in Face and Hand Prevalence by Ability to Walk", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
 ```
 
