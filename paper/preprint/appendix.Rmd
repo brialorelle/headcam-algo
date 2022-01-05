@@ -676,10 +676,16 @@ meta_long_1loc %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-# Discontinuity Analysis
+# Motor Milestones Analysis
 
-We next examine whether the SAYcam participants' age of reaching particular developmental milestones (sitting, cruising, and walking) significantly influenced the amount of hands or faces that they saw, using a mixed-effects regression with per-child random intercepts.
-[table with each child's age of onset per milestone?]
+We next examine whether the SAYcam participants' age of reaching particular developmental milestones (sitting, cruising, and walking) significantly influenced the proportion of hands or faces that they saw, using a mixed-effects regression with per-child random intercepts.
+We tried including random slopes by age and milestone, but the models did not converge and/or were singular.
+Thus, for each milestone the R syntax was: \texttt{prop_faces ~ age * milestone + (1 | child_id)}.
+
+Children's age of achieving each milestone was dummy-coded (i.e., 0=milestone not reached; 1=milestone reached).
+Participants S and A were already able to sit at 6 months of age, while Y began achieving this milestone at 8 months.
+A was able to cruise at 9 months of age, while S reached that milestone at 10 months, with Y just behind.
+Learning to walk showed the most variation, with S walking after 10 months, A after 13 months, and Y after 16 months of age.
 
 ```{r, get-milestones, echo=F}
 motor <- read_csv(here::here("data","raw_data", "saycam_walking_asq.csv"))
@@ -699,6 +705,14 @@ library(lmerTest)
 # https://rpsychologist.com/r-guide-longitudinal-lme-lmer
 # with random slopes and intercepts ((age_day_bin | child_id): is singular / not converging
 # so we drop random slopes
+
+face_all <- lmer(prop_faces ~ age * (sit + cruise + walk) + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+#summary(face_all) # cruise+ age:cruise-
+
+hand_all <- lmer(prop_hands ~ age * (sit + cruise + walk) + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+#summary(hand_all) # cruise+ age:cruise-.
 
 face_sit <- lmer(prop_faces ~ age * sit + (1 | child_id), 
      data=face_hand_by_age_milestones) 
