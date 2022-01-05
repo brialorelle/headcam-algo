@@ -245,7 +245,7 @@ for (vid_file in op_files) {
    
    
    gold_sample_op<- gold_sample_op %>%
-      right_join(gold_sample_op_center)[1:]
+      right_join(gold_sample_op_center)
    
    # compile vid-level summaries 
    if (vid_index == 1){
@@ -286,7 +286,7 @@ gold_sample_frames <- gold_sample %>%
 
 gold_sample_vids <- unique(gold_sample_frames$vid_name)
 
-all_thresholds = seq(0,.9,.1)
+all_thresholds = seq(0,.99,.01)
 
 for (vid_file in op_files) {
   
