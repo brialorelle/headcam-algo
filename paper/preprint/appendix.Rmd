@@ -611,7 +611,7 @@ grid::grid.raster(error_examples)
 
 # Activity by Location
 
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos."}
+```{r activities_by_lo, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos."}
 meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_28.csv"))
 
 meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
