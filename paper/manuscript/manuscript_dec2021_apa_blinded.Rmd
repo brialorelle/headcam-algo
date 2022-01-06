@@ -24,7 +24,7 @@ abstract: |
 
   
 keywords          : "social cognition; face perception; infancy; head cameras; deep learning"
-wordcount         : "4681"
+wordcount         : "X"
 
 bibliography      : ["library.bib"]
 
@@ -563,7 +563,7 @@ ggplot(face_hand_contingency,
 ```
 
 ## Variability with motor development milestones
-How does the social information in view change as a function of motor development? One idea is that children’s ability to stand and move on their own may fundamentally change the visual social information that they see (e.g., facial expressions, gaze cues, pointing)  [@walle2014infant; @walle2016] relative to infants who are still sitting and crawling.  Indeed, in in-lab studies, children's in-the-moment posture -- and that of their caregiver -- is a strong predictor of the visual social information that children see [@franchak2017see; @long2021automated].  
+How does the social information in view change as a function of motor development? One idea is that children’s ability to stand and move on their own may fundamentally change the visual social information that they see (e.g., facial expressions, gaze cues, pointing)  [@walle2014infant; @walle2016infant] relative to infants who are still sitting and crawling.  Indeed, in in-lab studies, children's in-the-moment posture -- and that of their caregiver -- is a strong predictor of the visual social information that children see [@franchak2017see; @long2021automated].  
 
 We thus next analyzed how the social information in view changed as a function of each child reaching particular developmental motor milestones. Each parent in the SAYCam dataset completed the Ages and Stages Questionnaire (ASQ) [@bricker1999ages], which includes questions about their child's motor abilities, and we used the responses from this questionnaire to code the age (in months) at which each child became able to sit, cruise, and walk on their own (questions about crawling were not included in the questionnaire). We found considerable variability in the age at which each child achieved these three milestones. Participants S and A were already able to sit at 6 months of age, while Y began achieving this milestone at 8 months. A was able to cruise at 9 months of age, while S reached that milestone at 10 months, with Y just behind. Learning to walk showed the most variation, with S walking after 10 months, A after 13 months, and Y after 16 months of age.
 
@@ -751,6 +751,7 @@ avg_area_by_age <- all_vid_bbs %>%
 ```{r avgSizes, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Average size of poses, faces, and hands detected in the dataset as a function of age for each child in the dataset (each color = different child). Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range."}
 
 ggplot(avg_area_by_age, aes(x=age_day_bin, y=log(avg_area), col=child_id, size=num_detect)) +
+  theme_few(base_size=12) +
   geom_point(alpha=.1) +
   facet_grid(~label) +
   geom_smooth(method='lm') + 
@@ -799,6 +800,7 @@ CV_faces <- all_vid_bbs %>%
 
 ```{r}
 CV_faces_plot <- ggplot(CV_faces, aes(x=age_day_bin, y = CV, size=num_detect, color=child_id)) +
+  theme_few(base_size=12) +
   geom_point(alpha=.15) + 
   facet_wrap(~position)  +
   geom_smooth(method='lm') +
