@@ -13,6 +13,7 @@ library(ggplot2)
 library(ggthemes)
 library(egg)
 library(stargazer)
+library(magick)
 
 knitr::opts_chunk$set(echo=F, warning=F, cache=F, 
                       message=F, sanitize = T)
@@ -280,7 +281,7 @@ ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x ,
 # Detection threshold estimations
 
 ```{r}
-# file not found - name changed?
+# with all thresholds
 load(here::here("data","preprocessed_data_2021","gold_sample_from_bbs_2021_all_detections_all_thresholds.RData"))
 
 load(here::here('data/preprocessed_data_2021/gold_sample_annotations2020-01-31.RData')) # human annotations
@@ -331,29 +332,42 @@ roc_data <- gold_sample %>%
 ```
 
 ```{r}
-ggplot(data=roc_data, aes(x=fpr_faces, y=tpr_faces, color=detection_threshold)) +
+face_roc = ggplot(data=roc_data, aes(x=fpr_faces, y=tpr_faces, color=detection_threshold)) +
   geom_point() +
   geom_line() +
   ylim(0,1) +
   xlim(0,1) +
   geom_abline(color = 'grey') +
   xlab('False Positive Rate') +
-  ylab('True Positive Rate')
+  ylab('True Positive Rate') +
+  ggtitle('Face detections') +
+  theme(legend.position = 'none')
 
-ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_threshold)) +
+hand_roc = ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_threshold)) +
   geom_point() +
   geom_line() +
   ylim(0,1) +
   xlim(0,1) +
   geom_abline(color = 'grey') +
   xlab('False Positive Rate') +
-  ylab('True Positive Rate')
+  ylab('True Positive Rate') +
+  ggtitle('Hand detections') +
+  theme(legend.position = 'none')
 
 ```
 
-# OpenPose Error Analyses
-
 ```{r}
+ggarrange(face_roc, hand_roc, nrow=1)
+```
+
+# OpenPose Error Analyses
+```{r}
+# remove big data frame with thresholds
+rm(all_gold_sample_frames_op)
+
+# without thresholds
+load(here::here("data","preprocessed_data_2021","gold_sample_from_bbs_2021_all_detections.RData"))
+
 # join human and OP detections
 gold_sample <- gold_sample %>%
   select(vid_name, frame, face_present_ketan, hand_present_ketan) %>%
@@ -424,7 +438,7 @@ prf_by_age_hands <-  gold_sample %>%
 # return_prf_short(gold_sample$face_eval_ketan_center)
 ```
 
-```{r, fig.width=6.5, fig.height=3.2, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
+```{r det_perf_by_age, fig.width=6.5, fig.height=3.2, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
 
 prf_by_age_faces$age_day_bin = as.numeric(prf_by_age_faces$age_day_bin)
 
@@ -501,7 +515,7 @@ prf_by_location_hands <-  gold_sample_by_location %>%
 ```
 
 
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="F-score of OpenPose hand and face detections in the gold sample by location. Size indicates number of detections per location: minimum = 55 (car); maximum = 1753 (living room)."}
+```{r det_perf_by_locations, fig.width=6.5, fig.height=3.0, fig.cap="F-score of OpenPose hand and face detections in the gold sample by location. Size indicates number of detections per location: minimum = 55 (car); maximum = 1753 (living room)."}
 p1 <- ggplot(prf_by_location_faces, aes(x=Location, y=f, col=Location, size=num_detect)) +
   geom_point(alpha=.5) +
   ylab('F-score') + ggtitle("Face detections") +
@@ -676,16 +690,11 @@ meta_long_1loc %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-# Motor Milestones Analysis
+# Motor Milestones Analysis Details
 
-We next examine whether the SAYcam participants' age of reaching particular developmental milestones (sitting, cruising, and walking) significantly influenced the proportion of hands or faces that they saw, using a mixed-effects regression with per-child random intercepts.
-We tried including random slopes by age and milestone, but the models did not converge and/or were singular.
-Thus, for each milestone the R syntax was: \texttt{prop_faces ~ age * milestone + (1 | child_id)}.
+We examine whether the SAYcam participants' age of reaching particular developmental milestones (sitting, cruising, and walking) significantly influenced the proportion of hands or faces that they saw, using a mixed-effects regression with per-child random intercepts.
 
-Children's age of achieving each milestone was dummy-coded (i.e., 0=milestone not reached; 1=milestone reached).
-Participants S and A were already able to sit at 6 months of age, while Y began achieving this milestone at 8 months.
-A was able to cruise at 9 months of age, while S reached that milestone at 10 months, with Y just behind.
-Learning to walk showed the most variation, with S walking after 10 months, A after 13 months, and Y after 16 months of age.
+We tried including random slopes by age and milestone, but the models did not converge and/or were singular. Thus, for each milestone the R syntax was: \texttt{prop_faces ~ age * milestone + (1 | child_id)}.Children's age of achieving each milestone was dummy-coded (i.e., 0=milestone not reached; 1=milestone reached).
 
 ```{r, get-milestones, echo=F}
 motor <- read_csv(here::here("data","raw_data", "saycam_walking_asq.csv"))
