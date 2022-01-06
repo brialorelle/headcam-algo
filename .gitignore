@@ -2,6 +2,7 @@ slurm*
 *_cache/
 /data/*
 !/data/preprocessed_data_2021
+
 data_cogsci/*
 src/data/*
 .DS_Store
