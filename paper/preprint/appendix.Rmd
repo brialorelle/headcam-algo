@@ -609,6 +609,39 @@ error_examples <- png::readPNG("figs/OP_errors.png")
 grid::grid.raster(error_examples)
 ```
 
+## Location of OpenPose False Positives
+
+Below we visualize the locations of the 1229 faces (in 1093 frames) that OpenPose detected in the gold set frames that were not actually there, as well as the 1778 OpenPose false positive hands (in 1237 frames) from the gold set.
+The average location of OpenPose's false positives for both faces (left) and hands (right) are somewhat more common in the center of the frame, but some are scattered across the frame.
+Qualitatively, the location of these false positives do not look much different than the true positive detections. 
+
+```{r density-op-fps, fig.width=6, fig.height=3}
+load(here::here('data/preprocessed_data_2021/gold_sample_all_indiivdual_dets.RData'))
+ddd <- gold_sample_all_dets %>% left_join(gold_sample %>% select(frame, vid_name, face_eval_ketan, hand_eval_ketan))
+
+# density plot of OP's false positive face/hand locations
+p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
+  mutate(x=left+0.5*width,
+         y=top-0.5*height) %>% # could actually overplot all the face rectangles? prob very messy...
+  ggplot(aes(x=x, y=y, fill=..level..)) + 
+  stat_density_2d(geom = "polygon") + xlim(-.05,1.1) + ylim(-.1,1.0) + 
+  xlab("Mean x-position of OpenPose Detection") + 
+  ylab("Mean y-position of OpenPose Detection") + 
+  ggtitle("Face False Positives") + theme(legend.position = "none")
+
+p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
+  mutate(x=left+0.5*width,
+         y=top-0.5*height) %>%
+  ggplot(aes(x=x, y=y, fill=..level..)) + 
+  stat_density_2d(geom = "polygon") + xlim(-.05,1.1) + ylim(-.1,1.0) + 
+  xlab("Mean x-position of OpenPose Detection") + 
+  ylab("Mean y-position of OpenPose Detection") + 
+  ggtitle("Hand False Positives") + theme(legend.position = "none")
+
+ggpubr::ggarrange(p1, p2)
+```
+
+
 # Activity by Location
 
 ```{r activities_by_lo, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos."}
