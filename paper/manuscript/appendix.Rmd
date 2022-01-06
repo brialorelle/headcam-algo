@@ -16,6 +16,8 @@ library(stargazer)
 library(magick)
 library(ggeffects)
 
+theme_set(theme_classic())
+
 knitr::opts_chunk$set(echo=F, warning=F, cache=T, 
                       message=F, sanitize = T)
 ```
@@ -261,7 +263,7 @@ all_vid_bbs <- all_vid_bbs %>%
 
 
 
-```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 6-31 month-old. Each dot represents the average position from one video within a given age range.", warning=F}
+```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 5-31 months of age. Each dot represents the average position from one video within a given age range.", warning=F}
 
 ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
   geom_point(alpha=.3) + 
@@ -276,7 +278,8 @@ ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x ,
   facet_wrap(~age_day_bin) +
   guides(size = FALSE) +
   ggthemes::scale_color_solarized(name = "")  +
-  ggthemes::scale_fill_solarized(name = "") 
+  ggthemes::scale_fill_solarized(name = "") +
+  theme(legend.position = c(0.8, 0.1))
 ```
 
 # Detection threshold estimations
@@ -341,8 +344,8 @@ face_roc = ggplot(data=roc_data, aes(x=fpr_faces, y=tpr_faces, color=detection_t
   geom_abline(color = 'grey') +
   xlab('False Positive Rate') +
   ylab('True Positive Rate') +
-  ggtitle('Face detections') +
-  theme(legend.position = 'none')
+  ggtitle('Face detections') + 
+  theme(legend.position = 'none') 
 
 hand_roc = ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_threshold)) +
   geom_point() +
@@ -353,7 +356,7 @@ hand_roc = ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_t
   xlab('False Positive Rate') +
   ylab('True Positive Rate') +
   ggtitle('Hand detections') +
-  theme(legend.position = 'none')
+  theme(legend.position = 'none') 
 
 ```
 
@@ -432,7 +435,7 @@ prf_by_age_hands <-  gold_sample %>%
 
 
 
-```{r det_perf_by_age, fig.width=6.5, fig.height=3.2, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
+```{r det_perf_by_age, fig.width=6.5, fig.height=3.1, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
 
 prf_by_age_faces$age_day_bin = as.numeric(prf_by_age_faces$age_day_bin)
 
@@ -445,7 +448,7 @@ p1 <- ggplot(prf_by_age_faces, aes(x=age_day_bin, y=f, col=child_id, size=num_de
   theme_few(base_size=12) +
   ylab('F-score') + xlab('Age (months)') +
   ggtitle("Face detections") + 
-  theme(legend.position= 'none')
+  theme(legend.position= 'none') 
 
 
 p2 <- ggplot(prf_by_age_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_detect)) +
@@ -456,9 +459,7 @@ p2 <- ggplot(prf_by_age_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_de
   ylab('F-score') + xlab('Age (months)') +
   ggtitle("Hand detections") + 
   theme(legend.position= 'none')
-```
 
-```{r}
 ggarrange(p1, p2, nrow=1)
 ```
 
@@ -518,7 +519,7 @@ p1 <- ggplot(prf_by_location_faces, aes(x=Location, y=f, col=Location, size=num_
   ylab('F-score') + ggtitle("Face detections") +
   theme(legend.position = 'none') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylim(0,1)
+  ylim(0,1) 
 
 p2 <- ggplot(prf_by_location_hands, aes(x=Location, y=f, col=Location, size=num_detect)) +
   geom_point(alpha=.5) +
@@ -526,7 +527,7 @@ p2 <- ggplot(prf_by_location_hands, aes(x=Location, y=f, col=Location, size=num_
   ylab('F-score') + ggtitle("Hand detections") +
   theme(legend.position = 'none') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ylim(0,1)
+  ylim(0,1) 
 
 ggarrange(p1, p2, nrow=1)
 ```
@@ -610,7 +611,7 @@ Below we visualize the locations of the 1229 faces (in 1093 frames) that OpenPos
 The average location of OpenPose's false positives for both faces (left) and hands (right) are somewhat more common in the center of the frame, but some are scattered across the frame.
 Qualitatively, the location of these false positives do not look much different than the true positive detections. 
 
-```{r density-op-fps, fig.width=6, fig.height=3}
+```{r density-op-fps, fig.width=6.5, fig.height=3.2, fig.cap="Density plot of the locations of false positives for OpenPose detections for faces (left) and hands (right) in the gold set."}
 load(here::here('data/preprocessed_data_2022/gold_sample_all_indiivdual_dets.RData'))
 ddd <- gold_sample_all_dets %>% left_join(gold_sample %>% select(frame, vid_name, face_eval_ketan, hand_eval_ketan))
 
@@ -620,8 +621,8 @@ p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
          y=1-(top+0.5*height)) %>% # could actually overplot all the face rectangles? prob very messy...
   ggplot(aes(x=x, y=y, fill=..level..)) + 
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
-  xlab("Mean x-position of OpenPose Detection") + 
-  ylab("Mean y-position of OpenPose Detection") + 
+  xlab("Center of OpenPose Detection") + 
+  ylab("Center of OpenPose Detection") + 
   ggtitle("Face False Positives") + theme(legend.position = "none") +
   scale_y_reverse() +
   theme_few(base_size=12) 
@@ -631,8 +632,8 @@ p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
          y=1-(top+0.5*height)) %>% # top-left is 0,0
   ggplot(aes(x=x, y=y, fill=..level..)) + 
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
-  xlab("Mean x-position of OpenPose Detection") + 
-  ylab("Mean y-position of OpenPose Detection") + 
+  xlab("Center of OpenPose Detection") + 
+  ylab("Center of OpenPose Detection") + 
   ggtitle("Hand False Positives") + theme(legend.position = "none") +
   scale_y_reverse() +
   theme_few(base_size=12) 
@@ -643,7 +644,7 @@ ggpubr::ggarrange(p1, p2)
 
 # Activity by Location
 
-```{r activities_by_lo, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location, including multilocation videos."}
+```{r activities_by_lo, fig.width=6.5, fig.height=3.2, fig.cap="Counts of activities by location, including multilocation videos."}
 meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_28.csv"))
 
 meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
@@ -818,11 +819,11 @@ stargazer(face_cruise, title="Predicting Faces by Ability to Cruise",
 ```{r, include=F}
 f1 <- ggpredict(face_cruise, c("age", "cruise")) %>% plot(add.data=T) +
   xlim(5, 24) + ylim(0,1) + ggtitle("Predicted effect on faces seen") + 
-  xlab("Age (months)") + ylab("Proportion of faces") + theme_classic()
+  xlab("Age (months)") + ylab("Proportion of faces") 
 
 h1 <- ggpredict(hand_cruise, c("age", "cruise")) %>% plot(add.data=T) +
   xlim(5, 24) + ylim(0,1) + ggtitle("Predicted effect on hands seen") + 
-  xlab("Age (months)") + ylab("Proportion of hands") + theme_classic()
+  xlab("Age (months)") + ylab("Proportion of hands") 
 
 ggpubr::ggarrange(f1, h1, nrow=1, common.legend=T)
 ```
