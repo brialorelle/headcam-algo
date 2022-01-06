@@ -1,0 +1,7 @@
+
+author-information: > 
+  \author{{\large \bf Bria Long (bria@stanford.edu)} 
+    \AND {\large \bf George Kachergis (kachergis@stanford.edu)} 
+    \AND {\large \bf Ketan Jay Agarwal (agrawalk@stanford.edu)} 
+    \AND {\large \bf Michael C. Frank (mcfrank@stanford.edu)} \\ 
+    Department of Psychology, Street Address \\ Stanford, CA 91305 USA}

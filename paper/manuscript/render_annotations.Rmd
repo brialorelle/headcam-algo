@@ -1,0 +1,160 @@
+---
+title: "render_annotations"
+author: "Bria Long"
+date: "12/22/2021"
+output: html_document
+---
+
+```{r setup, echo=FALSE}
+library(tidyverse)
+library(here)
+library(ggthemes)
+library(magick)
+library(viridis)
+```
+
+```{r, echo=FALSE}
+load(file = here::here('data/preprocessed_data_2021/goldset_category_annotations.RData'))
+```
+
+```{r, echo=FALSE}
+load(file = here::here('data/preprocessed_data_2021/gold_sample_from_bbs_2021_all_detections.RData'))
+
+```
+
+```{r}
+load(file=here::here('data/preprocessed_data_2021/all_vid_data_from_bbs_all_detections.RData')) # all detections
+bin_size = 7 # days
+min_age = min(all_vid_data$age_days, na.rm=TRUE) # 182
+max_age = max(all_vid_data$age_days, na.rm=TRUE) # 966
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age)
+
+```
+
+## Render out child hand examples
+```{r}
+
+  child_hands <- d %>%
+    filter(child_hand_seg == TRUE) 
+
+  public_urls = unique(child_hands$public_url)
+  img_names_short = unique(child_hands$img_name)
+
+  dir.create(here::here("data/annotation_examples/child_hands_take2"),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/child_hands_take2", img_names_short[i]))
+  }
+
+
+```
+
+```{r}
+  child_hands <- d %>%
+    filter(child_hand_seg == TRUE) %>%
+    filter(category=='Food')
+    
+
+  public_urls = unique(child_hands$public_url)
+  img_names_short = unique(child_hands$img_name)
+
+  dir.create(here::here("data/annotation_examples/hands_food"),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/hands_food", img_names_short[i]))
+  }
+```
+
+```{r}
+  hands_toys <- d %>%
+    filter(child_hand_seg == TRUE) %>%
+    filter(category=='Toy')
+    
+  public_urls = unique(hands_toys$public_url)
+  img_names_short = unique(hands_toys$img_name)
+
+  dir.create(here::here("data/annotation_examples/hands_toys"),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/hands_toys", img_names_short[i]))
+  }
+```
+
+```{r}
+  hands_toys <- d %>%
+    filter(child_hand_seg == TRUE) %>%
+    filter(category=='Toy')
+    
+  public_urls = unique(hands_toys$public_url)
+  img_names_short = unique(hands_toys$img_name)
+
+  dir.create(here::here("data/annotation_examples/hands_toys"),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/hands_toys", img_names_short[i]))
+  }
+```
+
+```{r}
+  dishes <- d %>%
+    filter(child_hand_seg == TRUE) %>%
+    filter(category=='Utensil-Dish')
+    
+  public_urls = unique(dishes$public_url)
+  img_names_short = unique(dishes$img_name)
+
+  dir.create(here::here("data/annotation_examples/hands_dishes"),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/hands_dishes", img_names_short[i]))
+  }
+```
+
+
+```{r}
+ugh_books <- d %>%
+  filter(basic_level == 'book') %>%
+  group_by(public_url, img_name) %>%
+  mutate(book_ok = (category=='Book')) %>%
+  filter(book_ok == FALSE)
+    
+  public_urls = unique(ugh_books$public_url)
+  img_names_short = unique(ugh_books$img_name)
+
+  dir.create(here::here("data/images/annotation_examples/ugh_books"),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/images/annotation_examples/ugh_books", img_names_short[i]))
+  }
+```
+
+## Render out individual categories
+```{r}
+reallyRun =0
+if (reallyRun){
+class_list  = unique(d$category)
+
+for (c in class_list) {
+  examples <- d %>%
+    filter(category == c) %>%
+    dplyr::sample_n(200)
+
+  public_urls = unique(examples$public_url)
+  img_names_short = unique(examples$img_name)
+
+  dir.create(here::here("data/annotation_examples/",c),recursive = TRUE)
+
+  for (i in 1:length(public_urls)){
+    this_image = image_read(public_urls[i])
+    image_write(this_image,here::here("data/annotation_examples/", c, img_names_short[i]))
+  }
+}
+}
+```
