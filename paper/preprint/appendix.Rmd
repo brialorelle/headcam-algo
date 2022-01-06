@@ -14,6 +14,7 @@ library(ggthemes)
 library(egg)
 library(stargazer)
 library(magick)
+library(ggeffects)
 
 knitr::opts_chunk$set(echo=F, warning=F, cache=F, 
                       message=F, sanitize = T)
@@ -783,13 +784,15 @@ stargazer(face_cruise, title="Predicting Faces by Ability to Cruise",
 
 
 ```{r, include=F}
-# need to also include main effect terms ("age" and "cruise")?
-face_cruise_eff <- effects::effect(term="age:cruise", mod=face_cruise)
-fc_dat <- data.frame(face_cruise_eff) %>% filter(cruise==0 | cruise==1)
-fc_dat %>% ggplot(aes(x=age, y=fit, group=cruise, color=cruise)) +
-  geom_line() +
-  geom_ribbon(aes(x=age, ymin=lower, ymax=upper, fill=cruise), alpha= 0.3) +
-  geom_point(data=face_hand_by_age_milestones, aes(x=age, y=prop_faces))
+f1 <- ggpredict(face_cruise, c("age", "cruise")) %>% plot(add.data=T) +
+  xlim(5, 24) + ylim(0,1) + ggtitle("Predicted effect on faces seen") + 
+  xlab("Age (months)") + ylab("Proportion of faces") + theme_classic()
+
+h1 <- ggpredict(hand_cruise, c("age", "cruise")) %>% plot(add.data=T) +
+  xlim(5, 24) + ylim(0,1) + ggtitle("Predicted effect on hands seen") + 
+  xlab("Age (months)") + ylab("Proportion of hands") + theme_classic()
+
+ggpubr::ggarrange(f1, h1, nrow=1, common.legend=T)
 ```
 
 
