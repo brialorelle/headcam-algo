@@ -1,0 +1,187 @@
+---
+title: "Motor Milestone Analysis"
+output: pdf_document
+---
+
+```{r setup, include=FALSE, echo=F, message=F}
+knitr::opts_chunk$set(echo = F, warning=F, message=F)
+library(tidyverse)
+library(lme4)
+library(stargazer)
+library(lmerTest)
+library(ggeffects)
+```
+
+We examine whether the SAYcam participants' age at which they started walking significantly influenced the proportion of hands or faces that they saw, using mixed-effects regressions with per-child random intercepts.
+We tried including random slopes by age and milestone, but the models did not converge and/or were singular. The R syntax for the linear regression was thus: prop_faces ~ age * walk + (1 | child_id).
+We also tested inclusion of a quadratic term for age (prop_faces ~ poly(age,2) * walk + (1 | child_id)).
+Children's age of achieving the milestone was dummy-coded (i.e., 0=unable to walk; 1=able to walk).
+
+
+```{r}
+## Load in gold sample detections
+load(here::here('data/preprocessed_data_2022/gold_sample_annotations2020-01-31.RData')) # human annotations
+load(here::here('data/preprocessed_data_2022/gold_sample_from_bbs_2021_with_centerall_detections.RData')) 
+load(here::here('data/preprocessed_data_2022/all_vid_data_from_bbs_all_detections.RData')) # all detections
+
+```
+
+
+```{r}
+## summary for all detections
+face_hand_by_age <- all_vid_data %>%
+  ungroup() %>%
+  tidyr::replace_na(list(faces_and_hands=0)) %>%
+  group_by(age_day_bin, child_id) %>%
+  summarize(num_frames_total = sum(num_frames), 
+            # prop faces overall
+            num_faces = sum(num_faces), 
+            num_hands = sum(num_hands), 
+            prop_faces = num_faces / num_frames_total, 
+            prop_hands = num_hands / num_frames_total,
+            # in center FOV
+            num_faces_center = sum(num_faces_center, na.rm=TRUE), 
+            num_hands_center = sum(num_hands_center, na.rm=TRUE), 
+            prop_faces_center = num_faces_center / num_frames_total, 
+            prop_hands_center = num_hands_center / num_frames_total,
+            # detailed face info
+            prop_full_faces = sum(num_full_faces, na.rm=TRUE)/num_frames_total,
+            prop_faces_and_hands = sum(faces_and_hands)/num_frames_total,
+            # face/hand contingency
+            prop_faces_with_hands = sum(faces_and_hands, na.rm=TRUE)/num_faces, 
+            prop_hands_with_faces = sum(faces_and_hands, na.rm=TRUE)/num_hands 
+            )
+
+
+all_detections <- face_hand_by_age %>%
+  filter(num_frames_total > 2000) %>% # eliminate small data point that skews scaling
+  select(prop_faces, prop_hands, num_frames_total, age_day_bin, child_id) %>%
+  pivot_longer(cols = c(prop_faces, prop_hands), names_to = "region", values_to = "prop") %>%
+  mutate(approach = "uncropped",
+         region = ifelse(region == "prop_faces","Faces","Hands"))  
+  
+
+```
+
+```{r, get-milestones, echo=F}
+motor <- read_csv(here::here("data","raw_data", "saycam_walking_asq.csv"))
+# A and S are sitting at 6mos
+face_hand_by_age_milestones <- face_hand_by_age %>%
+  mutate(sit = ifelse(child_id=="S" | child_id=="A", 1, 
+                      ifelse(child_id=="Y" & age_day_bin > 8, 1, 0))) %>%
+  mutate(cruise = ifelse((child_id=="S" & age_day_bin >= 9) | 
+                      (child_id=="A" & age_day_bin >= 10) | 
+                      (child_id=="Y" & age_day_bin > 9), 1, 0)) %>%
+  mutate(walk = ifelse((child_id=="S" & age_day_bin > 10) |
+                       (child_id=="A" & age_day_bin > 13) |
+                       (child_id=="Y" & age_day_bin > 16), 1, 0)) %>%
+  mutate(age = age_day_bin)
+
+library(lmerTest)
+# https://rpsychologist.com/r-guide-longitudinal-lme-lmer
+# with random slopes and intercepts ((age_day_bin | child_id): is singular / not converging
+# so we drop random slopes
+
+# cruise
+face_cruise <- lmer(prop_faces ~ age * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_cruise <- lmer(prop_hands ~ age * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+
+face_cruise2 <- lmer(prop_faces ~ poly(age,2) * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_cruise2 <- lmer(prop_hands ~ poly(age,2) * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+
+# walk
+face_walk <- lmer(prop_faces ~ age * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_walk <- lmer(prop_hands ~ age * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+
+
+face_walk2 <- lmer(prop_faces ~ poly(age,2) * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_walk2 <- lmer(prop_hands ~ poly(age,2) * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+
+#summary(face_walk2)
+#summary(hand_walk2)
+
+# make models compatible with stargazer
+class(face_cruise) <- "lmerMod"
+class(hand_cruise) <- "lmerMod"
+class(face_cruise2) <- "lmerMod"
+class(hand_cruise2) <- "lmerMod"
+
+class(face_walk) <- "lmerMod"
+class(hand_walk) <- "lmerMod"
+class(face_walk2) <- "lmerMod"
+class(hand_walk2) <- "lmerMod"
+```
+
+<!--
+## Cruising
+
+#The quadratic term was justified for the hands model ($\chi^2(2)=16.29$, $p<.001$), but not for the faces model ($\chi^2(2)=5.77$, $p=.06$).
+#As children became able to cruise, they saw significantly more faces ($\beta = 0.27$), but there was no significant effect on hands. 
+#For faces, there was a significant negative interaction of age and cruising ($\beta = -0.03$, $p=0.025$), and a marginal positive effect of age ($\beta = 0.03$, $p=0.055$).
+-->
+
+
+
+```{r, include=F}
+anova(face_cruise, face_cruise2) # marginal
+anova(hand_cruise, hand_cruise2) # sig
+```
+
+
+```{r, results='asis', include=F}
+stargazer(face_cruise, hand_cruise2, title="Change in face and hand prevalence by ability to cruise", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
+
+```{r, fig.width=6.5, fig.height=3, include=F}
+f1 <- ggpredict(face_cruise, c("age", "cruise")) %>% plot(add.data=T) +
+  xlim(5, 30) + ylim(0,1) + ggtitle("Predicted effect on faces seen") + 
+  xlab("Age (months)") + ylab("Proportion of faces") 
+
+h1 <- ggpredict(hand_cruise2, c("age", "cruise")) %>% plot(add.data=T) +
+  xlim(5, 30) + ylim(0,1) + ggtitle("Predicted effect on hands seen") + 
+  xlab("Age (months)") + ylab("Proportion of hands") 
+
+ggpubr::ggarrange(f1, h1, nrow=1, common.legend=T)
+```
+
+
+
+<!-- ## Walking -->
+
+The quadratic term was justified for both the hands model ($\chi^2(2)=22.15$, $p<.001$) and the faces model ($\chi^2(2)=10.21$, $p<.01$).
+As children became able to walk, they saw significantly more faces ($\beta = 0.26$, $p=0.02$) and hands ($\beta = 0.32$, $p=0.01$). 
+The linear and quadratic age terms and their interactions with walking were also significant (see Table 1).
+The models' predicted conditional effects are shown in Figure 1.
+
+```{r, include=F}
+anova(face_walk, face_walk2) # sig
+anova(hand_walk, hand_walk2) # sig
+```
+
+
+```{r, results='asis'}
+stargazer(face_walk2, hand_walk2, title="Change in face and hand prevalence by ability to walk", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
+
+```{r, fig.width=6.5, fig.height=3}
+f1 <- ggpredict(face_walk2, c("age", "walk")) %>% plot(add.data=T) +
+  xlim(5, 30) + ylim(0,1) + ggtitle("Predicted effect on faces seen") + 
+  xlab("Age (months)") + ylab("Proportion of faces") 
+
+h1 <- ggpredict(hand_walk2, c("age", "walk")) %>% plot(add.data=T) +
+  xlim(5, 30) + ylim(0,1) + ggtitle("Predicted effect on hands seen") + 
+  xlab("Age (months)") + ylab("Proportion of hands") 
+
+ggpubr::ggarrange(f1, h1, nrow=1, common.legend=T)
+```
+
