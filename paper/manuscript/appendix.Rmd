@@ -290,8 +290,8 @@ p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
   mutate(x=left+0.5*width,
          y=1-(top+0.5*height)) %>% # could actually overplot all the face rectangles? prob very messy...
   ggplot(aes(x=x, y=y, fill=..level..)) + 
+  theme_few(base_size=12) +
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
-theme_few(base_size=12) +
   xlab("Center of OpenPose Detection") + 
   ylab("Center of OpenPose Detection") + 
   ggtitle("Face False Positives") + theme(legend.position = "none") +
@@ -301,8 +301,8 @@ p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
   mutate(x=left+0.5*width,
          y=1-(top+0.5*height)) %>% # top-left is 0,0
   ggplot(aes(x=x, y=y, fill=..level..)) + 
+  theme_few(base_size=12) +
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
-   theme_few(base_size=12) +
   xlab("Center of OpenPose Detection") + 
   ylab("Center of OpenPose Detection") + 
   ggtitle("Hand False Positives") + theme(legend.position = "none") +
@@ -601,6 +601,30 @@ ggsave('appendix_figs/humans_vs_op.pdf', width = 7, height = 5)
 ```
 
 
+```{r}
+summary_by_age_days_gold <- gold_sample %>%
+  group_by(age_days,child_id) %>%
+  summarize(num_faces = sum(face_present_ketan), 
+            num_hands = sum(hand_present_ketan), 
+            num_detect = n()) %>%
+  mutate(prop_faces = num_faces / num_detect, 
+         prop_hands = num_hands / num_detect) %>%
+  select(prop_faces, prop_hands, age_days, child_id) %>%
+  pivot_longer(col = c(prop_faces, prop_hands), names_to="region", values_to = "prop")
+
+summary_by_age_days_gold$age_scale <- scale(summary_by_age_days_gold$age_days, scale = FALSE)[,1] / 30.3
+```
+
+```{r}
+
+## add face vs. hands model on gold sample to sanity check
+diff_model2_gold <- summary(lmer(prop ~ region*poly(age_scale, 2) + (1 | child_id), data = summary_by_age_days_gold))
+
+xtable(diff_model2_gold$coefficients, digits=c(4,3,3,3,3,3),"Model coefficients from a linear mixed model predicting the proportion of faces and hands seen by infants based on human annotations.")
+
+
+```
+
 
 ## A8 Activity by Location
 
@@ -786,7 +810,7 @@ ggplot(face_hand_by_age_milestones,
   viridis::scale_color_viridis(name = "", option="C", discrete=TRUE, begin=0, end=.4) +
   theme(legend.text=element_text(size=10)) +
   guides(size = FALSE) +
-  theme(legend.position="right")
+  theme(legend.position="bottom")
 
 ggsave('face_hand_by_motor.pdf', width=7, height=5)
 ```

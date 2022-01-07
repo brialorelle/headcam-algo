@@ -473,6 +473,7 @@ diff_out <- summary(diff_model2)
 ```
 
 
+
 ```{r faces-regression-table}
 faces_tab <- faces_out$coefficients
 rownames(faces_tab)[2] = "Age"
