@@ -1,10 +1,3 @@
----
-title: Appendix to 'Detecting social information in a dense database of infants’ natural
-  visual experience'
-date: "`r Sys.Date()`"
-output:
-  papaja::apa6_pdf: default
----
 
 
 ```{r, echo=F, message=F}
@@ -15,9 +8,8 @@ library(egg)
 library(stargazer)
 library(magick)
 library(ggeffects)
-
-theme_set(theme_classic())
-
+library(papaja)
+theme_set(theme_few())
 knitr::opts_chunk$set(echo=F, warning=F, cache=T, 
                       message=F, sanitize = T)
 ```
@@ -36,8 +28,6 @@ load(file=here::here('data/preprocessed_data_2022/bounding_box_summaries.RData')
 ## Load in gold sample detections
 load(here::here('data/preprocessed_data_2022/gold_sample_annotations2020-01-31.RData')) # human annotations
 load(here::here('data/preprocessed_data_2022/gold_sample_from_bbs_2021_with_centerall_detections.RData')) 
-
-# all_gold_sample_frames_op_hc = load(here::here('data/preprocessed_data_2022/gold_sample_from_bbs_2021_high_conf_detections.RData')) 
 ```
 
 
@@ -118,7 +108,6 @@ gold_sample <- gold_sample %>%
 ```
 
 ```{r}
-## Move to appendix
 ## get out summary by age for goldset hand-labeled frames
 vid_info <- all_vid_data  %>%
   select(child_id, vid_name, age_days, age_day_bin)
@@ -160,33 +149,80 @@ goldset_adult_hands <- summary_by_age_adult_hands_gold %>%
 
 ```
 
-# Face/hand detections relative to human annotations
-```{r goldSetSanity, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=4, fig.cap = "Proportion of faces and hands seen as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range. Dashed lines show estimated trend lines from proportion of faces/hands in view when analyzing the gold set of frames made by human annotators. Dotted lines show trend lines from the goldset when frames containing children's own hands were excluded." }
+## A1 OpenPose Annotation Examples
+```{r include=FALSE}
+# load(file = here::here('data/preprocessed_data_2022/goldset_category_annotations.RData'))
 
-ggplot(all_detections %>% filter(child_id %in% c('S','A')), 
-       aes(x=age_day_bin, y=prop, 
-           size=log10(num_frames_total),
-           col=region)) +
-  geom_point(alpha=.2) +
-  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = FALSE) + 
-  geom_smooth(data = goldset_adult_hands, span=10, aes(weight = num_frames_total), show.legend = FALSE,
-              lty = 2, span=10, se = FALSE) +
-  geom_smooth(data = goldset, span=10, aes(weight = num_frames_total), show.legend = FALSE,
-              lty = 3, span=10, se = FALSE) +
-  ylab('Proportion Detections') + 
-  xlab('Age (Months)') +
-  ylim(0,.6) +
-  facet_grid(.~child_id) + 
-  theme_few(base_size=10) +
-  ggthemes::scale_color_solarized(name = "") + 
-  scale_size_continuous(name = "Detections (Log 10)") +
-  theme(legend.text=element_text(size=10)) +
-  theme(legend.position="bottom") 
+# fp_face_examples <- d %>%
+#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+#   filter(face_eval_ketan == 'FP')
+# 
+# fp_hand_examples <- d %>%
+#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+#   filter(hand_eval_ketan == 'FP')
+# 
+# fn_face_examples <- d %>%
+#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+#   filter(face_eval_ketan == 'FN')
+# 
+# fn_hand_examples <- d %>%
+#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+#   filter(face_eval_ketan == 'FN')
+# 
+# images_to_render =  fp_hand_examples
+# which_images = 'fp_hand_examples'
+# 
+# public_urls = unique(images_to_render$public_url)
+# img_names_short = unique(images_to_render$img_name)
+# 
+# dir.create(here::here("data/annotation_examples/", which_images),recursive = TRUE)
+# 
+#   for (i in 1:length(public_urls)){
+#     this_image = image_read(public_urls[i])
+#     image_write(this_image,here::here("data/annotation_examples/",which_images, img_names_short[i]))
+#   }
 
 ```
 
-# Density of child vs. adults hands in the visual field
+```{r}
+# det_types = c('FP','FN')
+# render_examples = FALSE
+# if (render_examples == TRUE) {
+# for (det_type in det_types) {
+#   to_render_hands <- d %>%
+#     distinct(vid_name, frame, public_url) %>%
+#     left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+#     filter(hand_eval_ketan == det_type) %>%
+#     ungroup() %>%
+#     dplyr::sample_n(7)
+# 
+#   image_read(to_render_hands$public_url) %>%
+#     image_append(stack = FALSE) %>%
+#     image_write(paste0(here::here("data/annotation_examples/"), 'example_hands_', det_type,".png"))
+#   
+#   ###
+#     to_render_faces <- d %>%
+#     distinct(vid_name, frame, public_url) %>%
+#     left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
+#     filter(face_eval_ketan == det_type) %>%
+#     ungroup() %>%
+#     dplyr::sample_n(7)
+# 
+#   image_read(to_render_faces$public_url) %>%
+#     image_append(stack = FALSE) %>%
+#     image_write(paste0(here::here("data/annotation_examples/"), 'example_faces_', det_type,".png"))
+#   
+# }
+# }
 
+```
+
+```{r error_examples, include = T, fig.env = "figure*", fig.pos = "h", fig.align='center', fig.width=8, fig.height=6, set.cap.width=T, num.cols.cap=2,  fig.fullwidth = TRUE, fig.align = "center", fig.cap = "Example false alarms/misses for faces/hands randomly sampled from the larger set of manual annotations."}
+error_examples <- png::readPNG("figs/OP_errors.png")
+grid::grid.raster(error_examples)
+```
+
+## A2 Density of child vs. adults hands in the visual field
 ```{r} 
 ### Load turk hand annotations with all bounding boxes (multiple dets per frame)
 load(here::here('data/preprocessed_data_2022/hand_annotations_2020-01-29.RData'))
@@ -231,58 +267,46 @@ adult_hand_plot <- ggplot(adult_hands, aes(x=center_x, y=center_y)) +
 cowplot::plot_grid(child_hand_plot, adult_hand_plot, nrow=1)
 ```
 
-# Distribution of faces and hands in the visual field
-We explored where in the visual field children tended to see faces and hands, suspecting that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank (2012). 
-As expected, faces tended to appear in the upper visual field in contrast to hands, which tended to be more centrally located (see Figure).
-However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ visual environment from 6 months of age.
-
-```{r}
-bin_size=7
-min_age = min(all_vid_bbs$age_days, na.rm=TRUE)
-max_age = max(all_vid_bbs$age_days, na.rm=TRUE)
-bin_starts = seq(min_age-1, max_age+1,bin_size)
-bins = c(bin_starts, max_age) 
-
-all_vid_bbs <- all_vid_bbs %>%
-  mutate(age_months = age_days/30.4) %>%
-  mutate(age_day_bin = cut(age_days, bins, labels=floor(bin_starts/30.4))) %>%
-  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
-  mutate(avg_center_y = avg_top + avg_height/2, avg_center_x = avg_left + avg_width/2) %>%
-  filter(num_detect > 100)
-
-```
 
 
-```{r, eval=F, include=F}
-# add back to text when high-conf BBs are processed:
-# We also evaluated OpenPose's performance while restricting detections to high-confidence detections (>.5 confidence, default threshold for visualization). 
-#For faces, we found that the F-score was `r round(face_performance_hc[3],2)`, with a precision of `r round(face_performance_hc[1],2)` and recall of `r round(face_performance_hc[2],2)`. 
-#For hands, the F-score for high-confidence detections was `r round(hand_performance_hc[3],2)`, with a precision of `r round(hand_performance_hc[1],2)` and recall of `r round(hand_performance_hc[2],2)`. 
-#Thus, as in prior work [@long2020automated], while precision was much higher for both faces and hands, the lower recall for high-confidence detections indicates that these lower-confidence detections still index the presence of social information in the infant view.  
-```
+## A3 Location of OpenPose False Positives
+Below we visualize the locations of the 1229 faces (in 1093 frames) that OpenPose detected in the gold set frames that were not actually there, as well as the 1778 OpenPose false positive hands (in 1237 frames) from the gold set.
+The average location of OpenPose's false positives for both faces (left) and hands (right) are somewhat more common in the center of the frame, but some are scattered across the frame.
+Qualitatively, the location of these false positives do not look much different than the true positive detections. 
 
+```{r density-op-fps, fig.width=6.5, fig.height=3.2, fig.cap="Density plot of the locations of false positives for OpenPose detections for faces (left) and hands (right) in the gold set."}
+load(here::here('data/preprocessed_data_2022/gold_sample_all_indiivdual_dets.RData'))
+ddd <- gold_sample_all_dets %>% left_join(gold_sample %>% select(frame, vid_name, face_eval_ketan, hand_eval_ketan))
 
-
-```{r faceHandDensity, fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 5-31 months of age. Each dot represents the average position from one video within a given age range.", warning=F}
-
-ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
-  geom_point(alpha=.3) + 
-  stat_density2d(aes(fill = label, color=label), geom="polygon", alpha=.6) +
-  coord_fixed(ratio=.76) +
-  # ggtitle('Face/hand density') +
-  ylab('') +
-  xlab('') +
-  theme_few(base_size=14) +
-  theme(legend.position="top", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+# density plot of OP's false positive face/hand locations
+p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
+  mutate(x=left+0.5*width,
+         y=1-(top+0.5*height)) %>% # could actually overplot all the face rectangles? prob very messy...
+  ggplot(aes(x=x, y=y, fill=..level..)) + 
+  stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
+  xlab("Center of OpenPose Detection") + 
+  ylab("Center of OpenPose Detection") + 
+  ggtitle("Face False Positives") + theme(legend.position = "none") +
   scale_y_reverse() +
-  facet_wrap(~age_day_bin) +
-  guides(size = FALSE) +
-  ggthemes::scale_color_solarized(name = "")  +
-  ggthemes::scale_fill_solarized(name = "") +
-  theme(legend.position = c(0.8, 0.1))
+  theme_few(base_size=12) 
+
+p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
+  mutate(x=left+0.5*width,
+         y=1-(top+0.5*height)) %>% # top-left is 0,0
+  ggplot(aes(x=x, y=y, fill=..level..)) + 
+  stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
+  xlab("Center of OpenPose Detection") + 
+  ylab("Center of OpenPose Detection") + 
+  ggtitle("Hand False Positives") + theme(legend.position = "none") +
+  scale_y_reverse() +
+  theme_few(base_size=12) 
+
+ggpubr::ggarrange(p1, p2)
 ```
 
-# Detection threshold estimations
+
+
+## A4 Detection threshold estimations
 
 ```{r}
 # with all thresholds
@@ -361,11 +385,14 @@ hand_roc = ggplot(data=roc_data, aes(x=fpr_hands, y=tpr_hands, color=detection_t
 ```
 
 
-```{r roc_curves, fig.width=6.5, fig.height=3.2, fig.cap="ROC curves relating the rate of true vs. false positives for both face and hand detections at each level of detector confidence thresholds (lighter values = stricter cutoffs)."}
-ggarrange(face_roc, hand_roc, nrow=1)
+```{r roc_curves, fig.width=6.5, fig.height=3.2, fig.env="figure", fig.cap="ROC curves relating the rate of true vs. false positives for both face and hand detections at each level of detector confidence thresholds (lighter values = stricter cutoffs)."}
+ggpubr::ggarrange(face_roc, hand_roc, nrow=1)
 ```
 
-# OpenPose Error Analyses
+
+
+
+## A5/A6 OpenPose Error Analyses
 ```{r}
 # remove big data frame with thresholds
 rm(all_gold_sample_frames_op)
@@ -435,7 +462,7 @@ prf_by_age_hands <-  gold_sample %>%
 
 
 
-```{r det_perf_by_age, fig.width=6.5, fig.height=3.1, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
+```{r det_perf_by_age, fig.width=6.5, fig.env="figure", fig.height=3.1, fig.cap="F-score of OpenPose hand and face detections in the gold sample by child and age. Size indicates number of detections age bin/child."}
 
 prf_by_age_faces$age_day_bin = as.numeric(prf_by_age_faces$age_day_bin)
 
@@ -460,7 +487,7 @@ p2 <- ggplot(prf_by_age_hands, aes(x=age_day_bin, y=f, col=child_id, size=num_de
   ggtitle("Hand detections") + 
   theme(legend.position= 'none')
 
-ggarrange(p1, p2, nrow=1)
+ggpubr::ggarrange(p1, p2, nrow=1)
 ```
 
 ```{r}
@@ -529,202 +556,38 @@ p2 <- ggplot(prf_by_location_hands, aes(x=Location, y=f, col=Location, size=num_
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ylim(0,1) 
 
-ggarrange(p1, p2, nrow=1)
-```
-
-# OpenPose Annotation Examples
-```{r include=FALSE}
-# load(file = here::here('data/preprocessed_data_2022/goldset_category_annotations.RData'))
-
-# fp_face_examples <- d %>%
-#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
-#   filter(face_eval_ketan == 'FP')
-# 
-# fp_hand_examples <- d %>%
-#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
-#   filter(hand_eval_ketan == 'FP')
-# 
-# fn_face_examples <- d %>%
-#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
-#   filter(face_eval_ketan == 'FN')
-# 
-# fn_hand_examples <- d %>%
-#   left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
-#   filter(face_eval_ketan == 'FN')
-# 
-# images_to_render =  fp_hand_examples
-# which_images = 'fp_hand_examples'
-# 
-# public_urls = unique(images_to_render$public_url)
-# img_names_short = unique(images_to_render$img_name)
-# 
-# dir.create(here::here("data/annotation_examples/", which_images),recursive = TRUE)
-# 
-#   for (i in 1:length(public_urls)){
-#     this_image = image_read(public_urls[i])
-#     image_write(this_image,here::here("data/annotation_examples/",which_images, img_names_short[i]))
-#   }
-
-```
-
-```{r}
-# det_types = c('FP','FN')
-# render_examples = FALSE
-# if (render_examples == TRUE) {
-# for (det_type in det_types) {
-#   to_render_hands <- d %>%
-#     distinct(vid_name, frame, public_url) %>%
-#     left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
-#     filter(hand_eval_ketan == det_type) %>%
-#     ungroup() %>%
-#     dplyr::sample_n(7)
-# 
-#   image_read(to_render_hands$public_url) %>%
-#     image_append(stack = FALSE) %>%
-#     image_write(paste0(here::here("data/annotation_examples/"), 'example_hands_', det_type,".png"))
-#   
-#   ###
-#     to_render_faces <- d %>%
-#     distinct(vid_name, frame, public_url) %>%
-#     left_join(gold_sample %>% select(vid_name, frame, face_eval_ketan, hand_eval_ketan)) %>%
-#     filter(face_eval_ketan == det_type) %>%
-#     ungroup() %>%
-#     dplyr::sample_n(7)
-# 
-#   image_read(to_render_faces$public_url) %>%
-#     image_append(stack = FALSE) %>%
-#     image_write(paste0(here::here("data/annotation_examples/"), 'example_faces_', det_type,".png"))
-#   
-# }
-# }
-
-```
-
-```{r error_examples, include = T, fig.env = "figure*", fig.pos = "h", fig.align='center', fig.width=8, fig.height=6, set.cap.width=T, num.cols.cap=2,  fig.fullwidth = TRUE, fig.align = "center", fig.cap = "Example false alarms/misses for faces/hands randomly sampled from the larger set of manual annotations."}
-error_examples <- png::readPNG("figs/OP_errors.png")
-grid::grid.raster(error_examples)
-```
-
-## Location of OpenPose False Positives
-
-Below we visualize the locations of the 1229 faces (in 1093 frames) that OpenPose detected in the gold set frames that were not actually there, as well as the 1778 OpenPose false positive hands (in 1237 frames) from the gold set.
-The average location of OpenPose's false positives for both faces (left) and hands (right) are somewhat more common in the center of the frame, but some are scattered across the frame.
-Qualitatively, the location of these false positives do not look much different than the true positive detections. 
-
-```{r density-op-fps, fig.width=6.5, fig.height=3.2, fig.cap="Density plot of the locations of false positives for OpenPose detections for faces (left) and hands (right) in the gold set."}
-load(here::here('data/preprocessed_data_2022/gold_sample_all_indiivdual_dets.RData'))
-ddd <- gold_sample_all_dets %>% left_join(gold_sample %>% select(frame, vid_name, face_eval_ketan, hand_eval_ketan))
-
-# density plot of OP's false positive face/hand locations
-p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
-  mutate(x=left+0.5*width,
-         y=1-(top+0.5*height)) %>% # could actually overplot all the face rectangles? prob very messy...
-  ggplot(aes(x=x, y=y, fill=..level..)) + 
-  stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
-  xlab("Center of OpenPose Detection") + 
-  ylab("Center of OpenPose Detection") + 
-  ggtitle("Face False Positives") + theme(legend.position = "none") +
-  scale_y_reverse() +
-  theme_few(base_size=12) 
-
-p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
-  mutate(x=left+0.5*width,
-         y=1-(top+0.5*height)) %>% # top-left is 0,0
-  ggplot(aes(x=x, y=y, fill=..level..)) + 
-  stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
-  xlab("Center of OpenPose Detection") + 
-  ylab("Center of OpenPose Detection") + 
-  ggtitle("Hand False Positives") + theme(legend.position = "none") +
-  scale_y_reverse() +
-  theme_few(base_size=12) 
-
-ggpubr::ggarrange(p1, p2)
+ggpubr::ggarrange(p1, p2, nrow=1)
 ```
 
 
-# Activity by Location
+## A7 Face/hand detections relative to human annotations
+```{r goldSetSanity, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=4, fig.cap = "Proportion of faces and hands seen as a function of age for each child in the dataset. Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range. Dashed lines show estimated trend lines from proportion of faces/hands in view when analyzing the gold set of frames made by human annotators. Dotted lines show trend lines from the goldset when frames containing children's own hands were excluded." }
 
-```{r activities_by_lo, fig.width=6.5, fig.height=3.2, fig.cap="Counts of activities by location, including multilocation videos."}
-meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_28.csv"))
+ggplot(all_detections %>% filter(child_id %in% c('S','A')), 
+       aes(x=age_day_bin, y=prop, 
+           size=log10(num_frames_total),
+           col=region)) +
+  geom_point(alpha=.2) +
+  geom_smooth(span=10, aes(weight = num_frames_total), show.legend = FALSE) + 
+  geom_smooth(data = goldset_adult_hands, span=10, aes(weight = num_frames_total), show.legend = FALSE,
+              lty = 2, span=10, se = FALSE) +
+  geom_smooth(data = goldset, span=10, aes(weight = num_frames_total), show.legend = FALSE,
+              lty = 3, span=10, se = FALSE) +
+  ylab('Proportion Detections') + 
+  xlab('Age (Months)') +
+  ylim(0,.6) +
+  facet_grid(.~child_id) + 
+  theme_few(base_size=10) +
+  ggthemes::scale_color_solarized(name = "") + 
+  scale_size_continuous(name = "Detections (Log 10)") +
+  theme(legend.text=element_text(size=10)) +
+  theme(legend.position="bottom") 
 
-meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
-  select(Child, `File Name`, Activity, Location) %>%
-  separate(Activity, c("Act.1","Act.2","Act.3","Act.4","Act.5","Act.6","Act.7","Act.8","Act.9","Act.10","Act.11","Act.12"), sep=',') %>%
-  pivot_longer(cols = starts_with("Act."), 
-                                        names_to = "activity_index",
-                                        names_prefix = "Act.",
-                                        values_to = "Activity",
-                                        values_drop_na = T) %>%
-  mutate(Activity = case_when(Activity=="Waving" ~ "Gesturing",
-                              Activity=="Imitation" ~ "Imitating",
-                              Activity=="Talking Walk" ~ "Walking",
-                              Activity=="Tidying" ~ "Cleaning",
-                              Activity=="Preparing for Outing" ~ "Getting Changed/Dressed",
-                              Activity=="Play Pretend" ~ "Playing",
-                              TRUE ~ Activity)) 
-
-# include videos with multiple locations
-meta_long <- meta_wide %>% 
-  separate(Location, c("Loc.1","Loc.2","Loc.3","Loc.4","Loc.5","Loc.6"), sep=',') %>%
-  pivot_longer(cols = starts_with("Loc."),
-               names_to = "location_index",
-               names_prefix = "Loc.",
-               values_to = "Location",
-               values_drop_na = T)
-
-single_locations = c("Bedroom","Car","Deck/Porch","Kitchen","Living Room","Off Property","Office","Outside on Property")
-
-# single-location videos
-meta_long_1loc <- meta_wide %>%
-  filter(is.element(Location, single_locations)) %>%
-  filter(Activity!="N/A", Activity!="Consequence", Activity!="Gesturing")
-  
-# what is "California Room" ?
-meta_long <- meta_long %>% mutate(Location = ifelse(Location=="Bedroom Alice/Sam", "Bedroom", Location))
-
-loc_freq = sort(table(meta_long_1loc$Location))
-
-# multi-location videos
-meta_long %>% filter(Activity!="N/A", Activity!="Consequence", Activity!="Kicking",
-                     Activity!="Gesturing", Activity!="Look and Listen", 
-                     Location!="N/A", Location!="California Room",
-                     Location!="Rapidly Moving Between Locations", Location!="Piano Room") %>%
-  mutate(Location = ifelse(Location=="Dog Park/Park/Field", "Off Property", Location)) %>%
-  group_by(Activity, Location) %>%
-  summarise(n = n()) %>% 
-  ggplot(aes(x=Activity, y=Location, fill=n)) +
-  geom_tile() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location in videos taking place in only a single location."}
-# single location videos
-meta_long_1loc %>% 
-  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
-  group_by(Activity, Location) %>%
-  summarise(n = n()) %>% 
-  ggplot(aes(x=Activity, y=Location, fill=n)) +
-  geom_tile() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#ggsave("activity_by_location.pdf", width=6.5, height=3.5)
-```
 
-
-```{r, fig.width=6.5, fig.height=3.0, fig.cap="Probability of different activities, given location (in single-location videos)."}
-# normalize by location
-meta_long_1loc %>% 
-  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
-  left_join(meta_long_1loc %>% group_by(Location) %>% summarise(loc_freq = n())) %>%
-  group_by(Activity, Location) %>%
-  summarise(n = n(),
-            prop_loc = n / loc_freq) %>% 
-  ggplot(aes(x=Activity, y=Location, fill=prop_loc)) +
-  geom_tile() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
-# Motor Milestones Analysis Details
+## Tables 1&2 Motor Milestones Analysis Details
 
 We examine whether the SAYcam participants' age of reaching particular developmental milestones (sitting, cruising, and walking) significantly influenced the proportion of hands or faces that they saw, using a mixed-effects regression with per-child random intercepts.
 
@@ -780,7 +643,7 @@ class(face_walk) <- "lmerMod"
 class(hand_walk) <- "lmerMod"
 ```
 
-## Sitting
+### Sitting
 
 Children's age at which they began sitting did not significantly predict changes in either the amount of faces or hands that they saw.
 
@@ -803,7 +666,7 @@ stargazer(face_sit, hand_sit, title="Change in Face and Hand Prevalence by Abili
           header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
 ```
 
-## Cruising
+### Cruising
 
 As children became able to cruise, they saw significantly more faces ($\beta = 0.27$) and hands ($\beta = 0.26$. 
 For faces, there was a significant negative interaction of age and cruising ($\beta = -0.03$, $p=0.025$), and a marginal positive effect of age ($\beta = 0.03$, $p=0.055$).
@@ -842,7 +705,7 @@ stargazer(face_cruise, hand_cruise, title="Change in Face and Hand Prevalence by
 ```
 
 
-## Walking
+### Walking
 
 As children became able to walk, they saw marginally more hands ($\beta = 0.09$, $p=0.052$). 
 
@@ -863,4 +726,149 @@ stargazer(hand_walk, title="Predicting Hands by Ability to Walk",
 stargazer(face_walk, hand_walk, title="Change in Face and Hand Prevalence by Ability to Walk", 
           header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
 ```
+
+
+
+
+## A8 Activity by Location
+
+```{r}
+meta2 <- read_csv(here::here("data","raw_data","Metadata_SAYcam-2019-12-0922_54_28.csv"))
+
+meta_wide <- meta2 %>% filter(Activity!="N/A", !is.na(Location)) %>%
+  select(Child, `File Name`, Activity, Location) %>%
+  separate(Activity, c("Act.1","Act.2","Act.3","Act.4","Act.5","Act.6","Act.7","Act.8","Act.9","Act.10","Act.11","Act.12"), sep=',') %>%
+  pivot_longer(cols = starts_with("Act."), 
+                                        names_to = "activity_index",
+                                        names_prefix = "Act.",
+                                        values_to = "Activity",
+                                        values_drop_na = T) %>%
+  mutate(Activity = case_when(Activity=="Waving" ~ "Gesturing",
+                              Activity=="Imitation" ~ "Imitating",
+                              Activity=="Talking Walk" ~ "Walking",
+                              Activity=="Tidying" ~ "Cleaning",
+                              Activity=="Preparing for Outing" ~ "Getting Changed/Dressed",
+                              Activity=="Play Pretend" ~ "Playing",
+                              TRUE ~ Activity)) 
+
+# include videos with multiple locations
+meta_long <- meta_wide %>% 
+  separate(Location, c("Loc.1","Loc.2","Loc.3","Loc.4","Loc.5","Loc.6"), sep=',') %>%
+  pivot_longer(cols = starts_with("Loc."),
+               names_to = "location_index",
+               names_prefix = "Loc.",
+               values_to = "Location",
+               values_drop_na = T)
+
+single_locations = c("Bedroom","Car","Deck/Porch","Kitchen","Living Room","Off Property","Office","Outside on Property")
+
+# single-location videos
+meta_long_1loc <- meta_wide %>%
+  filter(is.element(Location, single_locations)) %>%
+  filter(Activity!="N/A", Activity!="Consequence", Activity!="Gesturing")
+  
+# what is "California Room" ?
+meta_long <- meta_long %>% mutate(Location = ifelse(Location=="Bedroom Alice/Sam", "Bedroom", Location))
+
+loc_freq = sort(table(meta_long_1loc$Location))
+
+```
+
+```{r activities_by_lo, fig.width=6.5, fig.height=3.2, fig.cap="Counts of activities by location, including multilocation videos."}
+
+# multi-location videos
+meta_long %>% filter(Activity!="N/A", Activity!="Consequence", Activity!="Kicking",
+                     Activity!="Gesturing", Activity!="Look and Listen", 
+                     Location!="N/A", Location!="California Room",
+                     Location!="Rapidly Moving Between Locations", Location!="Piano Room") %>%
+  mutate(Location = ifelse(Location=="Dog Park/Park/Field", "Off Property", Location)) %>%
+  group_by(Activity, Location) %>%
+  summarise(n = n()) %>% 
+  ggplot(aes(x=Activity, y=Location, fill=n)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Counts of activities by location in videos taking place in only a single location."}
+# single location videos
+meta_long_1loc %>% 
+  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
+  group_by(Activity, Location) %>%
+  summarise(n = n()) %>% 
+  ggplot(aes(x=Activity, y=Location, fill=n)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#ggsave("activity_by_location.pdf", width=6.5, height=3.5)
+```
+
+
+```{r, fig.width=6.5, fig.height=3.0, fig.cap="Probability of different activities, given location (in single-location videos)."}
+# normalize by location
+meta_long_1loc %>% 
+  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
+  left_join(meta_long_1loc %>% group_by(Location) %>% summarise(loc_freq = n())) %>%
+  group_by(Activity, Location) %>%
+  summarise(n = n(),
+            prop_loc = n / loc_freq) %>% 
+  ggplot(aes(x=Activity, y=Location, fill=prop_loc)) +
+  geom_tile() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+## A9 Distribution of faces and hands in the visual field
+We explored where in the visual field children tended to see faces and hands, suspecting that these distributions might become wider as children grow older and learn to locomote on their own, following preliminary analyses from Frank (2012). 
+As expected, faces tended to appear in the upper visual field in contrast to hands, which tended to be more centrally located (see Figure).
+However, we found little evidence for any changes in the positions of faces and hands across age, suggesting that this is a relatively stable property of infants’ visual environment from 6 months of age.
+
+```{r}
+bin_size=7
+min_age = min(all_vid_bbs$age_days, na.rm=TRUE)
+max_age = max(all_vid_bbs$age_days, na.rm=TRUE)
+bin_starts = seq(min_age-1, max_age+1,bin_size)
+bins = c(bin_starts, max_age) 
+
+all_vid_bbs <- all_vid_bbs %>%
+  mutate(age_months = age_days/30.4) %>%
+  mutate(age_day_bin = cut(age_days, bins, labels=floor(bin_starts/30.4))) %>%
+  mutate(age_day_bin = as.numeric(as.character(age_day_bin))) %>%
+  mutate(avg_center_y = avg_top + avg_height/2, avg_center_x = avg_left + avg_width/2) %>%
+  filter(num_detect > 100)
+
+```
+
+
+```{r, eval=F, include=F}
+# add back to text when high-conf BBs are processed:
+# We also evaluated OpenPose's performance while restricting detections to high-confidence detections (>.5 confidence, default threshold for visualization). 
+#For faces, we found that the F-score was `r round(face_performance_hc[3],2)`, with a precision of `r round(face_performance_hc[1],2)` and recall of `r round(face_performance_hc[2],2)`. 
+#For hands, the F-score for high-confidence detections was `r round(hand_performance_hc[3],2)`, with a precision of `r round(hand_performance_hc[1],2)` and recall of `r round(hand_performance_hc[2],2)`. 
+#Thus, as in prior work [@long2020automated], while precision was much higher for both faces and hands, the lower recall for high-confidence detections indicates that these lower-confidence detections still index the presence of social information in the infant view.  
+```
+
+
+
+```{r faceHandDensity, fig.env="figure", fig.width=6.5, fig.height=9, fig.cap="Each panel shows the average position of faces and hands in the visual field in a videos from a given age range, i.e., videos when children in the dataset were were 5-31 months of age. Each dot represents the average position from one video within a given age range.", warning=F}
+
+ggplot(all_vid_bbs %>% filter(label %in% c('face','hand')), aes(x=avg_center_x , y = avg_center_y, size=num_detect, color=label)) +
+  geom_point(alpha=.3) + 
+  stat_density2d(aes(fill = label, color=label), geom="polygon", alpha=.6) +
+  coord_fixed(ratio=.76) +
+  # ggtitle('Face/hand density') +
+  ylab('') +
+  xlab('') +
+  theme_few(base_size=14) +
+  theme(legend.position="top", axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
+  scale_y_reverse() +
+  facet_wrap(~age_day_bin) +
+  guides(size = FALSE) +
+  ggthemes::scale_color_solarized(name = "")  +
+  ggthemes::scale_fill_solarized(name = "") +
+  theme(legend.position = c(0.8, 0.1))
+```
+
+
 
