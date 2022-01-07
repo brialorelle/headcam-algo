@@ -355,6 +355,16 @@ return_fpr = function(eval){
   return(fpr)
  }
  
+
+ return_f_score = function(eval){
+  tp=sum(eval == "TP")
+  fp=sum(eval == "FP")
+  fn=sum(eval == "FN")
+  p = tp / (tp + fp)
+  r = tp / (tp + fn)
+  f=( 2 * p * r )/ (p + r)
+  return(f)
+ }
   
 ```
 
@@ -366,7 +376,9 @@ roc_data <- gold_sample %>%
    mutate(hand_detected = hand_detected>0, face_detected = face_detected > 0) %>% # number = number of faces/hands detected
   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected)) %>%
   group_by(detection_threshold) %>%
-  summarize(tpr_faces = return_tpr(face_eval_ketan), fpr_faces = return_fpr(face_eval_ketan), tpr_hands = return_tpr(hand_eval_ketan), fpr_hands = return_fpr(hand_eval_ketan))
+  summarize(tpr_faces = return_tpr(face_eval_ketan), fpr_faces = return_fpr(face_eval_ketan), tpr_hands = return_tpr(hand_eval_ketan), fpr_hands = return_fpr(hand_eval_ketan), )
+
+
 ```
 
 ```{r}
