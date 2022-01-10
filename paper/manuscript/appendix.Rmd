@@ -1,6 +1,6 @@
 ---
-title: "Appendix"
-author: "Bria Long"
+title: "Appendix to ``A longitudinal analysis of the social information in infants' naturalistic
+  visual experience using automated detections''"
 date: "1/6/2022"
 output:
   word_document: default
@@ -136,7 +136,7 @@ load(here::here('data/preprocessed_data_2022/child_adult_hand_annotations_by_fra
 
 gold_sample_no_child_hands <- gold_sample %>%
   left_join(child_adult_hand_annotations, by=(c("vid_name","frame"))) %>%
-  replace_na(list(child_hand_seg = FALSE)) %>% # replace NAs with false (frames not in annotations (NAs) did not have hands) 
+  tidyr::replace_na(list(child_hand_seg = FALSE)) %>% # replace NAs with false (frames not in annotations (NAs) did not have hands) 
   filter(child_hand_seg==FALSE) %>% # now these are counted as frames where OP didn't need to detect something
   mutate(hand_eval_adults = evaluate_detector(hand_present_ketan, hand_detected))
 
@@ -294,29 +294,28 @@ ddd <- gold_sample_all_dets %>% left_join(gold_sample %>% select(frame, vid_name
 # density plot of OP's false positive face/hand locations
 p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
   mutate(x=left+0.5*width,
-         y=1-(top+0.5*height)) %>% # could actually overplot all the face rectangles? prob very messy...
+         y=top+0.5*height) %>% # could actually overplot all the face rectangles? prob very messy...
   ggplot(aes(x=x, y=y, fill=..level..)) + 
   theme_few(base_size=12) +
-  stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
   xlab("Center of OpenPose Detection") + 
   ylab("Center of OpenPose Detection") + 
   ggtitle("Face False Positives") + theme(legend.position = "none") +
-  scale_y_reverse() 
+  scale_y_reverse() + xlim(-.05,1.05) + ylim(1.05,-.05)
 
 p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
   mutate(x=left+0.5*width,
-         y=1-(top+0.5*height)) %>% # top-left is 0,0
+         y=top+0.5*height) %>% # top-left is 0,0
   ggplot(aes(x=x, y=y, fill=..level..)) + 
   theme_few(base_size=12) +
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
   xlab("Center of OpenPose Detection") + 
   ylab("Center of OpenPose Detection") + 
   ggtitle("Hand False Positives") + theme(legend.position = "none") +
-  scale_y_reverse() 
+  scale_y_reverse() + xlim(-.05,1.05) + ylim(1.05,-.05)
  
 
 ggpubr::ggarrange(p1, p2)
-ggsave('appendix_figs/op_falsepositives.pdf', width = 7, height = 3)
+ggsave('appendix_figs/op_falsepositives.pdf', width = 7, height = 3.4)
 
 ```
 
@@ -737,10 +736,10 @@ meta_long %>% filter(Activity!="N/A", Activity!="Consequence", Activity!="Kickin
   group_by(Activity, Location) %>%
   summarise(n = n()) %>% 
   ggplot(aes(x=Activity, y=Location, fill=n)) +
-  geom_tile() +
+  geom_tile() + theme_few(base_size=11) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave('appendix_figs/activities_by_location.pdf', width = 7, height = 4)
+ggsave('appendix_figs/activities_by_location.pdf', width = 8, height = 4)
 
 ```
 
@@ -771,6 +770,8 @@ meta_long_1loc %>%
   ggplot(aes(x=Activity, y=Location, fill=prop_loc)) +
   geom_tile() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave('appendix_figs/prob_activity_by_single_location.pdf', width = 8, height = 4)
 ```
 
 
@@ -868,6 +869,6 @@ ggplot(face_hand_by_age_milestones,
   guides(size = FALSE) +
   theme(legend.position="bottom")
 
-ggsave('face_hand_by_motor.pdf', width=7, height=5)
+ggsave('appendix_figs/face_hand_by_motor.pdf', width=7, height=5)
 ```
 
