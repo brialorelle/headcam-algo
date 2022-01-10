@@ -2,7 +2,10 @@
 title: "Appendix"
 author: "Bria Long"
 date: "1/6/2022"
-output: word_document
+output:
+  word_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r, echo=F, message=F}
@@ -14,6 +17,9 @@ library(stargazer)
 library(magick)
 library(ggeffects)
 library(papaja)
+library(lme4)
+library(xtable)
+library(lmerTest)
 theme_set(theme_few())
 knitr::opts_chunk$set(echo=F, warning=F, cache=T, 
                       message=F, sanitize = T)
@@ -376,7 +382,7 @@ roc_data <- gold_sample %>%
    mutate(hand_detected = hand_detected>0, face_detected = face_detected > 0) %>% # number = number of faces/hands detected
   mutate(face_eval_ketan = evaluate_detector(face_present_ketan, face_detected), hand_eval_ketan = evaluate_detector(hand_present_ketan, hand_detected)) %>%
   group_by(detection_threshold) %>%
-  summarize(tpr_faces = return_tpr(face_eval_ketan), fpr_faces = return_fpr(face_eval_ketan), tpr_hands = return_tpr(hand_eval_ketan), fpr_hands = return_fpr(hand_eval_ketan), )
+  summarize(tpr_faces = return_tpr(face_eval_ketan), fpr_faces = return_fpr(face_eval_ketan), tpr_hands = return_tpr(hand_eval_ketan), fpr_hands = return_fpr(hand_eval_ketan), f_faces = return_f_score(face_eval_ketan), f_hands = return_f_score(hand_eval_ketan) )
 
 
 ```
@@ -412,6 +418,39 @@ ggpubr::ggarrange(face_roc, hand_roc, nrow=1)
 ggsave('appendix_figs/rocs.pdf', width = 7, height = 3)
 ```
 
+```{r}
+
+f_faces = ggplot(data=roc_data, aes(x=detection_threshold, y=f_faces, color=detection_threshold)) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  xlim(0,1) +
+  xlab('Detection Threshold') +
+  ylab('F-score') +
+  ggtitle('Face detections') +
+  theme(legend.position = 'none') 
+
+
+f_hands = ggplot(data=roc_data, aes(x=detection_threshold, y=f_hands, color=detection_threshold)) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  xlim(0,1) +
+  xlab('Detection Threshold') +
+  ylab('F-score') +
+  ggtitle('Hand detections') +
+  theme(legend.position = 'none') 
+
+```
+
+
+```{r}
+
+ggpubr::ggarrange(f_hands, f_faces, nrow=1)
+ggsave('appendix_figs/f_scores_by_thres.pdf', width = 7, height = 3)
+ggsave('appendix_figs/f_scores_by_thres.png', device = "png", width = 7, height = 3)
+
+```
 
 
 
@@ -592,7 +631,8 @@ ggplot(all_detections %>% filter(child_id %in% c('S','A')),
        aes(x=age_day_bin, y=prop, 
            size=log10(num_frames_total),
            col=region)) +
-  geom_point(alpha=.2) +
+  geom_point(alpha=.5) +
+  # geom_point(alpha=.2, data = goldset) +
   geom_smooth(span=10, aes(weight = num_frames_total), show.legend = FALSE) + 
   geom_smooth(data = goldset_adult_hands, span=10, aes(weight = num_frames_total), show.legend = FALSE,
               lty = 2, span=10, se = FALSE) +
@@ -609,6 +649,10 @@ ggplot(all_detections %>% filter(child_id %in% c('S','A')),
   theme(legend.position="bottom") 
 
 ggsave('appendix_figs/humans_vs_op.pdf', width = 7, height = 5)
+
+```
+
+```{r}
 
 ```
 
