@@ -3,6 +3,7 @@ slurm*
 /data/*
 !/data/preprocessed_data_2021
 
+paper/manuscript/_submission_docs/*
 data_cogsci/*
 src/data/*
 .DS_Store
@@ -83,3 +84,4 @@ paper/_backup/.paper_revised_submission_june2020_apa.Rmd.icloud
 analysis/.analysis_bb_fulldataset_2.Rmd.icloud
 analysis/analysis_goldset_emotions.Rmd
 openpose_detections/daylight_demo.py
+paper/manuscript/appendix.html
