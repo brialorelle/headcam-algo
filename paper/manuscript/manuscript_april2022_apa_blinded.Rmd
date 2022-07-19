@@ -61,6 +61,7 @@ library(stringr)
 library(lmerTest)
 library(here)
 library(papaja)
+library(viridis)
 theme_set(theme_few())
 ```
 
@@ -356,11 +357,15 @@ first_panel <- ggplot(all_detections,
   ylim(0,.5) +
   facet_grid(cols = vars(child_name)) + 
   theme_few(base_size=10) +
-  ggthemes::scale_color_solarized(name = "") + 
+  scale_color_manual(values = c("#1266a2","#CB4B16"), name = "") +
   theme(legend.text=element_text(size=10)) +
-  guides(size = FALSE) +
-  theme(legend.position="bottom") +
-  ggtitle('A.')
+  guides(size = "none") +
+  theme(legend.position="none", aspect.ratio=.75) 
+  # ggtitle('A.')
+
+
+  # scale_color_manual(values = c("#1266a2","#1b91e6", "#CB4B16","#eb7443"), name = "") +
+
 
 second_panel <- ggplot(centered, 
        aes(x=age_day_bin, y=prop, 
@@ -373,11 +378,13 @@ second_panel <- ggplot(centered,
   ylim(0,.5) +
   facet_grid(cols = vars(child_name)) + 
   theme_few(base_size=10) +
-  ggthemes::scale_color_solarized(name = "") + 
+  # scale_color_viridis(option = "turbo", discrete=TRUE, begin=0.05, end=.85, name="") +
+  # scale_color_manual(values = c("#92c5de","#ef8a62"), name = "") +
+      scale_color_manual(values = c("#1b91e6","#eb7443"), name = "") +
   theme(legend.text=element_text(size=10)) +
-  guides(size = FALSE) +
-  theme(legend.position="bottom")  +
-  ggtitle('B.')
+  guides(size = "none") +
+  theme(legend.position="none", aspect.ratio=.75)  
+  # ggtitle('B.')
 
 
 third_panel <- ggplot(detailed, 
@@ -391,18 +398,20 @@ third_panel <- ggplot(detailed,
   ylim(0,.5) +
   facet_grid(cols = vars(child_name)) + 
   theme_few(base_size=10) +
-  scale_color_manual(values = c("#751098","#142c83"), name = "") +
+  # scale_color_viridis(option = "viridis", discrete=TRUE, begin=0.3, end=.8, name="") + 
+  # scale_color_manual(values = c("#751098","#142c83"), name = "") +
+  scale_color_manual(values = c("#a21266","#142c83"), name = "") +
   theme(legend.text=element_text(size=10)) +
-  guides(size = FALSE) +
-  theme(legend.position="bottom") +
-  ggtitle('C.')
+  guides(size = "none") +
+  theme(legend.position="none", aspect.ratio=.75) 
+  # ggtitle('C.')
 
 ```
 
 ```{r faceHandDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=9, fig.cap = "Proportion of frames with (A) All face and hand detections,  (B) Face/hand detections that fell within the center field-of-view (reducing the contribution of children's own hands) and (C) Face detections that were full faces (e.g., eyes, nose, and mouth all visible) and that co-occurred with hands, plotted as a function of age for each child (A, S, and Y). Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range."}
 
-cowplot::plot_grid(first_panel, second_panel, third_panel, labels=NULL, nrow=3, label_fontface = "bold", align = "v", axis = "b")
-ggsave('figs_pdfs/test.pdf', width = 7, height = 9)
+cowplot::plot_grid(first_panel, second_panel, third_panel, labels='auto', nrow=3, label_fontface = "bold", align = "hv", axis = "b")
+ggsave(filename='figs_publication_final/figure2_updated.pdf', width = 7.2, height=8, dpi=300)
 ```
 
 We analyzed the social information in view across the entire dataset, looking specifically at the proportions of faces and hands detected for each child. All analyses and preprocessed data files for this paper are available at tinyurl.com/longitudinal-social-info. Data from videos were binned according to the age of the child (in weeks). First, we saw that the proportion of faces in view showed a moderate decrease across this age range (see Figure \ref{fig:faceHandDetailed}), in keeping with prior findings [@Fausey2016]; in contrast, we did not observe an increase in the proportion of hands in view. 
@@ -544,22 +553,23 @@ face_hand_contingency <- face_hand_by_age %>%
 ```
 
 ```{r faceHandContingency, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Proportion of joint face and hands detection within frames where hands (left) or faces (right) were detected." }
-ggplot(face_hand_contingency, 
+ggplot(face_hand_contingency %>% filter(num_frames_total>20000), 
        aes(x=age_day_bin, y=prop, 
            col=child_id)) +
   geom_point(alpha=.1, aes(size=log10(num_frames_total)), show.legend= FALSE) +
   geom_smooth(method='lm', aes(weight = num_frames_total), show.legend = TRUE) + 
   ylab('Proportion joint hand/face detection') + 
   xlab('Age (Months)') +
-  theme_few(base_size=12) +
+  theme_few(base_size=10) +
   ylim(0,1) +
   facet_grid(~region) +
   # scale_color_manual(values = c( "#DAA0EE","#710D93"), name="") +
-  scale_color_brewer(palette="Dark2", name = "Child") +
-  guides(size = FALSE) +
-  theme(legend.text=element_text(size=10)) 
+  # scale_color_brewer(palette="Dark2", name = "Child") +
+  scale_color_viridis(option='viridis', discrete=TRUE, begin=.2, end=.8) +
+  guides(size = "none") +
+  theme(legend.text=element_text(size=6), legend.position = "none")
 
-ggsave('figs_pdfs/face_hand_contingency.pdf', width=7, height=3, units='in')
+ggsave('figs_publication_final/figure3_face_hand_contingency.pdf', width=3.5, height=2.625, units='in')
 ```
 
 
@@ -655,20 +665,22 @@ all_to_plot$region <- as.factor(all_to_plot$region)
 all_to_plot$region <- relevel(all_to_plot$region, ref ="Faces (All)")
 
 ggplot(all_to_plot, aes(x = Location, y = mean, col=region)) + 
-  geom_point(aes(x=Location, y=prop, size=log10(num_detect)), alpha=.1, position = position_dodge(width=.6)) +
-  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper, linetype=region),position = position_dodge(width=.6)) +
+  geom_point(aes(x=Location, y=prop, size=log10(num_detect)), alpha=.05, position = position_dodge(width=.6)) +
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper, linetype=region),position = position_dodge(width=.8), size=.3) +
   coord_flip() + 
   ylab('Proportion Detected')+
   xlab('')+
   theme_few(base_size=10) +
   theme(legend.position = "bottom") +
-  facet_grid(.~child_id)  +
-  scale_size_continuous(name = "log(Detections)") +
+  facet_grid(.~child_id)  + 
+  scale_size_continuous(name = "") +
   scale_linetype_manual(values=c("solid", "dashed","solid","dashed"), name = "") +
-  scale_color_manual(values = c("#268bd2", "#51acec", "#dc322f","#ea5e5c"), name = "") +
-  theme(legend.text=element_text(size=8))
+  # scale_color_manual(values = c("#1a2591", "#7fb8f1", "#b9221f","#ea5e5c"), name = "") +
+  scale_color_manual(values = c("#1266a2","#1b91e6", "#CB4B16","#eb7443"), name = "") +
+  theme(legend.text=element_text(size=8)) +
+  guides(size = "none") 
   
-ggsave('figs_pdfs/dets_by_location.pdf', width=7, height=5, units='in')
+ggsave('figs_publication_final/figure4_dets_by_location.pdf', width=7.2, height=5, units='in')
 ```
 
 
@@ -747,16 +759,19 @@ avg_area_by_age <- all_vid_bbs %>%
 ```{r avgSizes, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "Average size of poses, faces, and hands detected in the dataset as a function of age for each child in the dataset (each color = different child). Data are binned by each week that the videos were filmed and scaled by the number of frames in that age range."}
 
 ggplot(avg_area_by_age, aes(x=age_day_bin, y=log(avg_area), col=child_id, size=num_detect)) +
-  theme_few(base_size=12) +
+  theme_few(base_size=10) +
   geom_point(alpha=.1) +
   facet_grid(~label) +
-  geom_smooth(method='lm') + 
+  theme(text=element_text(family="Helvetica"))  +
+  geom_smooth(method='lm', size=1) + 
   ylab('Log area (average proportion of frame)') +
   xlab('Age (in months)') +
-  scale_color_brewer(palette="Dark2", name = "Child") +
-  guides(size = FALSE)
+  # scale_color_brewer(palette="Dark2", name = "Child") +
+  theme(legend.position='none') +
+  scale_color_viridis(option='viridis', discrete=TRUE, begin=.2, end=.8) +
+  guides(size = "none")
 
-ggsave('figs_pdfs/size_by_age.pdf', width=7, height=3, units='in')
+ggsave('figs_publication_final/figure5_size_by_age.pdf', width=3.5, height=2.625, units='in')
 ```
 
 ```{r}
@@ -791,11 +806,12 @@ eye_dist_plot <- ggplot(eye_dist,
   geom_smooth(method='lm', aes(weight = num_faces), show.legend = TRUE) + 
   ylab('Avg. distance between eyes') + 
   xlab('Age (in months)') +
-  theme_few(base_size=12) +
+  theme_few(base_size=10) +
   facet_grid(~variable) +
-  scale_color_brewer(palette="Dark2", name='Child') +
-  guides(size = FALSE) +
-  ggtitle('A.') +
+  # scale_color_brewer(palette="Dark2", name='Child') +
+    scale_color_viridis(option='viridis', discrete=TRUE, begin=.2, end=.8) +
+  guides(size = 'none') +
+  # ggtitle('A.') +
   theme(legend.text=element_text(size=12))  +
   theme(legend.position="none")
 ```
@@ -813,15 +829,17 @@ CV_faces <- all_vid_bbs %>%
 
 ```{r}
 CV_faces_plot <- ggplot(CV_faces, aes(x=age_day_bin, y = CV, size=num_detect, color=child_id)) +
-  theme_few(base_size=12) +
+  theme_few(base_size=10) +
   geom_point(alpha=.15) + 
   facet_wrap(~position)  +
   geom_smooth(method='lm') +
-  ggtitle('B.') +
-  scale_color_brewer(palette='Dark2', name='Child') + 
-  ylab('Coefficient of variation') +
+  # ggtitle('B.') +
+  # scale_color_brewer(palette='Dark2', name='Child') +
+  scale_color_viridis(option='viridis', discrete=TRUE, begin=.2, end=.8) +
+  theme(legend.position='none') +
+    ylab('Coefficient of variation') +
   xlab('Age (in months)') +
-  guides(size = FALSE) 
+  guides(size = 'none') 
 ```
 
 
@@ -871,8 +889,8 @@ x_vs_y_summary = summary(lmer(data=CV_faces, CV ~ scale(age_day_bin) + position 
 
 ```{r faceDetailed, fig.env="figure*", fig.pos = "h", fig.align = "center", fig.width=7, fig.height=3, fig.cap = "(A) Average distance between eyes and (B) average coefficient of variation for the x and y position of faces detected by OpenPose as a function of each child's age at the time of filming. Data in (A) are restricted to faces where both eyes were detected. Data are binned by each week that the videos were filmed and scaled by the number of face detections in that age range."}
 
-cowplot::plot_grid(eye_dist_plot, CV_faces_plot, rel_widths=c(1,2))
-ggsave('figs_pdfs/detailed_changes.pdf',units='in',width=7, height=3)
+cowplot::plot_grid(eye_dist_plot, CV_faces_plot, labels='AUTO', rel_widths=c(1,2))
+ggsave('figs_publication_final/figure6_detailed_changes.pdf',units='in',width=7, height=3)
 ```
 In a final set of analyses, we explored fine-grained changes in the SAYCam infants' access to social information across development.
 In these analyses, we capitalize on the fact that OpenPose provides not only face and hand detections but also positional keypoints. 

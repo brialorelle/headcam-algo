@@ -1,0 +1,162 @@
+---
+title: "motor_milestone_attempt"
+author: "Bria Long"
+date: "1/6/2022"
+output: html_document
+---
+
+```{r, echo=F, message=F}
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(egg)
+library(stargazer)
+library(magick)
+library(ggeffects)
+library(papaja)
+theme_set(theme_few())
+knitr::opts_chunk$set(echo=F, warning=F, cache=T, 
+                      message=F, sanitize = T)
+```
+
+
+## Motor Milestones Analysis 
+Each parent in the SAYCam dataset completed the Ages and Stages Questionnaire (ASQ), which includes questions about their child's motor abilities, and we used the responses from this questionnaire to code the age (in months) at which each child became able to sit, cruise, and walk on their own (questions about crawling were not included in the questionnaire). We found considerable variability in the age at which each child achieved these three milestones. Participants S and A were already able to sit at 6 months of age, while Y began achieving this milestone at 8 months. A was able to cruise at 9 months of age, while S reached that milestone at 10 months, with Y just behind. Learning to walk showed the most variation, with S walking after 10 months, A after 13 months, and Y after 16 months of age.
+
+We examined the SAYcam participants' age of reaching particular developmental milestones (sitting, cruising, and walking) significantly influenced the proportion of hands or faces that they saw, using a mixed-effects regression with per-child random intercepts.
+We tried including random slopes by age and milestone, but the models did not converge and/or were singular. Thus, for each milestone the R syntax was: \textit{prop_faces ~ age * milestone + (1 | child_id)}. Children's age of achieving each milestone was dummy-coded (i.e., 0=milestone not reached; 1=milestone reached).
+
+We then used a discontinuity analysis to estimate whether the onset of each of these three motor milestones changed the proportion of faces/hands in each chid's view. Specifically, we used mixed-effects regressions with per-child random intercepts to estimate whether children's age (in months), each motor milestone, and their interaction significantly influenced the proportion of hands or faces that each child saw.
+
+Overall, we did not find strong effects based on these motor milestones. We found that the age at which these children began sitting did not significantly predict changes in either the amount of faces or hands that they saw. As children became able to cruise, they saw more faces ($\beta = 0.27$) and hands ($\beta = 0.26$). For faces, however, there was also a significant negative interaction of age and cruising ($\beta = -0.03$, $p=0.025$), and a marginal positive effect of age ($\beta = 0.03$, $p=0.055$). We did not find major differences with the onset of walking.  
+
+```{r, get-milestones, echo=F}
+motor <- read_csv(here::here("data","raw_data", "saycam_walking_asq.csv"))
+# A and S are sitting at 6mos
+face_hand_by_age_milestones <- face_hand_by_age %>%
+  mutate(sit = ifelse(child_id=="S" | child_id=="A", 1, 
+                      ifelse(child_id=="Y" & age_day_bin > 8, 1, 0))) %>%
+  mutate(cruise = ifelse((child_id=="S" & age_day_bin >= 9) | 
+                      (child_id=="A" & age_day_bin >= 10) | 
+                      (child_id=="Y" & age_day_bin > 9), 1, 0)) %>%
+  mutate(walk = ifelse((child_id=="S" & age_day_bin > 10) |
+                       (child_id=="A" & age_day_bin > 13) |
+                       (child_id=="Y" & age_day_bin > 16), 1, 0)) %>%
+  mutate(age = age_day_bin)
+
+library(lmerTest)
+# https://rpsychologist.com/r-guide-longitudinal-lme-lmer
+# with random slopes and intercepts ((age_day_bin | child_id): is singular / not converging
+# so we drop random slopes
+
+face_all <- lmer(prop_faces ~ age * (sit + cruise + walk) + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+#summary(face_all) # cruise+ age:cruise-
+
+hand_all <- lmer(prop_hands ~ age * (sit + cruise + walk) + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+#summary(hand_all) # cruise+ age:cruise-.
+
+face_sit <- lmer(prop_faces ~ age * sit + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+hand_sit <- lmer(prop_hands ~ age * sit + (1 | child_id), 
+     data=face_hand_by_age_milestones) 
+
+face_cruise <- lmer(prop_faces ~ age * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_cruise <- lmer(prop_hands ~ age * cruise + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+
+face_walk <- lmer(prop_faces ~ age * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+hand_walk <- lmer(prop_hands ~ age * walk + (1 | child_id), 
+     data=face_hand_by_age_milestones)
+# make models compatible with stargazer
+class(face_sit) <- "lmerMod"
+class(hand_sit) <- "lmerMod"
+class(face_cruise) <- "lmerMod"
+class(hand_cruise) <- "lmerMod"
+class(face_walk) <- "lmerMod"
+class(hand_walk) <- "lmerMod"
+```
+
+### Sitting
+
+```{r, include=F, results='asis'}
+#summary(face_sit) # ns
+stargazer(face_sit, title="Predicting Faces by Ability to Sit", 
+          header=F, dep.var.labels = "Proportion of Faces")
+
+stargazer(face_sit, hand_sit)
+```
+
+```{r, include=F, results='asis'}
+#summary(hand_sit) # ns
+stargazer(hand_sit, title="Predicting Hands by Ability to Sit", 
+          header=F, dep.var.labels = "Proportion of Hands")
+```
+
+```{r, results='asis'}
+stargazer(face_sit, hand_sit, title="Change in Face and Hand Prevalence by Ability to Sit", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
+
+### Cruising
+
+```{r, include=F, results='asis'}
+#summary(face_cruise) 
+# age+., cruise+*, age*cruise-*
+stargazer(face_cruise, title="Predicting Faces by Ability to Cruise", 
+          header=F, dep.var.labels = "Proportion of Faces")
+```
+
+
+```{r, include=F}
+f1 <- ggpredict(face_cruise, c("age", "cruise")) %>% plot(add.data=T) +
+  xlim(5, 24) + ylim(0,1) + ggtitle("Predicted effect on faces seen") + 
+  xlab("Age (months)") + ylab("Proportion of faces") 
+
+h1 <- ggpredict(hand_cruise, c("age", "cruise")) %>% plot(add.data=T) +
+  xlim(5, 24) + ylim(0,1) + ggtitle("Predicted effect on hands seen") + 
+  xlab("Age (months)") + ylab("Proportion of hands") 
+
+ggpubr::ggarrange(f1, h1, nrow=1, common.legend=T)
+```
+
+
+```{r, include=F, results='asis'}
+#summary(hand_cruise) 
+# cruise+*, age*cruise-.
+stargazer(hand_cruise, title="Predicting Hands by Ability to Cruise", 
+          header=F, dep.var.labels = "Proportion of Hands") 
+```
+
+```{r, results='asis'}
+stargazer(face_cruise, hand_cruise, title="Change in Face and Hand Prevalence by Ability to Cruise", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
+
+
+### Walking
+
+```{r, include=F, results='asis'}
+#summary(face_walk) # ns
+stargazer(face_walk, title="Predicting Faces by Ability to Walk", 
+          header=F, dep.var.labels = "Proportion of Faces")
+```
+
+
+```{r, include=F, results='asis'}
+#summary(hand_walk) # walk+.
+stargazer(hand_walk, title="Predicting Hands by Ability to Walk", 
+          header=F, dep.var.labels = "Proportion of Hands")
+```
+
+```{r, results='asis'}
+stargazer(face_walk, hand_walk, title="Change in Face and Hand Prevalence by Ability to Walk", 
+          header=F, dep.var.labels = c("Proportion of Faces","Proportion of Hands"), nobs=F)
+```
+
+
+
+
