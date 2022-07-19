@@ -284,18 +284,32 @@ ggsave('figs_publication_final/figurea2_handdensity.pdf', width = 7.2, height = 
 
 
 ## A3 Location of OpenPose False Positives
-Below we visualize the locations of the 1229 faces (in 1093 frames) that OpenPose detected in the gold set frames that were not actually there, as well as the 1778 OpenPose false positive hands (in 1237 frames) from the gold set.
+
+
+```{r}
+load(here::here('data/preprocessed_data_2022/gold_sample_all_indiivdual_dets.RData'))
+
+ddd <- gold_sample_all_dets %>%  # has bounding box info
+  left_join(gold_sample %>% select(frame, vid_name, face_eval_ketan, hand_eval_ketan)) %>%
+    mutate(x=left+0.5*width, y=top+0.5*height)  # gold_sample has manual annotations merged
+
+fp_faces <-  ddd %>% 
+  filter(face_eval_ketan=="F", label=="face") 
+
+fp_hands <-  ddd %>% 
+  filter(hand_eval_ketan=="FP", label=="hand") 
+```
+
+
+Below we visualize the locations of the `r length(fp_faces)` faces in `r length(unique(fp_faces$frame))` frames that OpenPose detected in the gold set frames that were not actually there, as well as the `r length(fp_hands)`  OpenPose false positive hands (in `r length(unique(fp_hands$frame))` frames) from the gold set.
 The average location of OpenPose's false positives for both faces (left) and hands (right) are somewhat more common in the center of the frame, but some are scattered across the frame.
 Qualitatively, the location of these false positives do not look much different than the true positive detections. 
 
+
 ```{r density-op-fps, fig.width=6.5, fig.height=3.2, fig.cap="Density plot of the locations of false positives for OpenPose detections for faces (left) and hands (right) in the gold set."}
-load(here::here('data/preprocessed_data_2022/gold_sample_all_indiivdual_dets.RData'))
-ddd <- gold_sample_all_dets %>% left_join(gold_sample %>% select(frame, vid_name, face_eval_ketan, hand_eval_ketan))
 
 # density plot of OP's false positive face/hand locations
-p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
-  mutate(x=left+0.5*width,
-         y=top+0.5*height) %>% 
+p1 <- fp_faces %>%
   ggplot(aes(x=x, y=y, fill=..level..)) + 
   theme_few(base_size=10) +
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
@@ -304,9 +318,7 @@ p1 <- ddd %>% filter(face_eval_ketan=="FP", label=="face") %>%
   ggtitle("Face False Positives") + theme(legend.position = "none") +
   scale_y_reverse() + xlim(-.05,1.05) + ylim(1.05,-.05)
 
-p2 <- ddd %>% filter(hand_eval_ketan=="FP", label=="hand") %>%
-  mutate(x=left+0.5*width,
-         y=top+0.5*height) %>% # top-left is 0,0
+p2 <- fp_hands %>%
   ggplot(aes(x=x, y=y, fill=..level..)) + 
   theme_few(base_size=10) +
   stat_density_2d(geom = "polygon") + xlim(-.05,1.05) + ylim(-.05,1.0) + 
@@ -320,7 +332,6 @@ ggpubr::ggarrange(p1, p2)
 ggsave('figs_publication_final/figurea3_op_falsepositives.pdf', width = 7.2, height = 3.4)
 
 ```
-
 
 
 ## A4 Detection threshold estimations
@@ -743,7 +754,7 @@ meta_long %>% filter(Activity!="N/A", Activity!="Consequence", Activity!="Kickin
   geom_tile() + theme_few(base_size=11) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave('figs_publication_final/figurea8_activities_by_location.pdf', width = 7.2 , height = 4)
+# ggsave('figs_publication_final/figurea8_activities_by_location.pdf', width = 7.2 , height = 4)
 
 ```
 
@@ -756,23 +767,28 @@ meta_long_1loc %>%
   summarise(n = n()) %>% 
   ggplot(aes(x=Activity, y=Location, fill=n)) +
   geom_tile() +
+  theme_few(base_size=10) +
+  scale_fill_continuous(name = "Count") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave('figs_publication_final/figurea8b_activities_by_single_location.pdf', width = 7.2, height = 4)
+ggsave('figs_publication_final/figurea8a_activities_by_single_location.pdf', width = 7.2, height = 4)
 
 ```
 
 
 ```{r, fig.width=6.5, fig.height=3.0, fig.cap="Probability of different activities, given location (in single-location videos)."}
 # normalize by location
+loc_freq_out = loc_freq
 meta_long_1loc %>% 
-  mutate(Location = factor(Location, levels=names(loc_freq))) %>%
   left_join(meta_long_1loc %>% group_by(Location) %>% summarise(loc_freq = n())) %>%
   group_by(Activity, Location) %>%
   summarise(n = n(),
             prop_loc = n / loc_freq) %>% 
+  mutate(Location = factor(Location, levels=names(loc_freq_out))) %>%
   ggplot(aes(x=Activity, y=Location, fill=prop_loc)) +
   geom_tile() +
+  theme_few(base_size=10) +
+  scale_fill_continuous(name = "Prob.") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggsave('figs_publication_final/figurea8b_prob_activity_by_single_location.pdf', width = 7.2, height = 4)
