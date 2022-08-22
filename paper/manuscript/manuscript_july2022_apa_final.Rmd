@@ -33,9 +33,7 @@ affiliation:
 
 ---
 
-```{r setup, include = FALSE}
-library("papaja")
-```
+
 
 
 ```{r global_options, include=FALSE}
